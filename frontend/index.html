@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <title>Now Playing - Live</title>
+        <link rel="stylesheet" href="./style.css" />
+        <script type="module" src="./main.js"></script>
+    </head>
+    <body>
+        <div id="app">
+            <h1>{{ info.title || '–' }}</h1>
+            <h2>{{ info.artist || '–' }}</h2>
+            <p>{{ info.album || '–' }}</p>
+
+            <!-- 进度条 -->
+            <div class="progress">
+                <div class="bar" :style="{ width: info.pct + '%' }"></div>
+            </div>
+
+            <!-- 时长 -->
+            <p class="time">
+                {{ fmtTime(info.position) }} / {{ fmtTime(info.duration) }}
+            </p>
+        </div>
+    </body>
+</html>
