@@ -1,8 +1,13 @@
+use rust_embed::RustEmbed;
 use serde::Serialize;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::task;
-use warp::Filter;
+use warp::{path::Tail, Filter};
+
+#[derive(RustEmbed)]
+#[folder = "frontend"]
+struct Asset;
 
 #[derive(Default, Clone, Serialize)]
 struct Song {
@@ -26,14 +31,33 @@ async fn main() {
 
     // JSON 接口
     let api = warp::path!("api" / "now")
-        .and(with_state(state.clone()))
+        .and(with_state(state))
         .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
 
-    // 静态文件托管（Vue 3 前端）
-    let fe = warp::fs::dir("frontend");
+    // 静态文件托管（内存 embed）
+    let static_files = warp::path::tail().and_then(serve_embed);
 
     println!("Server running at http://localhost:3030");
-    warp::serve(api.or(fe)).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(api.or(static_files))
+        .run(([127, 0, 0, 1], 3030))
+        .await;
+}
+
+/* ---------- 内存静态文件托管 ---------- */
+async fn serve_embed(tail: Tail) -> Result<impl warp::Reply, warp::Rejection> {
+    let path = tail.as_str();
+    let path = if path.is_empty() { "index.html" } else { path };
+    match Asset::get(path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            Ok(warp::reply::with_header(
+                content.data.to_vec(),
+                "content-type",
+                mime.as_ref(),
+            ))
+        }
+        None => Err(warp::reject::not_found()),
+    }
 }
 
 fn with_state(
@@ -53,15 +77,14 @@ fn smtc_worker(state: Shared) {
 
     loop {
         if let Ok(session) = manager.GetCurrentSession() {
-            // 1. 元数据
+            // 元数据
             if let Ok(info) = session.TryGetMediaPropertiesAsync().unwrap().get() {
                 let mut s = state.write().unwrap();
                 s.title = info.Title().unwrap_or_default().to_string();
                 s.artist = info.Artist().unwrap_or_default().to_string();
                 s.album = info.AlbumTitle().unwrap_or_default().to_string();
             }
-
-            // 2. 进度（可选）
+            // 进度
             if let Ok(timeline) = session.GetTimelineProperties() {
                 let pos = timeline.Position().unwrap().Duration;
                 let dur = timeline.EndTime().unwrap().Duration;

@@ -1,7 +1,4 @@
-import {
-  createApp,
-  reactive,
-} from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+import { createApp, reactive } from "./vue.esm-browser.js";
 
 createApp({
   setup() {
