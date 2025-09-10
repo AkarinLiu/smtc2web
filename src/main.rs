@@ -9,7 +9,7 @@ use warp::{path::Tail, Filter};
 #[folder = "frontend"]
 struct Asset;
 
-#[derive(Default, Clone, Serialize)]
+#[derive(Default, Clone, Serialize, PartialEq)]
 struct Song {
     title: String,
     artist: String,
@@ -17,6 +17,8 @@ struct Song {
     position: Option<u64>,
     duration: Option<u64>,
     pct: Option<u8>,
+    is_playing: bool,
+    last_update: u64, // 时间戳用于强制更新
 }
 
 type Shared = Arc<RwLock<Song>>;
@@ -69,21 +71,44 @@ fn with_state(
 // -------------------- 后台轮询 --------------------
 fn smtc_worker(state: Shared) {
     use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
-    let manager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync()
-        .unwrap()
-        .get()
-        .unwrap();
+    let manager = match GlobalSystemMediaTransportControlsSessionManager::RequestAsync()
+        .and_then(|f| f.get()) {
+        Ok(m) => m,
+        Err(_) => {
+            eprintln!("Failed to get session manager");
+            return;
+        }
+    };
+
+    let mut last_song = Song::default();
+    let mut last_position = None;
+    let mut no_change_count = 0;
 
     loop {
+        let mut current_song = Song::default();
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        current_song.last_update = timestamp;
+
         if let Ok(session) = manager.GetCurrentSession() {
-            // 元数据
-            if let Ok(info) = session.TryGetMediaPropertiesAsync().unwrap().get() {
-                let mut s = state.write().unwrap();
-                s.title = info.Title().unwrap_or_default().to_string();
-                s.artist = info.Artist().unwrap_or_default().to_string();
-                s.album = info.AlbumTitle().unwrap_or_default().to_string();
+            // 获取播放状态
+            if let Ok(playback_info) = session.GetPlaybackInfo() {
+                use windows::Media::Control::GlobalSystemMediaTransportControlsSessionPlaybackStatus;
+                current_song.is_playing = playback_info.PlaybackStatus().unwrap_or_default() == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
             }
+            
+            // 元数据
+            if let Ok(info) = session.TryGetMediaPropertiesAsync()
+                .and_then(|f| f.get()) {
+                current_song.title = info.Title().unwrap_or_default().to_string();
+                current_song.artist = info.Artist().unwrap_or_default().to_string();
+                current_song.album = info.AlbumTitle().unwrap_or_default().to_string();
+            }
+            
             // 进度
             if let Ok(timeline) = session.GetTimelineProperties() {
                 let pos = timeline.Position().unwrap().Duration;
@@ -91,18 +116,49 @@ fn smtc_worker(state: Shared) {
                 let pos_s = pos / 10_000_000;
                 let dur_s = dur / 10_000_000;
 
-                let mut s = state.write().unwrap();
                 if dur != 0 {
-                    s.position = Some(pos_s as u64);
-                    s.duration = Some(dur_s as u64);
-                    s.pct = Some(((pos_s * 100) / dur_s).min(100) as u8);
+                    current_song.position = Some(pos_s as u64);
+                    current_song.duration = Some(dur_s as u64);
+                    current_song.pct = Some(((pos_s * 100) / dur_s).min(100) as u8);
                 } else {
-                    s.position = None;
-                    s.duration = None;
-                    s.pct = None;
+                    current_song.position = None;
+                    current_song.duration = None;
+                    current_song.pct = None;
                 }
             }
         }
-        std::thread::sleep(Duration::from_secs(1));
+
+        // 智能更新逻辑
+        let should_update = if current_song.is_playing != last_song.is_playing {
+            // 播放状态变化，立即更新
+            true
+        } else if current_song.position != last_position {
+            // 位置变化，更新
+            true
+        } else if !current_song.is_playing && no_change_count < 10 {
+            // 暂停状态下，前几次继续更新以确保状态同步
+            no_change_count += 1;
+            true
+        } else {
+            // 其他情况，检查是否需要强制更新
+            timestamp.saturating_sub(last_song.last_update) > 5 // 5秒强制更新一次
+        };
+
+        if should_update {
+            let mut s = state.write().unwrap();
+            *s = current_song.clone();
+            last_song = current_song.clone();
+            last_position = current_song.position;
+            no_change_count = 0;
+        }
+
+        // 动态调整轮询间隔
+        let sleep_duration = if current_song.is_playing {
+            Duration::from_millis(100) // 播放时更频繁更新
+        } else {
+            Duration::from_millis(200) // 暂停时减少频率
+        };
+        
+        std::thread::sleep(sleep_duration);
     }
 }
