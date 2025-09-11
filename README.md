@@ -4,6 +4,10 @@
 
 ![OBS 接入 smtc2web 截图](./screenshot.png)
 
+> 注意：新增的图标为 Qwen3-Max-Preview 生成。
+
+![图标](./frontend/icon.png)
+
 ## 下载
 
 你可以从 GitHub Release 获取，下载后记得校验哈希值，防止软件被篡改。

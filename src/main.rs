@@ -1,6 +1,9 @@
+mod config;
+mod console;
+
 use rust_embed::RustEmbed;
 use serde::Serialize;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 use tokio::task;
 use warp::{path::Tail, Filter};
@@ -25,11 +28,37 @@ type Shared = Arc<RwLock<Song>>;
 
 #[tokio::main]
 async fn main() {
-    let state: Shared = Arc::default();
+    // 检查是否是重启后的实例
+    let args: Vec<String> = std::env::args().collect();
+    let is_restarted = args.contains(&"--restarted".to_string());
+    
+    if is_restarted {
+        println!("应用程序已重启");
+        // 等待一小段时间确保前一个实例完全退出
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    }
+    
+    // 加载配置
+    let config = Arc::new(Mutex::new(config::Config::load()));
+    
+    // 根据配置决定是否隐藏控制台
+    {
+        let config_guard = config.lock().unwrap();
+        if !config_guard.show_console {
+            console::hide_console();
+        }
+    }
 
-    // 后台轮询
+    // 启动 Web 服务器
+    let state: Shared = Arc::default();
     let st = state.clone();
     task::spawn_blocking(move || smtc_worker(st));
+
+    // 获取服务器端口
+    let port = {
+        let config_guard = config.lock().unwrap();
+        config_guard.server_port
+    };
 
     // JSON 接口
     let api = warp::path!("api" / "now")
@@ -39,10 +68,20 @@ async fn main() {
     // 静态文件托管（内存 embed）
     let static_files = warp::path::tail().and_then(serve_embed);
 
-    println!("Server running at http://localhost:3030");
-    warp::serve(api.or(static_files))
-        .run(([127, 0, 0, 1], 3030))
-        .await;
+    println!("Server running at http://localhost:{}", port);
+    
+    // 在单独的线程中运行 Web 服务器
+    let server_handle = std::thread::spawn(move || {
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(async {
+            warp::serve(api.or(static_files))
+                .run(([127, 0, 0, 1], port))
+                .await;
+        });
+    });
+
+    // 等待 Web 服务器线程结束（理论上不会到达这里）
+    let _ = server_handle.join();
 }
 
 /* ---------- 内存静态文件托管 ---------- */
