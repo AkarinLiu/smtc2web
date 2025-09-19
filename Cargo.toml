@@ -1,6 +1,6 @@
 [package]
 name = "smtc2web"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 
 [dependencies]
@@ -13,8 +13,9 @@ rust-embed = "8.0"
 mime_guess = "2.0"
 toml = "0.8"
 dirs = "5.0"
-tray-item = "0.10.0"
 shell_exec = "0.2.1"
+systray = "0.4.0"
+open = "5.0"
 
 [dependencies.windows]
 version = "0.58"

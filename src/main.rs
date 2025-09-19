@@ -1,5 +1,6 @@
 mod config;
 mod console;
+mod tray;
 
 use rust_embed::RustEmbed;
 use serde::Serialize;
@@ -77,8 +78,12 @@ async fn main() {
 
     println!("Server running at http://localhost:{}", port);
     
+    // 启动托盘
+    let tray_manager = tray::TrayManager::new(port);
+    tray_manager.start();
+    
     // 在单独的线程中运行 Web 服务器
-    let server_handle = std::thread::spawn(move || {
+    let _server_handle = std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         runtime.block_on(async {
             warp::serve(api.or(static_files))
@@ -87,8 +92,13 @@ async fn main() {
         });
     });
 
-    // 等待 Web 服务器线程结束（理论上不会到达这里）
-    let _ = server_handle.join();
+    // 主循环：检查托盘退出状态
+    while !tray_manager.should_exit() {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    
+    // 如果托盘要求退出，优雅地关闭服务器
+    println!("Shutting down server...");
 }
 
 /* ---------- 内存静态文件托管 ---------- */
