@@ -17,11 +17,18 @@ struct Song {
     title: String,
     artist: String,
     album: String,
-    position: Option<u64>,
-    duration: Option<u64>,
+    position: Option<String>,
+    duration: Option<String>,
     pct: Option<u8>,
     is_playing: bool,
     last_update: u64, // 时间戳用于强制更新
+}
+
+// 将秒数格式化为 MM:SS 格式
+fn format_duration(seconds: u64) -> String {
+    let minutes = seconds / 60;
+    let secs = seconds % 60;
+    format!("{:02}:{:02}", minutes, secs)
 }
 
 type Shared = Arc<RwLock<Song>>;
@@ -122,7 +129,7 @@ fn smtc_worker(state: Shared) {
     };
 
     let mut last_song = Song::default();
-    let mut last_position = None;
+    let mut last_position = None::<String>;
     let mut no_change_count = 0;
 
     loop {
@@ -156,8 +163,8 @@ fn smtc_worker(state: Shared) {
                 let dur_s = dur / 10_000_000;
 
                 if dur != 0 {
-                    current_song.position = Some(pos_s as u64);
-                    current_song.duration = Some(dur_s as u64);
+                    current_song.position = Some(format_duration(pos_s as u64));
+                    current_song.duration = Some(format_duration(dur_s as u64));
                     current_song.pct = Some(((pos_s * 100) / dur_s).min(100) as u8);
                 } else {
                     current_song.position = None;

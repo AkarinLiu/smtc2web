@@ -6,23 +6,11 @@ createApp({
       title: null,
       artist: null,
       album: null,
-      position: 0,
-      duration: 0,
+      position: "00:00",
+      duration: "00:00",
       pct: 0,
       is_playing: false,
     });
-
-    // 格式化秒 → mm:ss
-    function fmtTime(sec) {
-      if (sec == null || sec < 0) return "--";
-      const m = Math.floor(sec / 60)
-        .toString()
-        .padStart(2, "0");
-      const s = Math.floor(sec % 60)
-        .toString()
-        .padStart(2, "0");
-      return `${m}:${s}`;
-    }
 
 let lastData = {};
 
@@ -50,6 +38,6 @@ let lastData = {};
     }
 
     poll(); // 启动
-    return { info, fmtTime };
+    return { info };
   },
 }).mount("#app");

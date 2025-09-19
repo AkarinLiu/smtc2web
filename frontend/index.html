@@ -20,7 +20,7 @@
 
             <!-- 时长 -->
             <p class="time text-outline">
-                {{ fmtTime(info.position) }} / {{ fmtTime(info.duration) }}
+                {{ info.position || '00:00' }} / {{ info.duration || '00:00' }}
             </p>
         </div>
     </body>
