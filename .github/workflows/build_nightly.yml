@@ -1,0 +1,23 @@
+name: Build Nightly
+on:
+  workflow_run:
+    schedule:
+      - cron: "0 16 * * *"
+    branches:
+      - "nightly"
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - run: cargo build --release
+      - uses: upload-artifact@v2
+        with:
+          name: smtc2web-nightly
+          path: target/release/smtc2web.exe
