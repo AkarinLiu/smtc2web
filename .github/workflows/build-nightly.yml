@@ -1,0 +1,27 @@
+name: Build Nightly
+on:
+  schedule:
+    - cron: "0 16 * * *"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Nightly
+        uses: actions/checkout@v4
+        with:
+          ref: nightly
+          fetch-depth: 0
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - name: Build Nightly
+        run: cargo build --release
+      - name: Upload Nightly
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly
+          path: target/release/smtc2web.exe
