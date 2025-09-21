@@ -1565,7 +1565,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "smtc2web"
-version = "0.1.8"
+version = "0.1.9-nightly1"
 dependencies = [
  "dirs",
  "humantime 2.2.0",
