@@ -20,7 +20,7 @@ struct Song {
     album: String,
     position: Option<String>,
     duration: Option<String>,
-    pct: Option<u8>,
+    pct: Option<f64>, // 修改为f64类型以支持小数
     is_playing: bool,
     last_update: u64, // 时间戳用于强制更新
 }
@@ -39,16 +39,16 @@ async fn main() {
     // 检查是否是重启后的实例
     let args: Vec<String> = std::env::args().collect();
     let is_restarted = args.contains(&"--restarted".to_string());
-    
+
     if is_restarted {
         println!("应用程序已重启");
         // 等待一小段时间确保前一个实例完全退出
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
-    
+
     // 加载配置
     let config = Arc::new(Mutex::new(config::Config::load()));
-    
+
     // 根据配置决定是否隐藏控制台
     {
         let config_guard = config.lock().unwrap();
@@ -77,11 +77,11 @@ async fn main() {
     let static_files = warp::path::tail().and_then(serve_embed);
 
     println!("Server running at http://localhost:{}", port);
-    
+
     // 启动托盘
     let tray_manager = tray::TrayManager::new(port);
     tray_manager.start();
-    
+
     // 在单独的线程中运行 Web 服务器
     let _server_handle = std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().unwrap();
@@ -96,7 +96,7 @@ async fn main() {
     while !tray_manager.should_exit() {
         std::thread::sleep(std::time::Duration::from_millis(100));
     }
-    
+
     // 如果托盘要求退出，优雅地关闭服务器
     println!("Shutting down server...");
 }
@@ -126,11 +126,12 @@ fn with_state(
 
 // -------------------- 后台轮询 --------------------
 fn smtc_worker(state: Shared) {
-    use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
     use std::time::{SystemTime, UNIX_EPOCH};
+    use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
 
     let manager = match GlobalSystemMediaTransportControlsSessionManager::RequestAsync()
-        .and_then(|f| f.get()) {
+        .and_then(|f| f.get())
+    {
         Ok(m) => m,
         Err(_) => {
             eprintln!("Failed to get session manager");
@@ -154,17 +155,17 @@ fn smtc_worker(state: Shared) {
             // 获取播放状态
             if let Ok(playback_info) = session.GetPlaybackInfo() {
                 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionPlaybackStatus;
-                current_song.is_playing = playback_info.PlaybackStatus().unwrap_or_default() == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
+                current_song.is_playing = playback_info.PlaybackStatus().unwrap_or_default()
+                    == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
             }
-            
+
             // 元数据
-            if let Ok(info) = session.TryGetMediaPropertiesAsync()
-                .and_then(|f| f.get()) {
+            if let Ok(info) = session.TryGetMediaPropertiesAsync().and_then(|f| f.get()) {
                 current_song.title = info.Title().unwrap_or_default().to_string();
                 current_song.artist = info.Artist().unwrap_or_default().to_string();
                 current_song.album = info.AlbumTitle().unwrap_or_default().to_string();
             }
-            
+
             // 进度
             if let Ok(timeline) = session.GetTimelineProperties() {
                 let pos = timeline.Position().unwrap().Duration;
@@ -175,7 +176,8 @@ fn smtc_worker(state: Shared) {
                 if dur != 0 {
                     current_song.position = Some(format_duration(pos_s as u64));
                     current_song.duration = Some(format_duration(dur_s as u64));
-                    current_song.pct = Some(((pos_s * 100) / dur_s).min(100) as u8);
+                    let percentage = (pos_s as f64 * 100.0) / dur_s as f64;
+                    current_song.pct = Some((percentage * 10.0).round() / 10.0);
                 } else {
                     current_song.position = None;
                     current_song.duration = None;
@@ -214,7 +216,7 @@ fn smtc_worker(state: Shared) {
         } else {
             Duration::from_millis(200) // 暂停时减少频率
         };
-        
+
         std::thread::sleep(sleep_duration);
     }
 }
