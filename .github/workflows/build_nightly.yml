@@ -2,7 +2,8 @@ name: Build Nightly
 on:
   workflow_run:
     schedule:
-      - cron: "0 16 * * *"
+      - cron: "0 0 * * *"
+      - timezone: Asia/Shanghai
     branches:
       - nightly
 
@@ -17,7 +18,7 @@ jobs:
           profile: minimal
           override: true
       - run: cargo build --release
-      - uses: upload-artifact@v2
+      - uses: upload-artifact@v4
         with:
           name: smtc2web-nightly
           path: target/release/smtc2web.exe
