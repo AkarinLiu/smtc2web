@@ -21,4 +21,4 @@ jobs:
       - uses: upload-artifact@v4
         with:
           name: smtc2web-nightly
-          path: target/release/smtc2web.exe
+          path: AkarinLiu/smtc2web/target/release/smtc2web.exe
