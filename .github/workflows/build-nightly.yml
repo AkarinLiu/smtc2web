@@ -20,6 +20,11 @@ jobs:
           override: true
       - name: Build Nightly
         run: cargo build --release
+      - name: VirusTotal Scan
+        uses: crazymax/ghaction-virustotal@v4
+        with:
+          vt_api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          files: target/release/smtc2web.exe
       - name: Upload Nightly
         uses: actions/upload-artifact@v4
         with:
