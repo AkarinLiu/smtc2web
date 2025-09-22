@@ -21,7 +21,7 @@ jobs:
       - name: Build Nightly
         run: cargo build --release
       - name: VirusTotal Scan
-        uses: crazymax/ghaction-virustotal@v4
+        uses: crazy-max/ghaction-virustotal@v4.2.0
         with:
           vt_api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
           files: target/release/smtc2web.exe
