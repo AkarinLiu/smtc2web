@@ -8,6 +8,9 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 use tokio::task;
 use warp::{path::Tail, Filter};
+use windows::Win32::Foundation::HANDLE;
+use windows::Win32::System::Threading::CreateMutexW;
+use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_OK, MB_ICONERROR};
 
 #[derive(RustEmbed)]
 #[folder = "frontend"]
@@ -36,6 +39,15 @@ type Shared = Arc<RwLock<Song>>;
 
 #[tokio::main]
 async fn main() {
+    // 单进程检测 - 确保只有一个实例运行
+    let _mutex_handle = match check_single_instance() {
+        Ok(handle) => handle,
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        }
+    };
+
     // 检查是否是重启后的实例
     let args: Vec<String> = std::env::args().collect();
     let is_restarted = args.contains(&"--restarted".to_string());
@@ -122,6 +134,46 @@ fn with_state(
     s: Shared,
 ) -> impl Filter<Extract = (Shared,), Error = std::convert::Infallible> + Clone {
     warp::any().map(move || s.clone())
+}
+
+// -------------------- 单进程检测 --------------------
+fn check_single_instance() -> Result<HANDLE, String> {
+    unsafe {
+        let mutex_name = "smtc2web_single_instance_mutex";
+        let mutex_name_wide: Vec<u16> = mutex_name.encode_utf16().chain(Some(0)).collect();
+        
+        let handle = CreateMutexW(None, true, windows::core::PCWSTR::from_raw(mutex_name_wide.as_ptr()));
+        
+        match handle {
+            Ok(h) => {
+                // 检查错误码来判断是否已存在
+                use windows::Win32::Foundation::ERROR_ALREADY_EXISTS;
+                use windows::Win32::Foundation::GetLastError;
+                
+                let error_code = GetLastError();
+                
+                if error_code == ERROR_ALREADY_EXISTS {
+                    // 显示错误消息框
+                    let title = "smtc2web";
+                    let message = "程序已经在运行中，请勿重复启动！";
+                    let title_wide: Vec<u16> = title.encode_utf16().chain(Some(0)).collect();
+                    let message_wide: Vec<u16> = message.encode_utf16().chain(Some(0)).collect();
+                    
+                    MessageBoxW(
+                        None,
+                        windows::core::PCWSTR::from_raw(message_wide.as_ptr()),
+                        windows::core::PCWSTR::from_raw(title_wide.as_ptr()),
+                        MB_OK | MB_ICONERROR
+                    );
+                    
+                    return Err("程序已在运行".to_string());
+                }
+                
+                Ok(h)
+            }
+            Err(_) => Err("创建互斥量失败".to_string())
+        }
+    }
 }
 
 // -------------------- 后台轮询 --------------------
