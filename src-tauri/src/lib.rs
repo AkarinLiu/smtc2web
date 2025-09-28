@@ -261,10 +261,6 @@ pub fn run() {
 
     println!("Server running at http://localhost:{}", port);
 
-    // 启动托盘
-    let tray_manager = tray::TrayManager::new(port);
-    tray_manager.start();
-
     // 在Tokio运行时中启动Web服务器
     let _server_handle = runtime.spawn(async move {
         warp::serve(api.or(static_files))
@@ -272,10 +268,16 @@ pub fn run() {
             .await;
     });
 
-    // 使用 Tauri 应用程序
+    // 使用 Tauri 应用程序，配置托盘事件处理
+    let port_clone = port;
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![greet])
+        .setup(move |app| {
+            // 创建系统托盘图标并配置事件处理
+            tray::create_tray_icon(app.handle(), port_clone)?;
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 
