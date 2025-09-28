@@ -6,6 +6,7 @@ use rust_embed::RustEmbed;
 
 #[derive(RustEmbed)]
 #[folder = "frontend"]
+#[allow(dead_code)] // 这个结构体在当前版本中未被使用
 struct Asset;
 
 pub struct TrayManager {
@@ -30,6 +31,7 @@ impl TrayManager {
         });
     }
 
+    #[allow(dead_code)] // 这个方法在当前版本中未被使用
     pub fn should_exit(&self) -> bool {
         self.should_exit.load(Ordering::Relaxed)
     }

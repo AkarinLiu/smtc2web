@@ -1,16 +1,17 @@
-mod config;
-mod console;
-mod tray;
+// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
 use rust_embed::RustEmbed;
 use serde::Serialize;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
-use tokio::task;
 use warp::{path::Tail, Filter};
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::System::Threading::CreateMutexW;
 use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_OK, MB_ICONERROR};
+
+mod config;
+mod console;
+mod tray;
 
 #[derive(RustEmbed)]
 #[folder = "frontend"]
@@ -37,82 +38,6 @@ fn format_duration(seconds: u64) -> String {
 
 type Shared = Arc<RwLock<Song>>;
 
-#[tokio::main]
-async fn main() {
-    // 单进程检测 - 确保只有一个实例运行
-    let _mutex_handle = match check_single_instance() {
-        Ok(handle) => handle,
-        Err(e) => {
-            eprintln!("{}", e);
-            std::process::exit(1);
-        }
-    };
-
-    // 检查是否是重启后的实例
-    let args: Vec<String> = std::env::args().collect();
-    let is_restarted = args.contains(&"--restarted".to_string());
-
-    if is_restarted {
-        println!("应用程序已重启");
-        // 等待一小段时间确保前一个实例完全退出
-        std::thread::sleep(std::time::Duration::from_millis(500));
-    }
-
-    // 加载配置
-    let config = Arc::new(Mutex::new(config::Config::load()));
-
-    // 根据配置决定是否隐藏控制台
-    {
-        let config_guard = config.lock().unwrap();
-        if !config_guard.show_console {
-            console::hide_console();
-        }
-    }
-
-    // 启动 Web 服务器
-    let state: Shared = Arc::default();
-    let st = state.clone();
-    task::spawn_blocking(move || smtc_worker(st));
-
-    // 获取服务器端口
-    let port = {
-        let config_guard = config.lock().unwrap();
-        config_guard.server_port
-    };
-
-    // JSON 接口
-    let api = warp::path!("api" / "now")
-        .and(with_state(state))
-        .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
-
-    // 静态文件托管（内存 embed）
-    let static_files = warp::path::tail().and_then(serve_embed);
-
-    println!("Server running at http://localhost:{}", port);
-
-    // 启动托盘
-    let tray_manager = tray::TrayManager::new(port);
-    tray_manager.start();
-
-    // 在单独的线程中运行 Web 服务器
-    let _server_handle = std::thread::spawn(move || {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        runtime.block_on(async {
-            warp::serve(api.or(static_files))
-                .run(([127, 0, 0, 1], port))
-                .await;
-        });
-    });
-
-    // 主循环：检查托盘退出状态
-    while !tray_manager.should_exit() {
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-
-    // 如果托盘要求退出，优雅地关闭服务器
-    println!("Shutting down server...");
-}
-
 /* ---------- 内存静态文件托管 ---------- */
 async fn serve_embed(tail: Tail) -> Result<impl warp::Reply, warp::Rejection> {
     let path = tail.as_str();
@@ -125,7 +50,7 @@ async fn serve_embed(tail: Tail) -> Result<impl warp::Reply, warp::Rejection> {
                 "content-type",
                 mime.as_ref(),
             ))
-        }
+        },
         None => Err(warp::reject::not_found()),
     }
 }
@@ -170,7 +95,7 @@ fn check_single_instance() -> Result<HANDLE, String> {
                 }
                 
                 Ok(h)
-            }
+            },
             Err(_) => Err("创建互斥量失败".to_string())
         }
     }
@@ -188,7 +113,7 @@ fn smtc_worker(state: Shared) {
         Err(_) => {
             eprintln!("Failed to get session manager");
             return;
-        }
+        },
     };
 
     let mut last_song = Song::default();
@@ -271,4 +196,88 @@ fn smtc_worker(state: Shared) {
 
         std::thread::sleep(sleep_duration);
     }
+}
+
+#[tauri::command]
+fn greet(name: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    // 单进程检测 - 确保只有一个实例运行
+    let _mutex_handle = match check_single_instance() {
+        Ok(handle) => handle,
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        },
+    };
+
+    // 检查是否是重启后的实例
+    let args: Vec<String> = std::env::args().collect();
+    let is_restarted = args.contains(&"--restarted".to_string());
+
+    if is_restarted {
+        println!("应用程序已重启");
+        // 等待一小段时间确保前一个实例完全退出
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    }
+
+    // 加载配置
+    let config = Arc::new(Mutex::new(config::Config::load()));
+
+    // 根据配置决定是否隐藏控制台
+    {
+        let config_guard = config.lock().unwrap();
+        if !config_guard.show_console {
+            console::hide_console();
+        }
+    }
+
+    // 创建 Tokio 运行时
+    let runtime = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+    
+    // 启动 Web 服务器
+    let state: Shared = Arc::default();
+    let st = state.clone();
+    
+    // 在单独的线程中运行后台轮询
+    std::thread::spawn(move || smtc_worker(st));
+
+    // 获取服务器端口
+    let port = {
+        let config_guard = config.lock().unwrap();
+        config_guard.server_port
+    };
+
+    // JSON 接口
+    let api = warp::path!("api" / "now")
+        .and(with_state(state))
+        .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
+
+    // 静态文件托管（内存 embed）
+    let static_files = warp::path::tail().and_then(serve_embed);
+
+    println!("Server running at http://localhost:{}", port);
+
+    // 启动托盘
+    let tray_manager = tray::TrayManager::new(port);
+    tray_manager.start();
+
+    // 在Tokio运行时中启动Web服务器
+    let _server_handle = runtime.spawn(async move {
+        warp::serve(api.or(static_files))
+            .run(([127, 0, 0, 1], port))
+            .await;
+    });
+
+    // 使用 Tauri 应用程序
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![greet])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+
+
 }
