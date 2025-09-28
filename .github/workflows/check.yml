@@ -1,0 +1,22 @@
+name: Cargo Check
+on:
+  push:
+    branches:
+      - master
+      - nightly
+  pull_request:
+    branches:
+      - master
+      - nightly
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - run: cd src-tauri && cargo check --all-targets
