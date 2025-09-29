@@ -12,22 +12,22 @@ createApp({
       is_playing: false,
     });
 
-let lastData = {};
+    let lastData = {};
 
     async function poll() {
       try {
         const r = await fetch("/api/now");
         const data = await r.json();
-        
+
         // 简单比较数据是否变化
         if (JSON.stringify(data) !== JSON.stringify(lastData)) {
           Object.assign(info, {
             ...data,
-            pct: data.pct ?? 0,
+            pct: parseFloat((data.pct ?? 0).toFixed(1)),
           });
           lastData = data;
         }
-        
+
         // 根据播放状态动态调整轮询间隔
         const pollInterval = info.is_playing ? 100 : 200;
         setTimeout(poll, pollInterval);
