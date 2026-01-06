@@ -15,6 +15,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}  # 切换到触发流程的标签
+          submodules: true  # 检出 Git 子模块
 
       # 步骤：安装 Rust 工具链
       - name: Install Rust
