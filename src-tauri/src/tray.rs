@@ -1,4 +1,4 @@
-use tauri::tray::{TrayIconBuilder, TrayIconEvent};
+use tauri::tray::TrayIconBuilder;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::{AppHandle, Runtime};
 use std::process;
@@ -20,25 +20,7 @@ pub fn create_tray_menu<R: Runtime>(app: &AppHandle<R>) -> Menu<R> {
     ]).unwrap()
 }
 
-/// 处理托盘事件
-pub fn handle_tray_event<R: Runtime>(_app: &AppHandle<R>, event: TrayIconEvent, _port: u16) {
-    match event {
-        TrayIconEvent::Click { button, .. } => {
-            match button {
-                tauri::tray::MouseButton::Left => {
-                    // 左键点击 - 现在只显示菜单，不执行其他操作
-                    // 菜单显示已由Tauri自动处理
-                }
-                tauri::tray::MouseButton::Right => {
-                    // 右键点击弹出菜单（已由Tauri自动处理）
-                    // 这里不需要额外处理，因为菜单已经配置好了
-                }
-                _ => {}
-            }
-        }
-        _ => {}
-    }
-}
+
 
 /// 处理托盘菜单事件
 pub fn handle_tray_menu_event<R: Runtime>(_app: &AppHandle<R>, event: tauri::menu::MenuEvent, port: u16) {
@@ -86,9 +68,6 @@ pub fn create_tray_icon<R: Runtime>(
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&tray_menu)
         .show_menu_on_left_click(true) // 启用左键点击弹出菜单
-        .on_tray_icon_event(move |tray, event| {
-            handle_tray_event(tray.app_handle(), event, port);
-        })
         .on_menu_event(move |app, event| {
             handle_tray_menu_event(app, event, port);
         })
