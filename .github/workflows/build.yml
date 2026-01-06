@@ -1,36 +1,84 @@
 name: Build
 
+# 触发机制：当创建新的版本标签（v*.*.*格式）时自动执行
 on:
-    push:
-      branches:
-        - master
-    pull_request:
-      branches:
-        - master
+  push:
+    tags:
+      - 'v*.*.*'  # 匹配 v1.0.0 格式的标签
 
 jobs:
-  build-tauri:
-    runs-on: windows-latest  # 假设使用 Windows 构建 Tauri 安装包
+  Windows:
+    runs-on: windows-latest  # 使用 Windows 构建 Tauri 安装包
     steps:
+      # 步骤：检出代码
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: nightly  # 切换到 nightly 分支
+          ref: ${{ github.ref }}  # 切换到触发流程的标签
 
+      # 步骤：安装 Rust 工具链
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
+      # 步骤：安装 Tauri CLI 依赖
       - name: Install dependencies
         run: cargo install tauri-cli
 
+      # 步骤：构建 Tauri 安装包
       - name: Build Tauri installer
         run: cargo tauri build
 
-      - name: Upload installer artifact
-        uses: actions/upload-artifact@v4
+      # 步骤：查找安装包文件
+      - name: Find installer file
+        id: find-installer
+        run: |
+          $installerFiles = Get-ChildItem -Path "src-tauri\target\release\bundle\nsis\" -Name "*.exe"
+          if ($installerFiles.Count -eq 0) {
+            Write-Error "Error: No installer executable found in src-tauri\target\release\bundle\nsis\"
+            exit 1
+          }
+          $installerPath = $installerFiles | Select-Object -First 1
+          echo "installer_path=src-tauri\target\release\bundle\nsis\$installerPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          echo "installer_name=$installerPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      # 步骤：创建 GitHub Release
+      - name: Create GitHub Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
-          name: smtc2web-nightly-installer
-          path: src-tauri\target\release\bundle\nsis\
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+          body: |
+            # Release ${{ github.ref }}
+
+            ## 更新日志
+            请查看 [Changelog.md](https://github.com/${{ github.repository }}/blob/${{ github.ref }}/Changelog.md) 获取详细更新信息。
+
+      # 步骤：上传安装包到 GitHub Release
+      - name: Upload installer to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.find-installer.outputs.installer_path }}
+          asset_name: ${{ steps.find-installer.outputs.installer_name }}
+          asset_content_type: application/octet-stream
+
+      # 步骤：使用第三方 Action 上传至 VirusTotal 并获取扫描报告
+      - name: VirusTotal Scan
+        id: virustotal-scan
+        uses: crazy-max/ghaction-virustotal@v5
+        with:
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          files: |
+            ${{ steps.find-installer.outputs.installer_path }}
+          update_release_body: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
