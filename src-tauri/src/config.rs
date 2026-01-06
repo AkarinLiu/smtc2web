@@ -30,31 +30,28 @@ impl Config {
         let config_path = Self::get_config_path();
         
         if !config_path.exists() {
+            // 创建配置目录
             if let Some(parent) = config_path.parent() {
-                fs::create_dir_all(parent).unwrap_or_else(|_| {
-                    eprintln!("Failed to create config directory");
-                });
+                let _ = fs::create_dir_all(parent);
             }
             
+            // 保存默认配置并返回
             let default_config = Self::default();
-            if let Err(e) = default_config.save() {
-                eprintln!("Failed to save default config: {}", e);
-            }
+            let _ = default_config.save();
             return default_config;
         }
 
-        let content = match fs::read_to_string(&config_path) {
-            Ok(content) => content,
+        // 读取配置文件并解析
+        match fs::read_to_string(&config_path) {
+            Ok(content) => match toml::from_str(&content) {
+                Ok(config) => config,
+                Err(e) => {
+                    eprintln!("Failed to parse config: {}", e);
+                    Self::default()
+                }
+            },
             Err(e) => {
                 eprintln!("Failed to read config file: {}", e);
-                return Self::default();
-            }
-        };
-
-        match toml::from_str(&content) {
-            Ok(config) => config,
-            Err(e) => {
-                eprintln!("Failed to parse config file: {}", e);
                 Self::default()
             }
         }

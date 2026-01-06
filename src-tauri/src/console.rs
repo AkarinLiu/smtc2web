@@ -9,13 +9,3 @@ pub fn hide_console() {
         }
     }
 }
-
-#[allow(dead_code)]
-pub fn show_console() {
-    unsafe {
-        let console_window = GetConsoleWindow();
-        if !console_window.is_invalid() {
-            let _ = ShowWindow(console_window, SW_SHOW);
-        }
-    }
-}

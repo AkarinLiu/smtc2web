@@ -61,31 +61,22 @@ fn with_state(
     warp::any().map(move || s.clone())
 }
 
-// -------------------- 单进程检测 --------------------
+// 单进程检测
 fn check_single_instance() -> Result<HANDLE, String> {
     unsafe {
         let mutex_name = "smtc2web_single_instance_mutex";
         let mutex_name_wide: Vec<u16> = mutex_name.encode_utf16().chain(Some(0)).collect();
         
-        let handle = CreateMutexW(None, true, windows::core::PCWSTR::from_raw(mutex_name_wide.as_ptr()));
-        
-        match handle {
-            Ok(h) => {
-                // 检查错误码来判断是否已存在
-                use windows::Win32::Foundation::ERROR_ALREADY_EXISTS;
-                use windows::Win32::Foundation::GetLastError;
+        match CreateMutexW(None, true, windows::core::PCWSTR::from_raw(mutex_name_wide.as_ptr())) {
+            Ok(handle) => {
+                use windows::Win32::Foundation::{ERROR_ALREADY_EXISTS, GetLastError};
                 
-                let error_code = GetLastError();
-                
-                if error_code == ERROR_ALREADY_EXISTS {
+                if GetLastError() == ERROR_ALREADY_EXISTS {
                     // 显示错误消息框
-                    let title = "smtc2web";
-                    let message = "程序已经在运行中，请勿重复启动！";
-                    let title_wide: Vec<u16> = title.encode_utf16().chain(Some(0)).collect();
-                    let message_wide: Vec<u16> = message.encode_utf16().chain(Some(0)).collect();
+                    let title_wide: Vec<u16> = "smtc2web".encode_utf16().chain(Some(0)).collect();
+                    let message_wide: Vec<u16> = "程序已经在运行中，请勿重复启动！".encode_utf16().chain(Some(0)).collect();
                     
-                    MessageBoxW(
-                        None,
+                    MessageBoxW(None, 
                         windows::core::PCWSTR::from_raw(message_wide.as_ptr()),
                         windows::core::PCWSTR::from_raw(title_wide.as_ptr()),
                         MB_OK | MB_ICONERROR
@@ -94,7 +85,7 @@ fn check_single_instance() -> Result<HANDLE, String> {
                     return Err("程序已在运行".to_string());
                 }
                 
-                Ok(h)
+                Ok(handle)
             },
             Err(_) => Err("创建互斥量失败".to_string())
         }
@@ -118,7 +109,6 @@ fn smtc_worker(state: Shared) {
 
     let mut last_song = Song::default();
     let mut last_position = None::<String>;
-    let mut no_change_count = 0;
 
     loop {
         let mut current_song = Song::default();
@@ -163,44 +153,33 @@ fn smtc_worker(state: Shared) {
             }
         }
 
-        // 智能更新逻辑
-        let should_update = if current_song.is_playing != last_song.is_playing {
-            // 播放状态变化，立即更新
-            true
-        } else if current_song.position != last_position {
-            // 位置变化，更新
-            true
-        } else if !current_song.is_playing && no_change_count < 10 {
-            // 暂停状态下，前几次继续更新以确保状态同步
-            no_change_count += 1;
-            true
-        } else {
-            // 其他情况，检查是否需要强制更新
-            timestamp.saturating_sub(last_song.last_update) > 5 // 5秒强制更新一次
-        };
+        // 简化的更新逻辑
+        let should_update = 
+            // 播放状态变化
+            current_song.is_playing != last_song.is_playing ||
+            // 位置变化
+            current_song.position != last_position ||
+            // 元数据变化
+            current_song.title != last_song.title ||
+            current_song.artist != last_song.artist ||
+            current_song.album != last_song.album ||
+            // 强制更新（每5秒）
+            timestamp.saturating_sub(last_song.last_update) > 5;
 
         if should_update {
             let mut s = state.write().unwrap();
             *s = current_song.clone();
             last_song = current_song.clone();
             last_position = current_song.position;
-            no_change_count = 0;
         }
 
-        // 动态调整轮询间隔
-        let sleep_duration = if current_song.is_playing {
-            Duration::from_millis(100) // 播放时更频繁更新
-        } else {
-            Duration::from_millis(200) // 暂停时减少频率
+        // 根据播放状态调整轮询间隔
+        let sleep_duration = match current_song.is_playing {
+            true => Duration::from_millis(100),
+            false => Duration::from_millis(200),
         };
-
         std::thread::sleep(sleep_duration);
     }
-}
-
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -272,7 +251,6 @@ pub fn run() {
     let port_clone = port;
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
         .setup(move |app| {
             // 创建系统托盘图标并配置事件处理
             tray::create_tray_icon(app.handle(), port_clone)?;

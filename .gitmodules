@@ -1,0 +1,3 @@
+[submodule "src-tauri/frontend"]
+	path = src-tauri/frontend
+	url = https://github.com/AkarinLiu/smtc2web-theme-template.git
