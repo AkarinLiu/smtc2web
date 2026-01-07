@@ -36,23 +36,10 @@ jobs:
       - name: Install dependencies
         run: cargo install tauri-cli
 
-      # 步骤：构建 Tauri 安装包（使用并行构建）
+      # 步骤：构建 Tauri 安装包
       - name: Build Tauri installer
-        run: cargo tauri build --release
-
-      # 步骤：查找安装包文件
-      - name: Find installer file
-        id: find-installer
-        run: |
-          $installerFiles = Get-ChildItem -Path "src-tauri\target\release\bundle\nsis\" -Name "*.exe"
-          if ($installerFiles.Count -eq 0) {
-            Write-Error "Error: No installer executable found in src-tauri\target\release\bundle\nsis\"
-            exit 1
-          }
-          $installerPath = $installerFiles | Select-Object -First 1
-          $ghPath = "src-tauri/target/release/bundle/nsis/$installerPath"
-          echo "installer_path=$ghPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          echo "installer_name=$installerPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        working-directory: src-tauri
+        run: cargo tauri build
 
       # 步骤：创建 GitHub Release
       - name: Create GitHub Release
