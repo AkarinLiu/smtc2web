@@ -70,4 +70,5 @@ jobs:
           rate_limit: 4
           update_release: true
           release_heading: '## VirusTotal 扫描结果'
+          release_id: ${{ github.event.release.id }}
           summary: true
