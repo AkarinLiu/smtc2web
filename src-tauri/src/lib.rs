@@ -22,11 +22,13 @@ struct Song {
     title: String,
     artist: String,
     album: String,
+    album_art: Option<String>,
     position: Option<String>,
     duration: Option<String>,
-    pct: Option<f64>, // 修改为f64类型以支持小数
+    pct: Option<f64>,
     is_playing: bool,
-    last_update: u64, // 时间戳用于强制更新
+    last_update: u64,
+    
 }
 
 // 将秒数格式化为 MM:SS 格式
@@ -34,6 +36,35 @@ fn format_duration(seconds: u64) -> String {
     let minutes = seconds / 60;
     let secs = seconds % 60;
     format!("{:02}:{:02}", minutes, secs)
+}
+
+async fn get_album_art(session: &windows::Media::Control::GlobalSystemMediaTransportControlsSession) -> Option<String> {
+    use windows::Storage::Streams::Buffer;
+    use windows::Storage::Streams::DataReader;
+
+    if let Ok(info) = session.TryGetMediaPropertiesAsync().and_then(|f| f.get()) {
+        if let Ok(thumbnail) = info.Thumbnail() {
+            if let Ok(stream) = thumbnail.OpenReadAsync().and_then(|f| f.get()) {
+                let size = stream.Size().ok()?;
+                if size > 0 && size < 10 * 1024 * 1024 {
+                    let buffer = Buffer::Create(size as u32).ok()?;
+                    if let Ok(read_operation) = stream.ReadAsync(&buffer, size as u32, windows::Storage::Streams::InputStreamOptions::ReadAhead) {
+                        if let Ok(result_buffer) = read_operation.get() {
+                            let reader = DataReader::FromBuffer(&result_buffer).ok()?;
+                            let length = result_buffer.Length().ok()? as usize;
+                            let mut data = vec![0u8; length];
+                            reader.ReadBytes(&mut data).ok()?;
+                            use base64::{engine::general_purpose::STANDARD, Engine};
+                            let mime = "data:image/jpeg";
+                            let data_uri = format!("{};base64,{}", mime, STANDARD.encode(&data));
+                            return Some(data_uri);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 type Shared = Arc<RwLock<Song>>;
@@ -133,6 +164,10 @@ fn smtc_worker(state: Shared) {
                 current_song.album = info.AlbumTitle().unwrap_or_default().to_string();
             }
 
+            // 专辑图片
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            current_song.album_art = runtime.block_on(get_album_art(&session));
+
             // 进度
             if let Ok(timeline) = session.GetTimelineProperties() {
                 let pos = timeline.Position().unwrap().Duration;
@@ -163,6 +198,8 @@ fn smtc_worker(state: Shared) {
             current_song.title != last_song.title ||
             current_song.artist != last_song.artist ||
             current_song.album != last_song.album ||
+            // 专辑图片变化
+            current_song.album_art != last_song.album_art ||
             // 强制更新（每5秒）
             timestamp.saturating_sub(last_song.last_update) > 5;
 
