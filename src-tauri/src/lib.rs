@@ -241,10 +241,13 @@ pub fn run() {
     std::thread::spawn(move || smtc_worker(st));
 
     // 获取服务器配置
-    let (port, theme_path) = {
+    let (port, raw_theme_path) = {
         let config_guard = config.lock().unwrap();
         (config_guard.server_port, config_guard.theme_path.clone())
     };
+
+    // 自动处理 Windows 路径，将双反斜杠替换为单反斜杠
+    let theme_path = raw_theme_path.replace("\\\\", "\\");
 
     // 创建主题管理器
     let theme_manager = theme::ThemeManager::new(&theme_path);

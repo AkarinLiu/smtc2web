@@ -8,6 +8,8 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
+
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
 pub struct Config {
@@ -45,7 +47,9 @@ impl Config {
             fs::create_dir_all(parent)?;
         }
 
+        // 使用默认的 TOML 序列化
         let content = toml::to_string_pretty(self)?;
+
         fs::write(&config_path, content)?;
         Ok(())
     }
