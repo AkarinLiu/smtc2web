@@ -1,23 +1,50 @@
 name: Build
 
-# 触发机制：当创建新的版本标签（v*.*.*格式）时自动执行
 on:
   push:
     tags:
-      - 'v*.*.*'  # 匹配 v1.0.0 格式的标签
+      - 'v*.*.*'
 
 jobs:
-  Windows:
-    runs-on: windows-latest  # 使用 Windows 构建 Tauri 安装包
+  Build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'windows-latest'
+            target: 'x86_64-pc-windows-msvc'
+            arch: 'x64'
+          - platform: 'windows-latest'
+            target: 'aarch64-pc-windows-msvc'
+            arch: 'arm64'
+
+    runs-on: ${{ matrix.platform }}
     steps:
-      # 步骤：检出代码
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}  # 切换到触发流程的标签
-          submodules: true  # 检出 Git 子模块
+          ref: ${{ github.ref }}
+          submodules: true
+      
+      - name: Setup Rust and target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
 
-      # 步骤：缓存 Rust 依赖
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'yarn'
+          install-command: 'yarn install --frozen-lockfile'
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
@@ -25,23 +52,34 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      # 步骤：安装 Rust 工具链
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      # 步骤：安装 Tauri CLI 依赖
-      - name: Install dependencies
-        run: cargo install tauri-cli
-
-      # 步骤：构建 Tauri 安装包
-      - name: Build Tauri installer
+      - name: Build the app
         working-directory: src-tauri
-        run: cargo tauri build
+        run: yarn tauri build --target ${{ matrix.target }}
 
-      # 步骤：创建 GitHub Release
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/appimage/*.AppImage
+          if-no-files-found: ignore
+
+  Release:
+    needs: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
       - name: Create GitHub Release
         id: create-release
         uses: softprops/action-gh-release@v1
@@ -58,19 +96,31 @@ jobs:
             ## 更新日志
             请查看 [Changelog.md](https://github.com/${{ github.repository }}/blob/${{ github.ref }}/Changelog.md) 获取详细更新信息。
           files: |
-            ./src-tauri/target/release/bundle/nsis/*.exe
-            ./src-tauri/target/release/bundle/msi/*.msi
+            ./artifacts/**/*.exe
+            ./artifacts/**/*.dmg
+            ./artifacts/**/*.AppImage
 
-      # 步骤：使用第三方 Action 上传至 VirusTotal 并获取扫描报告
-      - name: 'VirusTotal Scan'
+  Scan:
+    needs: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: VirusTotal Scan
         uses: cssnr/virustotal-action@v1
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           file_globs: |
-            ./src-tauri/target/release/bundle/nsis/*.exe
-            ./src-tauri/target/release/bundle/msi/*.msi
-          rate_limit: 4
+            ./artifacts/**/*.exe
+            ./artifacts/**/*.dmg
+            ./artifacts/**/*.AppImage
+          rate_limit: 6
           update_release: true
           release_heading: '## VirusTotal 扫描结果'
-          release_id: ${{ github.event.release.id }}
-          summary: true
+          release_id: ${{ github.ref_name }}

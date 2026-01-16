@@ -1,21 +1,15 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
-use rust_embed::RustEmbed;
 use serde::Serialize;
+use std::net::IpAddr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
-use warp::{path::Tail, Filter};
-use windows::Win32::Foundation::HANDLE;
-use windows::Win32::System::Threading::CreateMutexW;
-use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_OK, MB_ICONERROR};
+use warp::Filter;
 
 mod config;
 mod console;
 mod tray;
-
-#[derive(RustEmbed)]
-#[folder = "frontend"]
-struct Asset;
+mod theme;
 
 #[derive(Default, Clone, Serialize, PartialEq)]
 struct Song {
@@ -28,7 +22,6 @@ struct Song {
     pct: Option<f64>,
     is_playing: bool,
     last_update: u64,
-    
 }
 
 // 将秒数格式化为 MM:SS 格式
@@ -38,7 +31,9 @@ fn format_duration(seconds: u64) -> String {
     format!("{:02}:{:02}", minutes, secs)
 }
 
-async fn get_album_art(session: &windows::Media::Control::GlobalSystemMediaTransportControlsSession) -> Option<String> {
+async fn get_album_art(
+    session: &windows::Media::Control::GlobalSystemMediaTransportControlsSession,
+) -> Option<String> {
     use windows::Storage::Streams::Buffer;
     use windows::Storage::Streams::DataReader;
 
@@ -48,13 +43,17 @@ async fn get_album_art(session: &windows::Media::Control::GlobalSystemMediaTrans
                 let size = stream.Size().ok()?;
                 if size > 0 && size < 10 * 1024 * 1024 {
                     let buffer = Buffer::Create(size as u32).ok()?;
-                    if let Ok(read_operation) = stream.ReadAsync(&buffer, size as u32, windows::Storage::Streams::InputStreamOptions::ReadAhead) {
+                    if let Ok(read_operation) = stream.ReadAsync(
+                        &buffer,
+                        size as u32,
+                        windows::Storage::Streams::InputStreamOptions::ReadAhead,
+                    ) {
                         if let Ok(result_buffer) = read_operation.get() {
                             let reader = DataReader::FromBuffer(&result_buffer).ok()?;
                             let length = result_buffer.Length().ok()? as usize;
                             let mut data = vec![0u8; length];
                             reader.ReadBytes(&mut data).ok()?;
-                            use base64::{engine::general_purpose::STANDARD, Engine};
+                            use base64::{Engine, engine::general_purpose::STANDARD};
                             let mime = "data:image/jpeg";
                             let data_uri = format!("{};base64,{}", mime, STANDARD.encode(&data));
                             return Some(data_uri);
@@ -69,22 +68,7 @@ async fn get_album_art(session: &windows::Media::Control::GlobalSystemMediaTrans
 
 type Shared = Arc<RwLock<Song>>;
 
-/* ---------- 内存静态文件托管 ---------- */
-async fn serve_embed(tail: Tail) -> Result<impl warp::Reply, warp::Rejection> {
-    let path = tail.as_str();
-    let path = if path.is_empty() { "index.html" } else { path };
-    match Asset::get(path) {
-        Some(content) => {
-            let mime = mime_guess::from_path(path).first_or_octet_stream();
-            Ok(warp::reply::with_header(
-                content.data.to_vec(),
-                "content-type",
-                mime.as_ref(),
-            ))
-        },
-        None => Err(warp::reject::not_found()),
-    }
-}
+/* ---------- 主题文件托管由 theme.rs 提供 ---------- */
 
 fn with_state(
     s: Shared,
@@ -93,34 +77,26 @@ fn with_state(
 }
 
 // 单进程检测
-fn check_single_instance() -> Result<HANDLE, String> {
-    unsafe {
-        let mutex_name = "smtc2web_single_instance_mutex";
-        let mutex_name_wide: Vec<u16> = mutex_name.encode_utf16().chain(Some(0)).collect();
-        
-        match CreateMutexW(None, true, windows::core::PCWSTR::from_raw(mutex_name_wide.as_ptr())) {
-            Ok(handle) => {
-                use windows::Win32::Foundation::{ERROR_ALREADY_EXISTS, GetLastError};
-                
-                if GetLastError() == ERROR_ALREADY_EXISTS {
-                    // 显示错误消息框
-                    let title_wide: Vec<u16> = "smtc2web".encode_utf16().chain(Some(0)).collect();
-                    let message_wide: Vec<u16> = "程序已经在运行中，请勿重复启动！".encode_utf16().chain(Some(0)).collect();
-                    
-                    MessageBoxW(None, 
-                        windows::core::PCWSTR::from_raw(message_wide.as_ptr()),
-                        windows::core::PCWSTR::from_raw(title_wide.as_ptr()),
-                        MB_OK | MB_ICONERROR
-                    );
-                    
-                    return Err("程序已在运行".to_string());
-                }
-                
-                Ok(handle)
-            },
-            Err(_) => Err("创建互斥量失败".to_string())
+use named_lock::NamedLock;
+use open::that;
+fn check_single_instance() -> Result<NamedLock, String> {
+    let lock = NamedLock::create("smtc2web_single_instance_mutex")
+        .map_err(|_| "创建命名锁失败".to_string())?;
+
+    // 检查是否能获取锁
+    if let Err(_) = lock.try_lock() {
+        // 锁已被其他进程占用，返回错误
+        let config = config::Config::load().unwrap_or_default();
+        let port = config.server_port;
+        let url = format!("http://localhost:{}", port);
+        if let Err(e) = that(&url) {
+            eprintln!("打开浏览器失败: {}", e);
         }
+        return Err("程序已在运行".to_string());
     }
+    
+    // 锁已释放，可以安全返回锁对象
+    Ok(lock)
 }
 
 // -------------------- 后台轮询 --------------------
@@ -135,7 +111,7 @@ fn smtc_worker(state: Shared) {
         Err(_) => {
             eprintln!("Failed to get session manager");
             return;
-        },
+        }
     };
 
     let mut last_song = Song::default();
@@ -189,7 +165,7 @@ fn smtc_worker(state: Shared) {
         }
 
         // 简化的更新逻辑
-        let should_update = 
+        let should_update =
             // 播放状态变化
             current_song.is_playing != last_song.is_playing ||
             // 位置变化
@@ -227,7 +203,7 @@ pub fn run() {
         Err(e) => {
             eprintln!("{}", e);
             std::process::exit(1);
-        },
+        }
     };
 
     // 检查是否是重启后的实例
@@ -241,7 +217,10 @@ pub fn run() {
     }
 
     // 加载配置
-    let config = Arc::new(Mutex::new(config::Config::load()));
+    let config = Arc::new(Mutex::new(config::Config::load().unwrap_or_default()));
+    
+    // 启动配置文件监控
+    config::Config::start_monitoring(config.clone());
 
     // 根据配置决定是否隐藏控制台
     {
@@ -253,40 +232,50 @@ pub fn run() {
 
     // 创建 Tokio 运行时
     let runtime = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
-    
+
     // 启动 Web 服务器
     let state: Shared = Arc::default();
     let st = state.clone();
-    
+
     // 在单独的线程中运行后台轮询
     std::thread::spawn(move || smtc_worker(st));
 
-    // 获取服务器端口
-    let port = {
+    // 获取服务器配置
+    let (port, raw_theme_path) = {
         let config_guard = config.lock().unwrap();
-        config_guard.server_port
+        (config_guard.server_port, config_guard.theme_path.clone())
     };
+
+    // 自动处理 Windows 路径，将双反斜杠替换为单反斜杠
+    let theme_path = raw_theme_path.replace("\\\\", "\\");
+
+    // 创建主题管理器
+    let theme_manager = theme::ThemeManager::new(&theme_path);
 
     // JSON 接口
     let api = warp::path!("api" / "now")
         .and(with_state(state))
         .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
 
-    // 静态文件托管（内存 embed）
-    let static_files = warp::path::tail().and_then(serve_embed);
+    // 静态文件托管（主题文件）
+    let static_files = warp::path::tail()
+        .and(theme::ThemeManager::with_manager(theme_manager))
+        .and_then(|tail, manager: theme::ThemeManager| manager.serve_theme_file(tail));
 
     println!("Server running at http://localhost:{}", port);
 
     // 在Tokio运行时中启动Web服务器
     let _server_handle = runtime.spawn(async move {
+        let address = config.clone().lock().unwrap().address.parse::<IpAddr>().expect("Invalid IP address in config");
         warp::serve(api.or(static_files))
-            .run(([127, 0, 0, 1], port))
+            .run((address, port))
             .await;
     });
 
     // 使用 Tauri 应用程序，配置托盘事件处理
     let port_clone = port;
     tauri::Builder::default()
+        .plugin(tauri_plugin_media::init())
         .plugin(tauri_plugin_opener::init())
         .setup(move |app| {
             // 创建系统托盘图标并配置事件处理
@@ -295,6 +284,4 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-
-
 }

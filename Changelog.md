@@ -1,16 +1,14 @@
 # 更新日志
 
-## v0.2.2
+## v0.2.3
 
 ### 新增功能
 
-- 支持显示专辑图片
+- 新增自定义主题路径支持
+- 新增局域网开放功能
 
 ### 依赖
 
-- 新增 base64 依赖
-- Windows 专属依赖新增 "Foundation_Collections"、"Storage" 和 "Storage_Streams"
-
----
-
-这是一个修复问题的版本，修复了一些已知问题。
+- 新增：notify
+- 新增：tauri-plugin-media
+- 新增：named-lock
