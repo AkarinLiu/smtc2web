@@ -51,10 +51,17 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+          workspaces: |
+            src-tauri
+          cache-directories: |
+            src-tauri/target
+          cache-targets: true
 
       - name: Build the app
         working-directory: src-tauri
-        run: yarn tauri build --target ${{ matrix.target }}
+        run: |
+          npm install -g @tauri-apps/cli
+          yarn tauri build --target ${{ matrix.target }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
