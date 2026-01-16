@@ -108,34 +108,34 @@ jobs:
             ./artifacts/**/*.AppImage
 
   Scan:
-  needs: Release
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    needs: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # 修改这里：只下载制品，不指定具体文件
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: ./artifacts
+      # 修改这里：只下载制品，不指定具体文件
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
 
-    # 添加调试步骤查看文件结构
-    - name: List downloaded files
-      run: |
-        find ./artifacts -type f -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" | head -20
-        echo "Total files found:"
-        find ./artifacts -type f -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" | wc -l
+      # 添加调试步骤查看文件结构
+      - name: List downloaded files
+        run: |
+          find ./artifacts -type f -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" | head -20
+          echo "Total files found:"
+          find ./artifacts -type f -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" | wc -l
 
-    - name: VirusTotal Scan
-      uses: cssnr/virustotal-action@v1
-      with:
-        vt_api_key: ${{ secrets.VT_API_KEY }}
-        # 使用正确的通配符路径
-        file_globs: |
-          ./artifacts/**/*.exe
-        rate_limit: 2
-        update_release: true
-        release_heading: '## VirusTotal 扫描结果'
-        release_id: ${{ github.ref_name }}
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: VirusTotal Scan
+        uses: cssnr/virustotal-action@v1
+        with:
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          # 使用正确的通配符路径
+          file_globs: |
+            ./artifacts/**/*.exe
+          rate_limit: 2
+          update_release: true
+          release_heading: '## VirusTotal 扫描结果'
+          release_id: ${{ github.ref_name }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
