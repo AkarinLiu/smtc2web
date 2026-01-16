@@ -387,6 +387,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"smtc2web@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "smtc2web@workspace:."
+  dependencies:
+    "@fluentui/web-components": "npm:^2.6.1"
+    "@tauri-apps/cli": "npm:^2"
+    tauri-plugin-media-api: "npm:^0.1.1"
+    vue: "npm:^3.5.26"
+  languageName: unknown
+  linkType: soft
+
 "source-map-js@npm:^1.2.1":
   version: 1.2.1
   resolution: "source-map-js@npm:1.2.1"
@@ -400,17 +411,6 @@ __metadata:
   checksum: 10c0/c6cb54be76ecff7d0132fed77ff11cedf76a2ce320f55e350f70d8f68998227e72bc3f8b1ee5e7b02dbe4b4c2ef7b6fa43c3aea7cfa82ef06e7d23746df97a35
   languageName: node
   linkType: hard
-
-"tauri-app@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "tauri-app@workspace:."
-  dependencies:
-    "@fluentui/web-components": "npm:^2.6.1"
-    "@tauri-apps/cli": "npm:^2"
-    tauri-plugin-media-api: "npm:^0.1.1"
-    vue: "npm:^3.5.26"
-  languageName: unknown
-  linkType: soft
 
 "tauri-plugin-media-api@npm:^0.1.1":
   version: 0.1.1
