@@ -2,6 +2,8 @@
 
  一个基于 Rust 的 smtc2web 实现，用于在直播软件实时显示正在播放的歌曲。
 
+**LinuxDO 原帖子链接:** https://linux.do/t/topic/937994
+
 ![OBS 接入 smtc2web 截图](./screenshot.png)
 
 > 注意：新增的图标为 Qwen3-Max-Preview 生成。
