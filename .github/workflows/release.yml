@@ -58,7 +58,7 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
       - name: "VirusTotal"
-        uses: cssnr/virustotal-action@v4
+        uses: cssnr/virustotal-action@v1
         with:
           path: ./src-tauri/target/${{matrix.target}}/release/bundle
           update: true
