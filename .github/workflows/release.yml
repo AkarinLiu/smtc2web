@@ -17,7 +17,7 @@ jobs:
           - platform: "windows-latest"
             args: "--target x86_64-pc-windows-msvc"
           - platform: "windows-latest"
-            args: "--target arm64-pc-windows-msvc"
+            args: "--target aarch64-pc-windows-msvc"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -53,7 +53,7 @@ jobs:
         with:
           tagName: __VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
           releaseName: "__VERSION__"
-          releaseBody: "请访问 [Changelog.md](https://github.com/smtc2web/blob/__VERSION__/Changelog.md) 查看版本变更信息。"
+          releaseBody: "请访问 [Changelog.md](https://github.com/AkarinLiu/smtc2web/blob/v__VERSION__/Changelog.md) 查看版本变更信息。"
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
@@ -63,3 +63,4 @@ jobs:
           path: ./src-tauri/target/${{matrix.target}}/release/bundle
           update: true
           summary: true
+          vt_api_key: ${{ secrets.VT_API_KEY }}
