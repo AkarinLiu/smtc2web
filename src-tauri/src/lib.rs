@@ -1,15 +1,19 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
+use tauri::Manager;
+use tokio::sync::oneshot;
 use warp::Filter;
 
 mod config;
 mod console;
-mod tray;
 mod theme;
+mod theme_manager;
+mod tray;
 
 #[derive(Default, Clone, Serialize, PartialEq)]
 struct Song {
@@ -68,6 +72,21 @@ async fn get_album_art(
 
 type Shared = Arc<RwLock<Song>>;
 
+// 全局状态
+struct AppState {
+    config: Arc<Mutex<config::Config>>,
+    server_tx: Option<oneshot::Sender<()>>,
+    server_port: u16,
+}
+
+static APP_STATE: once_cell::sync::Lazy<Mutex<AppState>> = once_cell::sync::Lazy::new(|| {
+    Mutex::new(AppState {
+        config: Arc::new(Mutex::new(config::Config::default())),
+        server_tx: None,
+        server_port: 3030,
+    })
+});
+
 /* ---------- 主题文件托管由 theme.rs 提供 ---------- */
 
 fn with_state(
@@ -94,7 +113,7 @@ fn check_single_instance() -> Result<NamedLock, String> {
         }
         return Err("程序已在运行".to_string());
     }
-    
+
     // 锁已释放，可以安全返回锁对象
     Ok(lock)
 }
@@ -195,6 +214,194 @@ fn smtc_worker(state: Shared) {
     }
 }
 
+// 启动 Web 服务器
+async fn start_server(
+    state: Shared,
+    port: u16,
+    current_theme: String,
+) -> (oneshot::Sender<()>, tokio::task::JoinHandle<()>) {
+    // 获取服务器地址
+    let address = {
+        let app_state = APP_STATE.lock().unwrap();
+        let config = app_state.config.lock().unwrap();
+        config
+            .address
+            .parse::<IpAddr>()
+            .expect("Invalid IP address in config")
+    };
+
+    // 确定主题路径
+    let theme_path = if current_theme.is_empty() {
+        PathBuf::new() // 使用内置主题
+    } else {
+        theme_manager::ThemeManager::get_theme_server_path(&current_theme)
+    };
+
+    // 创建主题管理器
+    let theme_manager = theme::ThemeManager::new(&theme_path.to_string_lossy());
+
+    // JSON 接口
+    let api = warp::path!("api" / "now")
+        .and(with_state(state))
+        .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
+
+    // 主题文件托管
+    let theme_files = warp::path("theme")
+        .and(warp::path::tail())
+        .and(theme::ThemeManager::with_manager(theme_manager.clone()))
+        .and_then(|tail, manager: theme::ThemeManager| manager.serve_theme_file(tail));
+
+    // 静态文件托管（前端）
+    let static_files = warp::path::tail()
+        .and(theme::ThemeManager::with_manager(theme_manager))
+        .and_then(|tail, manager: theme::ThemeManager| manager.serve_theme_file(tail));
+
+    // 创建关闭信号
+    let (tx, rx) = oneshot::channel::<()>();
+
+    // 启动服务器
+    let server_handle = tokio::spawn(async move {
+        let (_, server) = warp::serve(api.or(theme_files).or(static_files))
+            .bind_with_graceful_shutdown((address, port), async {
+                let _ = rx.await;
+            });
+        server.await;
+    });
+
+    println!("Server running at http://{}:{}", address, port);
+
+    (tx, server_handle)
+}
+
+// -------------------- Tauri 命令 --------------------
+
+#[tauri::command]
+async fn get_themes() -> Result<Vec<theme_manager::ThemeInfo>, String> {
+    theme_manager::ThemeManager::scan_themes().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn get_current_theme() -> Result<String, String> {
+    let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+    let config = app_state.config.lock().map_err(|e| e.to_string())?;
+    Ok(config.current_theme.clone())
+}
+
+#[tauri::command]
+async fn set_theme(theme_name: String, _app_handle: tauri::AppHandle) -> Result<(), String> {
+    // 停止现有服务器
+    {
+        let mut app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+        if let Some(tx) = app_state.server_tx.take() {
+            let _ = tx.send(());
+        }
+
+        // 更新配置
+        {
+            let mut config = app_state.config.lock().map_err(|e| e.to_string())?;
+            config.current_theme = theme_name.clone();
+            config.save().map_err(|e| e.to_string())?;
+        }
+    }
+
+    // 获取当前状态
+    let (port, state) = {
+        let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+        let config = app_state.config.lock().map_err(|e| e.to_string())?;
+        (config.server_port, Arc::new(RwLock::new(Song::default())))
+    };
+
+    // 重新启动服务器
+    let (tx, _) = start_server(state, port, theme_name).await;
+
+    {
+        let mut app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+        app_state.server_tx = Some(tx);
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn upload_theme(file_path: String) -> Result<String, String> {
+    let path = std::path::Path::new(&file_path);
+    theme_manager::ThemeManager::extract_theme(path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn upload_theme_from_bytes(file_name: String, file_data: Vec<u8>) -> Result<String, String> {
+    use std::io::Write;
+
+    // 创建临时文件
+    let temp_dir = std::env::temp_dir();
+    let temp_file_path = temp_dir.join(&file_name);
+
+    // 写入文件数据
+    let mut temp_file =
+        std::fs::File::create(&temp_file_path).map_err(|e| format!("创建临时文件失败: {}", e))?;
+    temp_file
+        .write_all(&file_data)
+        .map_err(|e| format!("写入临时文件失败: {}", e))?;
+
+    // 解压主题
+    let theme_name = theme_manager::ThemeManager::extract_theme(&temp_file_path)
+        .map_err(|e| format!("解压主题失败: {}", e))?;
+
+    // 删除临时文件
+    let _ = std::fs::remove_file(&temp_file_path);
+
+    Ok(theme_name)
+}
+
+#[tauri::command]
+async fn delete_theme(theme_folder: String) -> Result<(), String> {
+    // 检查是否是当前主题
+    let current = {
+        let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+        let config = app_state.config.lock().map_err(|e| e.to_string())?;
+        config.current_theme.clone()
+    };
+
+    if current == theme_folder {
+        return Err("不能删除当前正在使用的主题".to_string());
+    }
+
+    theme_manager::ThemeManager::delete_theme(&theme_folder).map_err(|e| e.to_string())
+}
+
+#[derive(Serialize, Deserialize)]
+struct ConfigDto {
+    server_port: u16,
+    show_console: bool,
+    address: String,
+    current_theme: String,
+}
+
+#[tauri::command]
+async fn get_config() -> Result<ConfigDto, String> {
+    let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+    let config = app_state.config.lock().map_err(|e| e.to_string())?;
+    Ok(ConfigDto {
+        server_port: config.server_port,
+        show_console: config.show_console,
+        address: config.address.clone(),
+        current_theme: config.current_theme.clone(),
+    })
+}
+
+#[tauri::command]
+async fn save_config(config_dto: ConfigDto) -> Result<(), String> {
+    let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+    let mut config = app_state.config.lock().map_err(|e| e.to_string())?;
+
+    config.server_port = config_dto.server_port;
+    config.show_console = config_dto.show_console;
+    config.address = config_dto.address;
+    config.current_theme = config_dto.current_theme;
+
+    config.save().map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // 单进程检测 - 确保只有一个实例运行
@@ -216,9 +423,12 @@ pub fn run() {
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
 
+    // 确保主题目录存在
+    theme_manager::ThemeManager::ensure_themes_dir().expect("Failed to create themes directory");
+
     // 加载配置
     let config = Arc::new(Mutex::new(config::Config::load().unwrap_or_default()));
-    
+
     // 启动配置文件监控
     config::Config::start_monitoring(config.clone());
 
@@ -241,47 +451,63 @@ pub fn run() {
     std::thread::spawn(move || smtc_worker(st));
 
     // 获取服务器配置
-    let (port, raw_theme_path) = {
+    let (port, current_theme) = {
         let config_guard = config.lock().unwrap();
-        (config_guard.server_port, config_guard.theme_path.clone())
+        (config_guard.server_port, config_guard.current_theme.clone())
     };
 
-    // 自动处理 Windows 路径，将双反斜杠替换为单反斜杠
-    let theme_path = raw_theme_path.replace("\\\\", "\\");
-
-    // 创建主题管理器
-    let theme_manager = theme::ThemeManager::new(&theme_path);
-
-    // JSON 接口
-    let api = warp::path!("api" / "now")
-        .and(with_state(state))
-        .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
-
-    // 静态文件托管（主题文件）
-    let static_files = warp::path::tail()
-        .and(theme::ThemeManager::with_manager(theme_manager))
-        .and_then(|tail, manager: theme::ThemeManager| manager.serve_theme_file(tail));
-
-    println!("Server running at http://localhost:{}", port);
-
     // 在Tokio运行时中启动Web服务器
-    let _server_handle = runtime.spawn(async move {
-        let address = config.clone().lock().unwrap().address.parse::<IpAddr>().expect("Invalid IP address in config");
-        warp::serve(api.or(static_files))
-            .run((address, port))
-            .await;
-    });
+    let (server_tx, server_handle) =
+        runtime.block_on(async { start_server(state, port, current_theme).await });
+
+    // 更新全局状态
+    {
+        let mut app_state = APP_STATE.lock().unwrap();
+        app_state.config = config.clone();
+        app_state.server_tx = Some(server_tx);
+        app_state.server_port = port;
+    }
 
     // 使用 Tauri 应用程序，配置托盘事件处理
     let port_clone = port;
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_media::init())
         .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![
+            get_themes,
+            get_current_theme,
+            set_theme,
+            upload_theme,
+            upload_theme_from_bytes,
+            delete_theme,
+            get_config,
+            save_config
+        ])
         .setup(move |app| {
             // 创建系统托盘图标并配置事件处理
             tray::create_tray_icon(app.handle(), port_clone)?;
+
+            // 配置窗口关闭行为：隐藏到托盘而不是退出
+            let window = app.get_webview_window("main").unwrap();
+            let window_clone = window.clone();
+            window.on_window_event(move |event| {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    // 阻止窗口关闭
+                    api.prevent_close();
+                    // 隐藏窗口
+                    let _ = window_clone.hide();
+                }
+            });
+
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+
+    // 清理：停止服务器
+    runtime.block_on(async {
+        let _ = server_handle.await;
+    });
 }

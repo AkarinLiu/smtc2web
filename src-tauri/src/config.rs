@@ -1,5 +1,5 @@
 use dirs::config_dir;
-use notify::{RecommendedWatcher, RecursiveMode, Watcher, Config as NotifyConfig};
+use notify::{Config as NotifyConfig, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -8,15 +8,13 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
-
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
 pub struct Config {
     pub server_port: u16,
     pub show_console: bool,
     pub address: String,
-    pub theme_path: String,
+    pub current_theme: String,
 }
 
 impl Default for Config {
@@ -25,7 +23,7 @@ impl Default for Config {
             server_port: 3030,
             show_console: false,
             address: "127.0.0.1".to_string(),
-            theme_path: "".to_string(),
+            current_theme: "".to_string(),
         }
     }
 }
@@ -57,7 +55,9 @@ impl Config {
     /// 启动配置文件监控
     pub fn start_monitoring(config: Arc<Mutex<Self>>) {
         let config_path = Self::get_config_path();
-        let config_dir = config_path.parent().unwrap_or_else(|| config_path.as_path());
+        let config_dir = config_path
+            .parent()
+            .unwrap_or_else(|| config_path.as_path());
 
         // 创建监视器
         let (tx, rx) = std::sync::mpsc::channel();
@@ -66,8 +66,9 @@ impl Config {
             move |res| {
                 let _ = tx.send(res);
             },
-            NotifyConfig::default()
-        ).expect("Failed to create watcher");
+            NotifyConfig::default(),
+        )
+        .expect("Failed to create watcher");
 
         // 监听配置文件
         if let Err(e) = watcher.watch(config_dir, RecursiveMode::NonRecursive) {
@@ -108,13 +109,13 @@ impl Config {
                                 }
                             }
                         }
-                    },
+                    }
                     Ok(Err(e)) => {
                         eprintln!("Watch error: {}", e);
-                    },
+                    }
                     Err(_) => {
                         // 超时，继续监听
-                    },
+                    }
                 }
             }
         });

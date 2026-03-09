@@ -8,6 +8,8 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "media:default"
+    "media:default",
+    "fs:default",
+    "dialog:default"
   ]
 }
