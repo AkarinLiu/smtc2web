@@ -61,5 +61,5 @@ jobs:
         uses: cssnr/virustotal-action@v4
         with:
           path: ./src-tauri/target/${{matrix.target}}/release/bundle
-        update: true
-        summary: true
+          update: true
+          summary: true
