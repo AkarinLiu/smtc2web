@@ -11,6 +11,7 @@ use warp::Filter;
 
 mod config;
 mod console;
+mod logger;
 mod theme;
 mod theme_manager;
 mod tray;
@@ -77,6 +78,7 @@ struct AppState {
     config: Arc<Mutex<config::Config>>,
     server_tx: Option<oneshot::Sender<()>>,
     server_port: u16,
+    shared_state: Option<Shared>,
 }
 
 static APP_STATE: once_cell::sync::Lazy<Mutex<AppState>> = once_cell::sync::Lazy::new(|| {
@@ -84,6 +86,7 @@ static APP_STATE: once_cell::sync::Lazy<Mutex<AppState>> = once_cell::sync::Lazy
         config: Arc::new(Mutex::new(config::Config::default())),
         server_tx: None,
         server_port: 3030,
+        shared_state: None,
     })
 });
 
@@ -109,7 +112,7 @@ fn check_single_instance() -> Result<NamedLock, String> {
         let port = config.server_port;
         let url = format!("http://localhost:{}", port);
         if let Err(e) = that(&url) {
-            eprintln!("打开浏览器失败: {}", e);
+            log_error!("打开浏览器失败: {}", e);
         }
         return Err("程序已在运行".to_string());
     }
@@ -128,7 +131,7 @@ fn smtc_worker(state: Shared) {
     {
         Ok(m) => m,
         Err(_) => {
-            eprintln!("Failed to get session manager");
+            log_error!("Failed to get session manager");
             return;
         }
     };
@@ -268,7 +271,7 @@ async fn start_server(
         server.await;
     });
 
-    println!("Server running at http://{}:{}", address, port);
+    log_info!("Server running at http://{}:{}", address, port);
 
     (tx, server_handle)
 }
@@ -289,8 +292,8 @@ async fn get_current_theme() -> Result<String, String> {
 
 #[tauri::command]
 async fn set_theme(theme_name: String, _app_handle: tauri::AppHandle) -> Result<(), String> {
-    // 停止现有服务器
-    {
+    // 停止现有服务器并获取共享状态
+    let (port, state) = {
         let mut app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
         if let Some(tx) = app_state.server_tx.take() {
             let _ = tx.send(());
@@ -302,16 +305,14 @@ async fn set_theme(theme_name: String, _app_handle: tauri::AppHandle) -> Result<
             config.current_theme = theme_name.clone();
             config.save().map_err(|e| e.to_string())?;
         }
-    }
 
-    // 获取当前状态
-    let (port, state) = {
-        let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
-        let config = app_state.config.lock().map_err(|e| e.to_string())?;
-        (config.server_port, Arc::new(RwLock::new(Song::default())))
+        // 获取端口和共享状态
+        let port = app_state.config.lock().map_err(|e| e.to_string())?.server_port;
+        let state = app_state.shared_state.clone().ok_or("Shared state not initialized")?;
+        (port, state)
     };
 
-    // 重新启动服务器
+    // 重新启动服务器，使用现有的共享状态
     let (tx, _) = start_server(state, port, theme_name).await;
 
     {
@@ -404,11 +405,15 @@ async fn save_config(config_dto: ConfigDto) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 初始化日志系统
+    logger::init();
+    log_info!("应用程序启动");
+
     // 单进程检测 - 确保只有一个实例运行
     let _mutex_handle = match check_single_instance() {
         Ok(handle) => handle,
         Err(e) => {
-            eprintln!("{}", e);
+            log_error!("{}", e);
             std::process::exit(1);
         }
     };
@@ -418,7 +423,7 @@ pub fn run() {
     let is_restarted = args.contains(&"--restarted".to_string());
 
     if is_restarted {
-        println!("应用程序已重启");
+        log_info!("应用程序已重启");
         // 等待一小段时间确保前一个实例完全退出
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
@@ -457,8 +462,9 @@ pub fn run() {
     };
 
     // 在Tokio运行时中启动Web服务器
+    let state_for_server = state.clone();
     let (server_tx, server_handle) =
-        runtime.block_on(async { start_server(state, port, current_theme).await });
+        runtime.block_on(async { start_server(state_for_server, port, current_theme).await });
 
     // 更新全局状态
     {
@@ -466,6 +472,7 @@ pub fn run() {
         app_state.config = config.clone();
         app_state.server_tx = Some(server_tx);
         app_state.server_port = port;
+        app_state.shared_state = Some(state);
     }
 
     // 使用 Tauri 应用程序，配置托盘事件处理

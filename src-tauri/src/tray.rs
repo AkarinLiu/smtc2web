@@ -1,3 +1,4 @@
+use crate::log_error;
 use open::that;
 use std::process;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -45,7 +46,7 @@ pub fn handle_tray_menu_event<R: Runtime>(
         "open_web" => {
             let url = format!("http://localhost:{}", port);
             if let Err(e) = that(&url) {
-                eprintln!("Failed to open web page: {}", e);
+                log_error!("Failed to open web page: {}", e);
             }
         }
         "quit" => {

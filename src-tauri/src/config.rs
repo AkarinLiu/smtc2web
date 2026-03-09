@@ -1,3 +1,4 @@
+use crate::{log_error, log_info};
 use dirs::config_dir;
 use notify::{Config as NotifyConfig, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
@@ -72,7 +73,7 @@ impl Config {
 
         // 监听配置文件
         if let Err(e) = watcher.watch(config_dir, RecursiveMode::NonRecursive) {
-            eprintln!("Failed to watch config directory: {}", e);
+            log_error!("Failed to watch config directory: {}", e);
             return;
         }
 
@@ -98,20 +99,20 @@ impl Config {
                                 // 重新加载配置
                                 match Self::load() {
                                     Ok(new_config) => {
-                                        println!("Config file updated, reloading...");
+                                        log_info!("Config file updated, reloading...");
                                         // 更新共享配置
                                         let mut config_guard = config.lock().unwrap();
                                         *config_guard = new_config;
                                     }
                                     Err(e) => {
-                                        eprintln!("Failed to reload config: {}", e);
+                                        log_error!("Failed to reload config: {}", e);
                                     }
                                 }
                             }
                         }
                     }
                     Ok(Err(e)) => {
-                        eprintln!("Watch error: {}", e);
+                        log_error!("Watch error: {}", e);
                     }
                     Err(_) => {
                         // 超时，继续监听

@@ -1,4 +1,5 @@
-use base64::{Engine, engine::general_purpose::STANDARD};
+use crate::{log_debug, log_error, log_info, log_warn};
+use base64::{engine::general_purpose::STANDARD, Engine};
 use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -130,14 +131,14 @@ screenshot = "screenshot.png"
         let config_path = Self::get_theme_config_path(theme_folder);
 
         if !config_path.exists() {
-            eprintln!("  配置文件不存在: {:?}", config_path);
+            log_debug!("  配置文件不存在: {:?}", config_path);
             return None;
         }
 
         let content = match fs::read_to_string(&config_path) {
             Ok(c) => c,
             Err(e) => {
-                eprintln!("  读取配置文件失败: {}", e);
+                log_error!("  读取配置文件失败: {}", e);
                 return None;
             }
         };
@@ -145,7 +146,7 @@ screenshot = "screenshot.png"
         let config: toml::Value = match toml::from_str(&content) {
             Ok(c) => c,
             Err(e) => {
-                eprintln!("  解析 TOML 失败: {}", e);
+                log_error!("  解析 TOML 失败: {}", e);
                 return None;
             }
         };
@@ -165,7 +166,7 @@ screenshot = "screenshot.png"
         let screenshot_path = if screenshot.starts_with("http://")
             || screenshot.starts_with("https://")
         {
-            eprintln!("  警告：主题 '{}' 的截图使用了网络 URL，已忽略", name);
+            log_warn!("  主题 '{}' 的截图使用了网络 URL，已忽略", name);
             String::new()
         } else {
             // 构建截图的完整路径
@@ -188,12 +189,12 @@ screenshot = "screenshot.png"
                         format!("data:{};base64,{}", mime, STANDARD.encode(&data))
                     }
                     Err(e) => {
-                        eprintln!("  警告：读取主题 '{}' 的截图文件失败: {}", name, e);
+                        log_warn!("  读取主题 '{}' 的截图文件失败: {}", name, e);
                         String::new()
                     }
                 }
             } else {
-                eprintln!("  警告：主题 '{}' 的截图文件不存在: {:?}", name, full_path);
+                log_warn!("  主题 '{}' 的截图文件不存在: {:?}", name, full_path);
                 String::new()
             }
         };
@@ -220,7 +221,7 @@ screenshot = "screenshot.png"
         let default_theme = Self::get_default_theme_info();
         themes.push(default_theme);
 
-        eprintln!("扫描主题目录: {:?}", themes_dir);
+        log_info!("扫描主题目录: {:?}", themes_dir);
 
         if let Ok(entries) = fs::read_dir(&themes_dir) {
             for entry in entries.flatten() {
@@ -231,28 +232,28 @@ screenshot = "screenshot.png"
 
                         // 跳过 default 文件夹（默认主题使用内置的）
                         if folder_name == "default" {
-                            eprintln!("发现文件夹: {} (跳过，使用内置默认主题)", folder_name);
+                            log_debug!("发现文件夹: {} (跳过，使用内置默认主题)", folder_name);
                             continue;
                         }
 
-                        eprintln!("发现文件夹: {}", folder_name);
+                        log_debug!("发现文件夹: {}", folder_name);
 
                         let config_path = Self::get_theme_config_path(&folder_name);
-                        eprintln!("  配置文件路径: {:?}", config_path);
-                        eprintln!("  配置文件存在: {}", config_path.exists());
+                        log_debug!("  配置文件路径: {:?}", config_path);
+                        log_debug!("  配置文件存在: {}", config_path.exists());
 
                         if let Some(theme_info) = Self::parse_theme_config(&folder_name) {
-                            eprintln!("  成功解析主题: {}", theme_info.name);
+                            log_info!("  成功解析主题: {}", theme_info.name);
                             themes.push(theme_info);
                         } else {
-                            eprintln!("  解析主题失败，跳过");
+                            log_debug!("  解析主题失败，跳过");
                         }
                     }
                 }
             }
         }
 
-        eprintln!("扫描完成，共找到 {} 个主题", themes.len());
+        log_info!("扫描完成，共找到 {} 个主题", themes.len());
         Ok(themes)
     }
 
