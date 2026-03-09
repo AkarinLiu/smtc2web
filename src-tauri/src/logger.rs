@@ -65,7 +65,7 @@ impl Logger {
     fn get_log_dir() -> PathBuf {
         let mut dir = data_dir().unwrap_or_else(|| PathBuf::from("."));
         dir.push("smtc2web");
-        dir.push("log");
+        dir.push("logs");
         dir
     }
 
