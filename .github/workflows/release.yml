@@ -38,6 +38,10 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable # Set this to dtolnay/rust-toolchain@nightly
 
+      - name: install aarch64 target
+        if: matrix.args == '--target aarch64-pc-windows-msvc'
+        run: rustup target add aarch64-pc-windows-msvc
+
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
@@ -51,16 +55,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: __VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
-          releaseName: "__VERSION__"
+          tagName: v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
+          releaseName: "v__VERSION__"
           releaseBody: "请访问 [Changelog.md](https://github.com/AkarinLiu/smtc2web/blob/v__VERSION__/Changelog.md) 查看版本变更信息。"
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
-      - name: "VirusTotal"
-        uses: cssnr/virustotal-action@v1
-        with:
-          path: ./src-tauri/target/${{matrix.target}}/release/bundle
-          update: true
-          summary: true
-          vt_api_key: ${{ secrets.VT_API_KEY }}
