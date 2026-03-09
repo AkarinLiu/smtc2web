@@ -23,7 +23,11 @@ impl ThemeManager {
         let path = if path.is_empty() { "index.html" } else { path };
 
         // 首先尝试从自定义主题路径加载文件
-        if !self.theme_path.as_os_str().is_empty() {
+        // 只有当主题路径有效且不为空时才尝试读取自定义主题
+        let has_custom_theme = !self.theme_path.to_string_lossy().is_empty()
+            && self.theme_path.components().next().is_some();
+        
+        if has_custom_theme {
             let custom_path = self.theme_path.join(path);
             if let Ok(content) = std::fs::read(&custom_path) {
                 let mime = mime_guess::from_path(path).first_or_octet_stream();
