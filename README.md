@@ -6,7 +6,7 @@
 
 ![OBS 接入 smtc2web 截图](./screenshot.png)
 
-> 注意：新增的图标为 Qwen3-Max-Preview 生成。
+> 新图标将 Bootstrap 的耳机图片和 Rust 的 Ferris 形象形成了戴耳机听音乐的图标。
 
 <img src="./src-tauri/icons/icon.png" alt="图标" width="64" height="64">
 
