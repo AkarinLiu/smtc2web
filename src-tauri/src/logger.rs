@@ -75,16 +75,6 @@ impl Logger {
         self.log_dir.join(format!("{}.log", date))
     }
 
-    /// 设置日志级别
-    pub fn set_level(&mut self, level: LogLevel) {
-        self.current_level = level;
-    }
-
-    /// 设置日志保留天数
-    pub fn set_max_age_days(&mut self, days: i64) {
-        self.max_age_days = days;
-    }
-
     /// 写入日志
     pub fn log(&self, level: LogLevel, message: &str) {
         // 只记录达到当前级别或更高级别的日志
@@ -120,44 +110,40 @@ impl Logger {
 
         match fs::read_dir(&self.log_dir) {
             Ok(entries) => {
-                for entry in entries {
-                    if let Ok(entry) = entry {
-                        let path = entry.path();
+                for entry in entries.flatten() {
+                    let path = entry.path();
 
-                        // 只处理 .log 文件
-                        if path.extension().and_then(|s| s.to_str()) != Some("log") {
-                            continue;
-                        }
+                    // 只处理 .log 文件
+                    if path.extension().and_then(|s| s.to_str()) != Some("log") {
+                        continue;
+                    }
 
-                        // 尝试从文件名解析日期
-                        if let Some(filename) = path.file_stem().and_then(|s| s.to_str()) {
-                            if let Ok(file_date) =
-                                chrono::NaiveDate::parse_from_str(filename, "%Y-%m-%d")
-                            {
-                                let file_datetime = chrono::NaiveDateTime::new(
-                                    file_date,
-                                    chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap_or_default(),
+                    // 尝试从文件名解析日期
+                    if let Some(filename) = path.file_stem().and_then(|s| s.to_str())
+                        && let Ok(file_date) = chrono::NaiveDate::parse_from_str(filename, "%Y-%m-%d")
+                    {
+                        let file_datetime = chrono::NaiveDateTime::new(
+                            file_date,
+                            chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap_or_default(),
+                        );
+
+                        if let Some(cutoff_naive) = cutoff.naive_local().into()
+                            && file_datetime < cutoff_naive
+                        {
+                            if let Err(e) = fs::remove_file(&path) {
+                                self.log(
+                                    LogLevel::Warn,
+                                    &format!(
+                                        "删除旧日志文件失败: {} - {}",
+                                        path.display(),
+                                        e
+                                    ),
                                 );
-
-                                if let Some(cutoff_naive) = cutoff.naive_local().into() {
-                                    if file_datetime < cutoff_naive {
-                                        if let Err(e) = fs::remove_file(&path) {
-                                            self.log(
-                                                LogLevel::Warn,
-                                                &format!(
-                                                    "删除旧日志文件失败: {} - {}",
-                                                    path.display(),
-                                                    e
-                                                ),
-                                            );
-                                        } else {
-                                            self.log(
-                                                LogLevel::Info,
-                                                &format!("已删除旧日志文件: {}", path.display()),
-                                            );
-                                        }
-                                    }
-                                }
+                            } else {
+                                self.log(
+                                    LogLevel::Info,
+                                    &format!("已删除旧日志文件: {}", path.display()),
+                                );
                             }
                         }
                     }
@@ -173,20 +159,6 @@ impl Logger {
 /// 初始化日志系统
 pub fn init() {
     Logger::instance();
-}
-
-/// 设置日志级别
-pub fn set_level(level: LogLevel) {
-    if let Ok(mut logger) = Logger::instance().lock() {
-        logger.set_level(level);
-    }
-}
-
-/// 设置日志保留天数
-pub fn set_max_age_days(days: i64) {
-    if let Ok(mut logger) = Logger::instance().lock() {
-        logger.set_max_age_days(days);
-    }
 }
 
 /// 记录调试日志

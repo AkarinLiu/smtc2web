@@ -32,17 +32,15 @@ impl ThemeManager {
             // 通过规范化路径并确保其仍然位于主题目录下，防止目录遍历
             if let (Ok(base_dir), Ok(resolved_path)) =
                 (std::fs::canonicalize(&self.theme_path), std::fs::canonicalize(&custom_path))
+                && resolved_path.starts_with(&base_dir)
+                && let Ok(content) = std::fs::read(&resolved_path)
             {
-                if resolved_path.starts_with(&base_dir) {
-                    if let Ok(content) = std::fs::read(&resolved_path) {
-                        let mime = mime_guess::from_path(path).first_or_octet_stream();
-                        return Ok(warp::reply::with_header(
-                            content,
-                            "content-type",
-                            mime.as_ref(),
-                        ));
-                    }
-                }
+                let mime = mime_guess::from_path(path).first_or_octet_stream();
+                return Ok(warp::reply::with_header(
+                    content,
+                    "content-type",
+                    mime.as_ref(),
+                ));
             }
         }
 

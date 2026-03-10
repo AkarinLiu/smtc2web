@@ -87,8 +87,11 @@ screenshot = "screenshot.png"
             .unwrap_or("screenshot.png")
             .to_string();
 
+        log_debug!("默认主题截图配置: '{}'", screenshot);
+
         // 从嵌入的资源中读取截图并转换为 Base64
         let screenshot_path = if let Some(screenshot_data) = DefaultTheme::get(&screenshot) {
+            log_debug!("默认主题截图文件找到，大小: {} 字节", screenshot_data.data.len());
             // 根据文件扩展名判断 MIME 类型
             let mime = if screenshot.ends_with(".png") {
                 "image/png"
@@ -97,12 +100,15 @@ screenshot = "screenshot.png"
             } else {
                 "image/png"
             };
-            format!(
+            let result = format!(
                 "data:{};base64,{}",
                 mime,
                 STANDARD.encode(&screenshot_data.data)
-            )
+            );
+            log_debug!("默认主题 Base64 编码完成，长度: {}", result.len());
+            result
         } else {
+            log_warn!("默认主题截图文件 '{}' 未找到", screenshot);
             // 如果找不到截图，返回空字符串
             String::new()
         };
@@ -160,12 +166,21 @@ screenshot = "screenshot.png"
         let name = theme_config.get("name")?.as_str()?.to_string();
         let author = theme_config.get("author")?.as_str()?.to_string();
         let version = theme_config.get("version")?.as_str()?.to_string();
-        let screenshot = theme_config.get("screenshot")?.as_str()?.to_string();
+        
+        // 截图字段是可选的，使用 unwrap_or_default 处理缺失的情况
+        let screenshot = theme_config
+            .get("screenshot")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        log_debug!("  主题 '{}' 截图配置: '{}'", name, screenshot);
 
         // 验证截图路径：禁止网络 URL，只允许本地相对路径
-        let screenshot_path = if screenshot.starts_with("http://")
-            || screenshot.starts_with("https://")
-        {
+        let screenshot_path = if screenshot.is_empty() {
+            log_debug!("  主题 '{}' 没有配置截图", name);
+            String::new()
+        } else if screenshot.starts_with("http://") || screenshot.starts_with("https://") {
             log_warn!("  主题 '{}' 的截图使用了网络 URL，已忽略", name);
             String::new()
         } else {
@@ -174,10 +189,14 @@ screenshot = "screenshot.png"
             full_path.push(theme_folder);
             full_path.push(&screenshot);
 
+            log_debug!("  主题 '{}' 截图完整路径: {:?}", name, full_path);
+
             // 验证文件是否存在，如果存在则读取并转为 Base64
             if full_path.exists() && full_path.is_file() {
+                log_debug!("  主题 '{}' 截图文件存在，正在读取...", name);
                 match fs::read(&full_path) {
                     Ok(data) => {
+                        log_debug!("  主题 '{}' 截图文件读取成功，大小: {} 字节", name, data.len());
                         // 根据文件扩展名判断 MIME 类型
                         let mime = if screenshot.ends_with(".png") {
                             "image/png"
@@ -186,7 +205,9 @@ screenshot = "screenshot.png"
                         } else {
                             "image/png"
                         };
-                        format!("data:{};base64,{}", mime, STANDARD.encode(&data))
+                        let result = format!("data:{};base64,{}", mime, STANDARD.encode(&data));
+                        log_debug!("  主题 '{}' Base64 编码完成，长度: {}", name, result.len());
+                        result
                     }
                     Err(e) => {
                         log_warn!("  读取主题 '{}' 的截图文件失败: {}", name, e);
@@ -226,28 +247,28 @@ screenshot = "screenshot.png"
         if let Ok(entries) = fs::read_dir(&themes_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.is_dir() {
-                    if let Some(folder_name) = path.file_name() {
-                        let folder_name = folder_name.to_string_lossy().to_string();
+                if path.is_dir()
+                    && let Some(folder_name) = path.file_name()
+                {
+                    let folder_name = folder_name.to_string_lossy().to_string();
 
-                        // 跳过 default 文件夹（默认主题使用内置的）
-                        if folder_name == "default" {
-                            log_debug!("发现文件夹: {} (跳过，使用内置默认主题)", folder_name);
-                            continue;
-                        }
+                    // 跳过 default 文件夹（默认主题使用内置的）
+                    if folder_name == "default" {
+                        log_debug!("发现文件夹: {} (跳过，使用内置默认主题)", folder_name);
+                        continue;
+                    }
 
-                        log_debug!("发现文件夹: {}", folder_name);
+                    log_debug!("发现文件夹: {}", folder_name);
 
-                        let config_path = Self::get_theme_config_path(&folder_name);
-                        log_debug!("  配置文件路径: {:?}", config_path);
-                        log_debug!("  配置文件存在: {}", config_path.exists());
+                    let config_path = Self::get_theme_config_path(&folder_name);
+                    log_debug!("  配置文件路径: {:?}", config_path);
+                    log_debug!("  配置文件存在: {}", config_path.exists());
 
-                        if let Some(theme_info) = Self::parse_theme_config(&folder_name) {
-                            log_info!("  成功解析主题: {}", theme_info.name);
-                            themes.push(theme_info);
-                        } else {
-                            log_debug!("  解析主题失败，跳过");
-                        }
+                    if let Some(theme_info) = Self::parse_theme_config(&folder_name) {
+                        log_info!("  成功解析主题: {}", theme_info.name);
+                        themes.push(theme_info);
+                    } else {
+                        log_debug!("  解析主题失败，跳过");
                     }
                 }
             }

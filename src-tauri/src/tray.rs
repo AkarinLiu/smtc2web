@@ -58,11 +58,8 @@ pub fn handle_tray_menu_event<R: Runtime>(
 
 /// 处理托盘图标事件（双击显示窗口）
 fn handle_tray_icon_event<R: Runtime>(app: &AppHandle<R>, event: TrayIconEvent) {
-    match event {
-        TrayIconEvent::DoubleClick { .. } => {
-            show_window(app);
-        }
-        _ => {}
+    if let TrayIconEvent::DoubleClick { .. } = event {
+        show_window(app);
     }
 }
 

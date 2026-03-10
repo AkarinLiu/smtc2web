@@ -42,29 +42,27 @@ async fn get_album_art(
     use windows::Storage::Streams::Buffer;
     use windows::Storage::Streams::DataReader;
 
-    if let Ok(info) = session.TryGetMediaPropertiesAsync().and_then(|f| f.get()) {
-        if let Ok(thumbnail) = info.Thumbnail() {
-            if let Ok(stream) = thumbnail.OpenReadAsync().and_then(|f| f.get()) {
-                let size = stream.Size().ok()?;
-                if size > 0 && size < 10 * 1024 * 1024 {
-                    let buffer = Buffer::Create(size as u32).ok()?;
-                    if let Ok(read_operation) = stream.ReadAsync(
-                        &buffer,
-                        size as u32,
-                        windows::Storage::Streams::InputStreamOptions::ReadAhead,
-                    ) {
-                        if let Ok(result_buffer) = read_operation.get() {
-                            let reader = DataReader::FromBuffer(&result_buffer).ok()?;
-                            let length = result_buffer.Length().ok()? as usize;
-                            let mut data = vec![0u8; length];
-                            reader.ReadBytes(&mut data).ok()?;
-                            use base64::{Engine, engine::general_purpose::STANDARD};
-                            let mime = "data:image/jpeg";
-                            let data_uri = format!("{};base64,{}", mime, STANDARD.encode(&data));
-                            return Some(data_uri);
-                        }
-                    }
-                }
+    if let Ok(info) = session.TryGetMediaPropertiesAsync().and_then(|f| f.get())
+        && let Ok(thumbnail) = info.Thumbnail()
+        && let Ok(stream) = thumbnail.OpenReadAsync().and_then(|f| f.get())
+    {
+        let size = stream.Size().ok()?;
+        if size > 0 && size < 10 * 1024 * 1024 {
+            let buffer = Buffer::Create(size as u32).ok()?;
+            if let Ok(read_operation) = stream.ReadAsync(
+                &buffer,
+                size as u32,
+                windows::Storage::Streams::InputStreamOptions::ReadAhead,
+            ) && let Ok(result_buffer) = read_operation.get()
+            {
+                let reader = DataReader::FromBuffer(&result_buffer).ok()?;
+                let length = result_buffer.Length().ok()? as usize;
+                let mut data = vec![0u8; length];
+                reader.ReadBytes(&mut data).ok()?;
+                use base64::{Engine, engine::general_purpose::STANDARD};
+                let mime = "data:image/jpeg";
+                let data_uri = format!("{};base64,{}", mime, STANDARD.encode(&data));
+                return Some(data_uri);
             }
         }
     }
@@ -277,7 +275,8 @@ async fn start_server(
     };
 
     // 确定主题路径
-    let theme_path = if current_theme.is_empty() {
+    // "default" 或空字符串都表示使用内置的 RustEmbed 主题
+    let theme_path = if current_theme.is_empty() || current_theme == "default" {
         PathBuf::new() // 使用内置主题
     } else {
         theme_manager::ThemeManager::get_theme_server_path(&current_theme)

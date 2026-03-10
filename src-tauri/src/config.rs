@@ -56,9 +56,7 @@ impl Config {
     /// 启动配置文件监控
     pub fn start_monitoring(config: Arc<Mutex<Self>>) {
         let config_path = Self::get_config_path();
-        let config_dir = config_path
-            .parent()
-            .unwrap_or_else(|| config_path.as_path());
+        let config_dir = config_path.parent().unwrap_or(config_path.as_path());
 
         // 创建监视器
         let (tx, rx) = std::sync::mpsc::channel();
