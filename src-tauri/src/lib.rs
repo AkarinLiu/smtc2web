@@ -99,9 +99,9 @@ fn with_state(
 // 单进程检测 - 使用 Windows CreateMutex
 use open::that;
 use std::ptr;
+use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Foundation::{CloseHandle, HANDLE, WIN32_ERROR};
 use windows::Win32::System::Threading::CreateMutexW;
-use windows::Win32::Foundation::GetLastError;
 
 pub struct SingleInstance {
     handle: HANDLE,
@@ -111,29 +111,29 @@ impl SingleInstance {
     pub fn new(name: &str) -> Result<Self, String> {
         // 将 Rust 字符串转换为宽字符
         let name_wide: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
-        
+
         unsafe {
             let handle_result = CreateMutexW(
-                Some(ptr::null()),  // 安全属性
-                false,              // 初始不持有
+                Some(ptr::null()), // 安全属性
+                false,             // 初始不持有
                 windows::core::PCWSTR(name_wide.as_ptr()),
             );
-            
+
             let handle = match handle_result {
                 Ok(h) => h,
                 Err(_) => return Err("创建互斥锁失败".to_string()),
             };
-            
+
             if handle.is_invalid() {
                 return Err("创建互斥锁失败".to_string());
             }
-            
+
             let error = GetLastError();
             // ERROR_ALREADY_EXISTS 表示互斥量已存在，说明已有实例在运行
             if error == WIN32_ERROR(183) {
                 // 183 = ERROR_ALREADY_EXISTS
                 let _ = CloseHandle(handle);
-                
+
                 // 打开浏览器
                 let config = config::Config::load().unwrap_or_default();
                 let port = config.server_port;
@@ -141,10 +141,10 @@ impl SingleInstance {
                 if let Err(e) = that(&url) {
                     log_error!("打开浏览器失败: {}", e);
                 }
-                
+
                 return Err("程序已在运行".to_string());
             }
-            
+
             Ok(SingleInstance { handle })
         }
     }
@@ -349,8 +349,15 @@ async fn set_theme(theme_name: String, _app_handle: tauri::AppHandle) -> Result<
         }
 
         // 获取端口和共享状态
-        let port = app_state.config.lock().map_err(|e| e.to_string())?.server_port;
-        let state = app_state.shared_state.clone().ok_or("Shared state not initialized")?;
+        let port = app_state
+            .config
+            .lock()
+            .map_err(|e| e.to_string())?
+            .server_port;
+        let state = app_state
+            .shared_state
+            .clone()
+            .ok_or("Shared state not initialized")?;
         (port, state)
     };
 

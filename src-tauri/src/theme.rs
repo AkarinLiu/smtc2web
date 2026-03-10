@@ -4,7 +4,7 @@ use warp::{Filter, path::Tail};
 
 #[derive(RustEmbed)]
 #[folder = "frontend"]
-struct DefaultTheme;
+pub struct DefaultTheme;
 
 #[derive(Clone)]
 pub struct ThemeManager {
@@ -26,13 +26,14 @@ impl ThemeManager {
         // 只有当主题路径有效且不为空时才尝试读取自定义主题
         let has_custom_theme = !self.theme_path.to_string_lossy().is_empty()
             && self.theme_path.components().next().is_some();
-        
+
         if has_custom_theme {
             let custom_path = self.theme_path.join(path);
             // 通过规范化路径并确保其仍然位于主题目录下，防止目录遍历
-            if let (Ok(base_dir), Ok(resolved_path)) =
-                (std::fs::canonicalize(&self.theme_path), std::fs::canonicalize(&custom_path))
-                && resolved_path.starts_with(&base_dir)
+            if let (Ok(base_dir), Ok(resolved_path)) = (
+                std::fs::canonicalize(&self.theme_path),
+                std::fs::canonicalize(&custom_path),
+            ) && resolved_path.starts_with(&base_dir)
                 && let Ok(content) = std::fs::read(&resolved_path)
             {
                 let mime = mime_guess::from_path(path).first_or_octet_stream();

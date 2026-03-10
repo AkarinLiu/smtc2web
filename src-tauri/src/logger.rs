@@ -120,7 +120,8 @@ impl Logger {
 
                     // 尝试从文件名解析日期
                     if let Some(filename) = path.file_stem().and_then(|s| s.to_str())
-                        && let Ok(file_date) = chrono::NaiveDate::parse_from_str(filename, "%Y-%m-%d")
+                        && let Ok(file_date) =
+                            chrono::NaiveDate::parse_from_str(filename, "%Y-%m-%d")
                     {
                         let file_datetime = chrono::NaiveDateTime::new(
                             file_date,
@@ -133,11 +134,7 @@ impl Logger {
                             if let Err(e) = fs::remove_file(&path) {
                                 self.log(
                                     LogLevel::Warn,
-                                    &format!(
-                                        "删除旧日志文件失败: {} - {}",
-                                        path.display(),
-                                        e
-                                    ),
+                                    &format!("删除旧日志文件失败: {} - {}", path.display(), e),
                                 );
                             } else {
                                 self.log(

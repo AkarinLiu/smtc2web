@@ -1,6 +1,6 @@
+use crate::theme::DefaultTheme;
 use crate::{log_debug, log_error, log_info, log_warn};
-use base64::{engine::general_purpose::STANDARD, Engine};
-use rust_embed::RustEmbed;
+use base64::{Engine, engine::general_purpose::STANDARD};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
@@ -17,10 +17,6 @@ pub struct ThemeInfo {
     pub is_default: bool,
     pub is_builtin: bool,
 }
-
-#[derive(RustEmbed)]
-#[folder = "frontend"]
-struct DefaultTheme;
 
 pub struct ThemeManager;
 
@@ -91,7 +87,10 @@ screenshot = "screenshot.png"
 
         // 从嵌入的资源中读取截图并转换为 Base64
         let screenshot_path = if let Some(screenshot_data) = DefaultTheme::get(&screenshot) {
-            log_debug!("默认主题截图文件找到，大小: {} 字节", screenshot_data.data.len());
+            log_debug!(
+                "默认主题截图文件找到，大小: {} 字节",
+                screenshot_data.data.len()
+            );
             // 根据文件扩展名判断 MIME 类型
             let mime = if screenshot.ends_with(".png") {
                 "image/png"
@@ -166,7 +165,7 @@ screenshot = "screenshot.png"
         let name = theme_config.get("name")?.as_str()?.to_string();
         let author = theme_config.get("author")?.as_str()?.to_string();
         let version = theme_config.get("version")?.as_str()?.to_string();
-        
+
         // 截图字段是可选的，使用 unwrap_or_default 处理缺失的情况
         let screenshot = theme_config
             .get("screenshot")
@@ -196,7 +195,11 @@ screenshot = "screenshot.png"
                 log_debug!("  主题 '{}' 截图文件存在，正在读取...", name);
                 match fs::read(&full_path) {
                     Ok(data) => {
-                        log_debug!("  主题 '{}' 截图文件读取成功，大小: {} 字节", name, data.len());
+                        log_debug!(
+                            "  主题 '{}' 截图文件读取成功，大小: {} 字节",
+                            name,
+                            data.len()
+                        );
                         // 根据文件扩展名判断 MIME 类型
                         let mime = if screenshot.ends_with(".png") {
                             "image/png"
