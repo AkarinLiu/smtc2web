@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - v*
+      - v*.*.*
 
 jobs:
   publish-tauri:
@@ -22,6 +22,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
 
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-latest'
