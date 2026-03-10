@@ -98,27 +98,70 @@ fn with_state(
     warp::any().map(move || s.clone())
 }
 
-// 单进程检测
-use named_lock::NamedLock;
+// 单进程检测 - 使用 Windows CreateMutex
 use open::that;
-fn check_single_instance() -> Result<NamedLock, String> {
-    let lock = NamedLock::create("smtc2web_single_instance_mutex")
-        .map_err(|_| "创建命名锁失败".to_string())?;
+use std::ptr;
+use windows::Win32::Foundation::{CloseHandle, HANDLE, WIN32_ERROR};
+use windows::Win32::System::Threading::CreateMutexW;
+use windows::Win32::Foundation::GetLastError;
 
-    // 检查是否能获取锁
-    if let Err(_) = lock.try_lock() {
-        // 锁已被其他进程占用，返回错误
-        let config = config::Config::load().unwrap_or_default();
-        let port = config.server_port;
-        let url = format!("http://localhost:{}", port);
-        if let Err(e) = that(&url) {
-            log_error!("打开浏览器失败: {}", e);
+pub struct SingleInstance {
+    handle: HANDLE,
+}
+
+impl SingleInstance {
+    pub fn new(name: &str) -> Result<Self, String> {
+        // 将 Rust 字符串转换为宽字符
+        let name_wide: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
+        
+        unsafe {
+            let handle_result = CreateMutexW(
+                Some(ptr::null()),  // 安全属性
+                false,              // 初始不持有
+                windows::core::PCWSTR(name_wide.as_ptr()),
+            );
+            
+            let handle = match handle_result {
+                Ok(h) => h,
+                Err(_) => return Err("创建互斥锁失败".to_string()),
+            };
+            
+            if handle.is_invalid() {
+                return Err("创建互斥锁失败".to_string());
+            }
+            
+            let error = GetLastError();
+            // ERROR_ALREADY_EXISTS 表示互斥量已存在，说明已有实例在运行
+            if error == WIN32_ERROR(183) {
+                // 183 = ERROR_ALREADY_EXISTS
+                let _ = CloseHandle(handle);
+                
+                // 打开浏览器
+                let config = config::Config::load().unwrap_or_default();
+                let port = config.server_port;
+                let url = format!("http://localhost:{}", port);
+                if let Err(e) = that(&url) {
+                    log_error!("打开浏览器失败: {}", e);
+                }
+                
+                return Err("程序已在运行".to_string());
+            }
+            
+            Ok(SingleInstance { handle })
         }
-        return Err("程序已在运行".to_string());
     }
+}
 
-    // 锁已释放，可以安全返回锁对象
-    Ok(lock)
+impl Drop for SingleInstance {
+    fn drop(&mut self) {
+        unsafe {
+            let _ = CloseHandle(self.handle);
+        }
+    }
+}
+
+fn check_single_instance() -> Result<SingleInstance, String> {
+    SingleInstance::new("smtc2web_single_instance_mutex")
 }
 
 // -------------------- 后台轮询 --------------------
@@ -410,8 +453,9 @@ pub fn run() {
     log_info!("应用程序启动");
 
     // 单进程检测 - 确保只有一个实例运行
-    let _mutex_handle = match check_single_instance() {
-        Ok(handle) => handle,
+    // SingleInstance 必须保持在作用域内，否则锁会被释放
+    let _single_instance = match check_single_instance() {
+        Ok(instance) => instance,
         Err(e) => {
             log_error!("{}", e);
             std::process::exit(1);
