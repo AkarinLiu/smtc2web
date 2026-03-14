@@ -2,9 +2,11 @@
 
  一个基于 Rust 的 smtc2web 实现，用于在直播软件实时显示正在播放的歌曲。
 
+**LinuxDO 原帖子链接:** https://linux.do/t/topic/937994
+
 ![OBS 接入 smtc2web 截图](./screenshot.png)
 
-> 注意：新增的图标为 Qwen3-Max-Preview 生成。
+> 新图标将 Bootstrap 的耳机图片和 Rust 的 Ferris 形象形成了戴耳机听音乐的图标。
 
 <img src="./src-tauri/icons/icon.png" alt="图标" width="64" height="64">
 
@@ -12,6 +14,7 @@
 
 - [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
 - [TRAE](https://trae.com.cn/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- [Zed](https://zed.dev/)
 
 ## 构建
 
