@@ -35,6 +35,8 @@ jobs:
         uses: volta-cli/action@v4.2.1
         with:
           node-version: 24
+
+      - name: install pnpm
         run: volta install pnpm
 
       - name: install Rust stable
