@@ -62,5 +62,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: smtc2web-${{ matrix.target }}-${{ github.sha }}
-          path: src-tauri/target/${{ matrix.target }}/bundle
+          path: src-tauri/target/${{ matrix.target }}/release/bundle
           fail-on-missing: true
