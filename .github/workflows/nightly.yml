@@ -1,10 +1,10 @@
-name: "Release"
+name: "Nightly"
 
 on:
   workflow_dispatch:
   push:
-    tags:
-      - v*.*.*
+    branches:
+      - nightly
 
 jobs:
   publish-tauri:
@@ -53,13 +53,12 @@ jobs:
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: pnpm install # change this to npm or pnpm depending on which one you use.
 
-      - uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: build app
+        run: pnpm tauri:build --target ${{ matrix.target }}
+
+      - name: upload artifact
+        uses: actions/upload-artifact@v3
         with:
-          tagName: v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
-          releaseName: "v__VERSION__"
-          releaseBody: "请访问 [Changelog.md](https://github.com/AkarinLiu/smtc2web/blob/v__VERSION__/Changelog.md) 查看版本变更信息。"
-          releaseDraft: true
-          prerelease: false
-          args: --target ${{ matrix.target }}
+          name: smtc2web-${{ matrix.target }}-${{ github.sha }}
+          path: src-tauri/target/${{ matrix.target }}/bundle
+          fail-on-missing: true

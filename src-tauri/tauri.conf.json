@@ -1,18 +1,23 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "smtc2web",
-  "version": "0.2.10",
+  "version": "2026.3.16-nightly",
   "identifier": "com.akarinliu.smtc2web",
   "build": {
-    "frontendDist": "../src"
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [
       {
         "title": "smtc2web",
-        "width": 800,
-        "height": 600,
+        "width": 900,
+        "height": 700,
+        "minWidth": 600,
+        "minHeight": 400,
         "resizable": true,
         "fullscreen": false,
         "visible": true,

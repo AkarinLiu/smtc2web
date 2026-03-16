@@ -1,10 +1,10 @@
-name: "Release"
+name: "Beta"
 
 on:
   workflow_dispatch:
   push:
     tags:
-      - v*.*.*
+      - v*.*.*-beta*
 
 jobs:
   publish-tauri:
@@ -61,5 +61,5 @@ jobs:
           releaseName: "v__VERSION__"
           releaseBody: "请访问 [Changelog.md](https://github.com/AkarinLiu/smtc2web/blob/v__VERSION__/Changelog.md) 查看版本变更信息。"
           releaseDraft: true
-          prerelease: false
+          prerelease: true
           args: --target ${{ matrix.target }}
