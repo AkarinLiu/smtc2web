@@ -2,9 +2,6 @@ name: Crowdin Sync
 on:
   schedule:
     - cron: "* 2/* * * *"
-  paths:
-    - "src/**"
-    - "locales/**"
 
 jobs:
   sync:
