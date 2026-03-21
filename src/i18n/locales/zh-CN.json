@@ -1,0 +1,49 @@
+{
+  "nav": {
+    "themes": "主题",
+    "settings": "设置"
+  },
+  "themes": {
+    "title": "主题列表",
+    "upload": "上传主题",
+    "uploading": "上传中...",
+    "empty": {
+      "title": "暂无主题",
+      "description": "点击「上传主题」按钮添加新主题"
+    },
+    "loading": "加载中...",
+    "card": {
+      "noPreview": "无预览图",
+      "active": "当前使用中",
+      "default": "默认",
+      "delete": "删除主题"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "language": {
+      "label": "语言",
+      "placeholder": "选择语言"
+    },
+    "serverPort": {
+      "label": "服务器端口"
+    },
+    "serverAddress": {
+      "label": "服务器地址"
+    },
+    "showConsole": {
+      "label": "显示控制台",
+      "hint": "重启应用后生效"
+    },
+    "save": "保存",
+    "saving": "保存中...",
+    "saved": "已保存"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "cancel": "取消",
+    "confirm": "确认"
+  }
+}

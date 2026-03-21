@@ -16,6 +16,7 @@ pub struct Config {
     pub show_console: bool,
     pub address: String,
     pub current_theme: String,
+    pub locale: String,
 }
 
 impl Default for Config {
@@ -25,6 +26,7 @@ impl Default for Config {
             show_console: false,
             address: "127.0.0.1".to_string(),
             current_theme: "".to_string(),
+            locale: "zh-CN".to_string(),
         }
     }
 }

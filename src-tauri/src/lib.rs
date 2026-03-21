@@ -11,6 +11,7 @@ use warp::Filter;
 
 mod config;
 mod console;
+mod i18n;
 mod logger;
 mod theme;
 mod theme_manager;
@@ -425,6 +426,7 @@ struct ConfigDto {
     show_console: bool,
     address: String,
     current_theme: String,
+    locale: String,
 }
 
 #[tauri::command]
@@ -436,6 +438,7 @@ async fn get_config() -> Result<ConfigDto, String> {
         show_console: config.show_console,
         address: config.address.clone(),
         current_theme: config.current_theme.clone(),
+        locale: config.locale.clone(),
     })
 }
 
@@ -448,8 +451,15 @@ async fn save_config(config_dto: ConfigDto) -> Result<(), String> {
     config.show_console = config_dto.show_console;
     config.address = config_dto.address;
     config.current_theme = config_dto.current_theme;
+    config.locale = config_dto.locale;
 
     config.save().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn set_locale(locale: String, app: tauri::AppHandle) -> Result<(), String> {
+    log_info!("Setting locale to: {}", locale);
+    tray::update_tray_menu_language(&app, &locale)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -540,9 +550,20 @@ pub fn run() {
             upload_theme_from_bytes,
             delete_theme,
             get_config,
-            save_config
+            save_config,
+            set_locale
         ])
         .setup(move |app| {
+            // 从配置中读取语言设置并应用
+            {
+                let app_state = APP_STATE.lock().unwrap();
+                let config_guard = app_state.config.lock().unwrap();
+                let locale = config_guard.locale.clone();
+                // 设置语言（托盘菜单将使用此语言）
+                let _ = i18n::set_locale(&locale);
+                log_info!("Applied locale from config: {}", locale);
+            }
+            
             // 创建系统托盘图标并配置事件处理
             tray::create_tray_icon(app.handle(), port_clone)?;
 

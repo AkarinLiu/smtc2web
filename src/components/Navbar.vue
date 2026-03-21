@@ -7,15 +7,21 @@
     <div class="navbar-tabs">
       <RouterLink to="/themes" class="nav-tab" active-class="active">
         <span class="tab-icon">🎨</span>
-        主题
+        {{ t('nav.themes') }}
       </RouterLink>
       <RouterLink to="/settings" class="nav-tab" active-class="active">
         <span class="tab-icon">⚙️</span>
-        设置
+        {{ t('nav.settings') }}
       </RouterLink>
     </div>
   </nav>
 </template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+</script>
 
 <style scoped>
 .navbar {

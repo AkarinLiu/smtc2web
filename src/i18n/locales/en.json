@@ -1,0 +1,49 @@
+{
+  "nav": {
+    "themes": "Themes",
+    "settings": "Settings"
+  },
+  "themes": {
+    "title": "Theme List",
+    "upload": "Upload Theme",
+    "uploading": "Uploading...",
+    "empty": {
+      "title": "No Themes",
+      "description": "Click the \"Upload Theme\" button to add a new theme"
+    },
+    "loading": "Loading...",
+    "card": {
+      "noPreview": "No Preview",
+      "active": "Currently Active",
+      "default": "Default",
+      "delete": "Delete Theme"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language": {
+      "label": "Language",
+      "placeholder": "Select Language"
+    },
+    "serverPort": {
+      "label": "Server Port"
+    },
+    "serverAddress": {
+      "label": "Server Address"
+    },
+    "showConsole": {
+      "label": "Show Console",
+      "hint": "Takes effect after restarting the app"
+    },
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  }
+}

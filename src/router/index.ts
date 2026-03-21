@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import ThemesView from '@/views/ThemesView.vue'
-import SettingsView from '@/views/SettingsView.vue'
+
+// 懒加载路由组件
+const ThemesView = () => import('@/views/ThemesView.vue')
+const SettingsView = () => import('@/views/SettingsView.vue')
 
 const router = createRouter({
   history: createWebHistory(),

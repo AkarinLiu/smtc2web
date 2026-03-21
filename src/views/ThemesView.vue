@@ -1,27 +1,24 @@
 <template>
   <div class="themes-view">
     <header class="page-header">
-      <h2>主题列表</h2>
+      <h2>{{ t('themes.title') }}</h2>
       <button 
         class="btn btn-primary"
         @click="handleUpload"
         :disabled="uploadLoading"
       >
-        <span v-if="uploadLoading">⏳ 上传中...</span>
-        <span v-else>📤 上传主题</span>
+        <span v-if="uploadLoading">⏳ {{ t('themes.uploading') }}</span>
+        <span v-else>📤 {{ t('themes.upload') }}</span>
       </button>
     </header>
     
-    <div v-if="loading" class="loading">
-      <span class="spinner">⏳</span>
-      <span>加载中...</span>
-    </div>
+    <ThemeSkeleton v-if="loading" :count="6" />
     
     <EmptyState 
       v-else-if="!hasThemes"
       icon="🎨"
-      title="暂无主题"
-      description="点击「上传主题」按钮添加新主题"
+      :title="t('themes.empty.title')"
+      :description="t('themes.empty.description')"
     />
     
     <ThemeGrid
@@ -36,17 +33,24 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { onMounted } from 'vue'
+import { onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useThemeStore } from '@/stores/theme'
 import type { Theme } from '@/types/theme'
 
+const { t } = useI18n()
 const themeStore = useThemeStore()
 
 const { themes, currentTheme, loading, uploadLoading, hasThemes } = storeToRefs(themeStore)
 
-onMounted(() => {
-  themeStore.loadThemes()
-  themeStore.loadCurrentTheme()
+onMounted(async () => {
+  // 使用 nextTick 确保 DOM 先渲染完成
+  await nextTick()
+  // 并行加载主题数据，减少等待时间
+  await Promise.all([
+    themeStore.loadThemes(),
+    themeStore.loadCurrentTheme()
+  ])
 })
 
 function handleSelect(folderName: string) {
@@ -92,26 +96,5 @@ function handleUpload() {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px;
-  gap: var(--fluent-space-md);
-  color: var(--fluent-text-secondary);
-  font-size: 16px;
-}
-
-.spinner {
-  font-size: 32px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 </style>

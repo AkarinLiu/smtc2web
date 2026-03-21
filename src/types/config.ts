@@ -3,4 +3,5 @@ export interface AppConfig {
   address: string
   show_console: boolean
   current_theme: string
+  locale: string
 }

@@ -1,7 +1,13 @@
 <template>
   <div class="settings-form">
+    <!-- 语言选择 -->
     <div class="form-group">
-      <label>服务器端口</label>
+      <label>{{ t('settings.language.label') }}</label>
+      <LanguageSelector />
+    </div>
+    
+    <div class="form-group">
+      <label>{{ t('settings.serverPort.label') }}</label>
       <input
         type="number"
         v-model.number="localConfig.server_port"
@@ -12,7 +18,7 @@
     </div>
     
     <div class="form-group">
-      <label>服务器地址</label>
+      <label>{{ t('settings.serverAddress.label') }}</label>
       <input
         type="text"
         v-model="localConfig.address"
@@ -27,9 +33,9 @@
           type="checkbox"
           v-model="localConfig.show_console"
         />
-        <span>显示控制台</span>
+        <span>{{ t('settings.showConsole.label') }}</span>
       </label>
-      <p class="hint">重启应用后生效</p>
+      <p class="hint">{{ t('settings.showConsole.hint') }}</p>
     </div>
     
     <div class="form-actions">
@@ -38,9 +44,9 @@
         @click="handleSave"
         :disabled="loading"
       >
-        <span v-if="loading">⏳ 保存中...</span>
-        <span v-else-if="saved">✓ 已保存</span>
-        <span v-else>💾 保存</span>
+        <span v-if="loading">⏳ {{ t('settings.saving') }}</span>
+        <span v-else-if="saved">✓ {{ t('settings.saved') }}</span>
+        <span v-else>💾 {{ t('settings.save') }}</span>
       </button>
     </div>
   </div>
@@ -48,6 +54,8 @@
 
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import LanguageSelector from './LanguageSelector.vue'
 import type { AppConfig } from '@/types/config'
 
 interface Props {
@@ -60,6 +68,8 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   save: []
 }>()
+
+const { t } = useI18n()
 
 const localConfig = reactive<AppConfig>({ ...props.config })
 
