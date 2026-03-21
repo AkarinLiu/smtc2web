@@ -1,7 +1,7 @@
 name: Crowdin Sync
 on:
   schedule:
-    - cron: "0 0 2/2 * * *"
+    - cron: "0 */2 * * *"
 
 jobs:
   sync:
