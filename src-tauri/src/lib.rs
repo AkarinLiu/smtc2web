@@ -37,9 +37,51 @@ fn format_duration(seconds: u64) -> String {
     format!("{:02}:{:02}", minutes, secs)
 }
 
+// 专辑图片缓存系统
+use std::collections::HashMap;
+use std::sync::Mutex as StdMutex;
+use once_cell::sync::Lazy;
+
+static ALBUM_ART_CACHE: Lazy<StdMutex<HashMap<String, (String, u64)>>> = 
+    Lazy::new(|| StdMutex::new(HashMap::new()));
+
+fn get_cached_album_art(song_id: &str) -> Option<String> {
+    let cache = ALBUM_ART_CACHE.lock().unwrap();
+    cache.get(song_id).map(|(art, _)| art.clone())
+}
+
+fn set_cached_album_art(song_id: &str, art: String) {
+    let mut cache = ALBUM_ART_CACHE.lock().unwrap();
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    cache.insert(song_id.to_string(), (art, timestamp));
+    
+    // 清理过期缓存（保留最近30个）
+    if cache.len() > 30 {
+        let mut entries: Vec<_> = cache.iter().collect();
+        entries.sort_by(|a, b| b.1.1.cmp(&a.1.1));
+        let to_remove: Vec<String> = entries.iter().skip(30).map(|(k, _)| (*k).clone()).collect();
+        for key in to_remove {
+            cache.remove(key.as_str());
+        }
+    }
+}
+
+fn generate_song_id(title: &str, artist: &str, album: &str) -> String {
+    format!("{}|{}|{}", title, artist, album)
+}
+
 async fn get_album_art(
     session: &windows::Media::Control::GlobalSystemMediaTransportControlsSession,
+    song_id: &str,
 ) -> Option<String> {
+    // 首先检查缓存
+    if let Some(cached) = get_cached_album_art(song_id) {
+        return Some(cached);
+    }
+    
     use windows::Storage::Streams::Buffer;
     use windows::Storage::Streams::DataReader;
 
@@ -63,6 +105,8 @@ async fn get_album_art(
                 use base64::{Engine, engine::general_purpose::STANDARD};
                 let mime = "data:image/jpeg";
                 let data_uri = format!("{};base64,{}", mime, STANDARD.encode(&data));
+                // 缓存结果
+                set_cached_album_art(song_id, data_uri.clone());
                 return Some(data_uri);
             }
         }
@@ -178,8 +222,13 @@ fn smtc_worker(state: Shared) {
         }
     };
 
+    // 创建一次性的 tokio runtime 用于异步操作
+    let runtime = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+
     let mut last_song = Song::default();
     let mut last_position = None::<String>;
+    let mut last_song_id = String::new();
+    let mut last_art_update = 0u64;
 
     loop {
         let mut current_song = Song::default();
@@ -204,9 +253,30 @@ fn smtc_worker(state: Shared) {
                 current_song.album = info.AlbumTitle().unwrap_or_default().to_string();
             }
 
-            // 专辑图片
-            let runtime = tokio::runtime::Runtime::new().unwrap();
-            current_song.album_art = runtime.block_on(get_album_art(&session));
+            // 生成歌曲唯一标识
+            let current_song_id = generate_song_id(
+                &current_song.title,
+                &current_song.artist,
+                &current_song.album
+            );
+
+            // 先检查缓存
+            let cached_art = get_cached_album_art(&current_song_id);
+            
+            // 只在以下情况获取新图片：
+            // 1. 缓存中没有
+            // 2. 超过30秒未更新且歌曲发生了变化
+            let should_fetch_art = cached_art.is_none() || 
+                (current_song_id != last_song_id && timestamp.saturating_sub(last_art_update) > 30);
+            
+            if should_fetch_art {
+                current_song.album_art = runtime.block_on(get_album_art(&session, &current_song_id));
+                last_song_id = current_song_id;
+                last_art_update = timestamp;
+            } else {
+                // 使用缓存的图片
+                current_song.album_art = cached_art;
+            }
 
             // 进度
             if let Ok(timeline) = session.GetTimelineProperties() {
@@ -240,8 +310,8 @@ fn smtc_worker(state: Shared) {
             current_song.album != last_song.album ||
             // 专辑图片变化
             current_song.album_art != last_song.album_art ||
-            // 强制更新（每5秒）
-            timestamp.saturating_sub(last_song.last_update) > 5;
+            // 强制更新（每10秒）
+            timestamp.saturating_sub(last_song.last_update) > 10;
 
         if should_update {
             let mut s = state.write().unwrap();
@@ -250,10 +320,10 @@ fn smtc_worker(state: Shared) {
             last_position = current_song.position;
         }
 
-        // 根据播放状态调整轮询间隔
+        // 根据播放状态调整轮询间隔（平衡响应速度和CPU占用）
         let sleep_duration = match current_song.is_playing {
-            true => Duration::from_millis(100),
-            false => Duration::from_millis(200),
+            true => Duration::from_millis(200),  // 播放时200ms，平衡响应速度和CPU占用
+            false => Duration::from_millis(1000), // 暂停时1000ms
         };
         std::thread::sleep(sleep_duration);
     }
