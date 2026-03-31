@@ -1,0 +1,4 @@
+[tray]
+show_window = "Show Window"
+open_web = "Open Web"
+quit = "Quit"

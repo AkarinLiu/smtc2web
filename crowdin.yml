@@ -3,7 +3,6 @@
 
 # 项目 ID 和 API Token（需要替换为实际值）
 "project_id": "882742"
-"api_token": "${{ secrets.CROWDIN_API_TOKEN }}"
 "base_path": "."
 "preserve_hierarchy": true
 
@@ -15,8 +14,16 @@ files:
     type: json
     languages_mapping:
       locale:
-        zh-CN: zh-CN
+        de: de-DE
         en: en
+        fr: fr-FR
+        it: it-IT
+        ja: ja-JP
+        ko: ko-KR
+        nl: nl-NL
+        ru: ru-RU
+        zh-CN: zh-CN
+        zh-TW: zh-TW
 
   # 托盘菜单语言文件 (TOML)
   - source: "/src-tauri/locales/en.toml"
@@ -24,5 +31,13 @@ files:
     type: toml
     languages_mapping:
       locale:
-        zh-CN: zh-CN
+        de: de-DE
         en: en
+        fr: fr-FR
+        it: it-IT
+        ja: ja-JP
+        ko: ko-KR
+        nl: nl-NL
+        ru: ru-RU
+        zh-CN: zh-CN
+        zh-TW: zh-TW
