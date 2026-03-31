@@ -1,3 +1,14 @@
+---
+name: debugging-logging
+description: 调试和日志技巧，包括控制台控制、日志输出和常见问题排查
+license: MIT
+compatibility: smtc2web >=1.0
+metadata:
+  category: debugging
+  language: zh-CN
+  type: skill
+---
+
 # Debugging & Logging Skill
 
 ## Console Window Control

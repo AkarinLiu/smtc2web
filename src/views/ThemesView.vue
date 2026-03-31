@@ -7,8 +7,8 @@
         @click="handleUpload"
         :disabled="uploadLoading"
       >
-        <span v-if="uploadLoading">⏳ {{ t('themes.uploading') }}</span>
-        <span v-else>📤 {{ t('themes.upload') }}</span>
+        <span v-if="uploadLoading"><font-awesome-icon icon="hourglass" /> {{ t('themes.uploading') }}</span>
+        <span v-else><font-awesome-icon icon="upload" /> {{ t('themes.upload') }}</span>
       </button>
     </header>
     
@@ -16,7 +16,7 @@
     
     <EmptyState 
       v-else-if="!hasThemes"
-      icon="🎨"
+      :icon="['fas', 'paint-brush']"
       :title="t('themes.empty.title')"
       :description="t('themes.empty.description')"
     />

@@ -2,12 +2,12 @@
   <div class="settings-form">
     <!-- 语言选择 -->
     <div class="form-group">
-      <label>{{ t('settings.language.label') }}</label>
+      <label>{{ t("settings.language.label") }}</label>
       <LanguageSelector />
     </div>
-    
+
     <div class="form-group">
-      <label>{{ t('settings.serverPort.label') }}</label>
+      <label>{{ t("settings.serverPort.label") }}</label>
       <input
         type="number"
         v-model.number="localConfig.server_port"
@@ -16,9 +16,9 @@
         class="form-input"
       />
     </div>
-    
+
     <div class="form-group">
-      <label>{{ t('settings.serverAddress.label') }}</label>
+      <label>{{ t("settings.serverAddress.label") }}</label>
       <input
         type="text"
         v-model="localConfig.address"
@@ -26,60 +26,49 @@
         class="form-input"
       />
     </div>
-    
-    <div class="form-group checkbox">
-      <label class="checkbox-label">
-        <input
-          type="checkbox"
-          v-model="localConfig.show_console"
-        />
-        <span>{{ t('settings.showConsole.label') }}</span>
-      </label>
-      <p class="hint">{{ t('settings.showConsole.hint') }}</p>
-    </div>
-    
+
     <div class="form-actions">
-      <button 
-        class="btn btn-primary"
-        @click="handleSave"
-        :disabled="loading"
-      >
-        <span v-if="loading">⏳ {{ t('settings.saving') }}</span>
-        <span v-else-if="saved">✓ {{ t('settings.saved') }}</span>
-        <span v-else>💾 {{ t('settings.save') }}</span>
+      <button class="btn btn-primary" @click="handleSave" :disabled="loading">
+        <span v-if="loading"><font-awesome-icon icon="spinner" spin /> {{ t("settings.saving") }}</span>
+        <span v-else-if="saved"><font-awesome-icon icon="check" /> {{ t("settings.saved") }}</span>
+        <span v-else><font-awesome-icon icon="floppy-disk" /> {{ t("settings.save") }}</span>
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import LanguageSelector from './LanguageSelector.vue'
-import type { AppConfig } from '@/types/config'
+import { reactive, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import LanguageSelector from "./LanguageSelector.vue";
+import type { AppConfig } from "@/types/config";
 
 interface Props {
-  config: AppConfig
-  loading: boolean
-  saved: boolean
+  config: AppConfig;
+  loading: boolean;
+  saved: boolean;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 const emit = defineEmits<{
-  save: []
-}>()
+  save: [];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const localConfig = reactive<AppConfig>({ ...props.config })
+const localConfig = reactive<AppConfig>({ ...props.config });
 
-watch(() => props.config, (newConfig: AppConfig) => {
-  Object.assign(localConfig, newConfig)
-}, { deep: true })
+watch(
+  () => props.config,
+  (newConfig: AppConfig) => {
+    Object.assign(localConfig, newConfig);
+  },
+  { deep: true },
+);
 
 function handleSave() {
-  Object.assign(props.config, localConfig)
-  emit('save')
+  Object.assign(props.config, localConfig);
+  emit("save");
 }
 </script>
 

@@ -306,12 +306,6 @@ screenshot = "screenshot.png"
         let themes_dir = Self::get_themes_dir();
         let theme_dir = themes_dir.join(&theme_name);
 
-        // 如果目录已存在，先删除
-        if theme_dir.exists() {
-            fs::remove_dir_all(&theme_dir)?;
-        }
-        fs::create_dir_all(&theme_dir)?;
-
         // 检测 ZIP 根目录结构
         // 如果所有文件都在同一个根文件夹内，则去掉这层文件夹
         let mut root_folder: Option<String> = None;
@@ -324,8 +318,9 @@ screenshot = "screenshot.png"
                 continue;
             }
 
-            // 获取第一级目录名
-            let parts: Vec<&str> = file_path.splitn(2, '/').collect();
+            // 获取第一级目录名（处理两种路径分隔符）
+            let normalized_path = file_path.replace("\\", "/");
+            let parts: Vec<&str> = normalized_path.splitn(2, '/').collect();
             if parts.len() > 1 {
                 let first_part = parts[0].to_string();
                 match &root_folder {
@@ -344,6 +339,68 @@ screenshot = "screenshot.png"
             }
         }
 
+        // 验证1: 必须有一层根文件夹
+        let root_folder = root_folder.ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "此主题无效：压缩包内必须有且只有一个根文件夹！",
+            )
+        })?;
+
+        // 验证2: 根文件夹内必须包含 theme.toml
+        // 使用标准化路径进行匹配（统一使用正斜杠）
+        let expected_path = format!("{}/theme.toml", root_folder);
+        let mut theme_toml_found = false;
+        let mut theme_toml_index: Option<usize> = None;
+
+        for i in 0..archive.len() {
+            let file = archive.by_index(i)?;
+            let file_path = file.name();
+
+            // 跳过不安全的文件名
+            if file_path.contains("..") || file_path.starts_with('/') {
+                continue;
+            }
+
+            // 标准化路径后比较（将反斜杠替换为正斜杠）
+            let normalized_file_path = file_path.replace("\\", "/");
+            if normalized_file_path == expected_path {
+                theme_toml_found = true;
+                theme_toml_index = Some(i);
+                break;
+            }
+        }
+
+        if !theme_toml_found {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "此主题无效：根文件夹内缺少 theme.toml 文件！",
+            ));
+        }
+
+        // 验证3: theme.toml 必须包含 [smtc2web.theme] 配置节
+        if let Some(index) = theme_toml_index {
+            let mut file = archive.by_index(index)?;
+            let mut content = String::new();
+            use std::io::Read;
+            file.read_to_string(&mut content)?;
+
+            // 检查是否包含 [smtc2web.theme]
+            if !content.contains("[smtc2web.theme]") {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "此主题无效：theme.toml 缺少 [smtc2web.theme] 配置节！",
+                ));
+            }
+        }
+
+        // 所有验证通过后，创建主题目录
+        // 如果目录已存在，先删除
+        if theme_dir.exists() {
+            fs::remove_dir_all(&theme_dir)?;
+        }
+        fs::create_dir_all(&theme_dir)?;
+
         // 重新打开 archive（因为上面已经遍历过）
         let file = fs::File::open(zip_path)?;
         let mut archive = ZipArchive::new(file)?;
@@ -358,20 +415,16 @@ screenshot = "screenshot.png"
                 continue;
             }
 
-            // 去掉根文件夹（如果存在且统一）
-            let relative_path = match &root_folder {
-                Some(root) => {
-                    if file_path.starts_with(root) {
-                        file_path
-                            .strip_prefix(root)
-                            .unwrap_or(file_path)
-                            .strip_prefix('/')
-                            .unwrap_or(file_path.strip_prefix(root).unwrap_or(file_path))
-                    } else {
-                        file_path
-                    }
-                }
-                None => file_path,
+            // 去掉根文件夹（标准化路径后处理）
+            let normalized_file_path = file_path.replace("\\", "/");
+            let relative_path = if normalized_file_path.starts_with(&root_folder) {
+                normalized_file_path
+                    .strip_prefix(&root_folder)
+                    .unwrap_or(&normalized_file_path)
+                    .strip_prefix('/')
+                    .unwrap_or(normalized_file_path.strip_prefix(&root_folder).unwrap_or(&normalized_file_path))
+            } else {
+                continue; // 跳过不在根文件夹内的文件
             };
 
             // 跳过空路径

@@ -1,3 +1,15 @@
+---
+name: tauri-commands-extension
+description: Tauri 命令扩展指南，包括命令定义、注册和前端集成
+license: MIT
+compatibility: Tauri v1/v2, smtc2web >=1.0
+metadata:
+  category: api-development
+  language: zh-CN
+  framework: tauri
+  type: skill
+---
+
 # Tauri Commands Extension Skill
 
 ## Adding New Command

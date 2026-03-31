@@ -3,7 +3,7 @@
     <div class="theme-preview">
       <img v-if="screenshotUrl" :src="screenshotUrl" :alt="theme.name" />
       <div v-else class="preview-placeholder">
-        <span class="placeholder-icon">🖼️</span>
+        <span class="placeholder-icon"><font-awesome-icon icon="image" /></span>
         <span>{{ t('themes.card.noPreview') }}</span>
       </div>
       <div v-if="isActive" class="active-badge">
@@ -27,7 +27,7 @@
       @click.stop="$emit('delete')"
       :title="t('themes.card.delete')"
     >
-      🗑️
+      <font-awesome-icon icon="trash" />
     </button>
   </div>
 </template>

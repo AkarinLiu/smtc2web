@@ -5,11 +5,11 @@
   },
   "themes": {
     "title": "Theme List",
-    "upload": "Upload Theme",
-    "uploading": "Uploading...",
+    "upload": "Import Theme",
+    "uploading": "Importing...",
     "empty": {
       "title": "No Themes",
-      "description": "Click the \"Upload Theme\" button to add a new theme"
+      "description": "Click the \"Import Theme\" button to add a new theme"
     },
     "loading": "Loading...",
     "card": {
@@ -44,6 +44,23 @@
     "error": "Error",
     "success": "Success",
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "delete": "Delete"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "Theme \"{name}\" uploaded successfully!",
+      "uploadError": "Failed to upload theme: {message}",
+      "invalidFormat": "Please select a ZIP format theme file",
+      "invalidTheme": "This theme is invalid!",
+      "missingRootFolder": "This theme is invalid: The archive must contain exactly one root folder!",
+      "missingThemeToml": "This theme is invalid: Missing theme.toml file in the root folder!",
+      "missingConfigSection": "This theme is invalid: theme.toml is missing the [smtc2web.theme] configuration section!",
+      "switchSuccess": "Theme switched successfully!",
+      "switchError": "Failed to switch theme: {message}",
+      "deleteConfirm": "Are you sure you want to delete the theme \"{name}\"?",
+      "deleteError": "Failed to delete theme: {message}",
+      "loadError": "Failed to load themes"
+    }
   }
 }

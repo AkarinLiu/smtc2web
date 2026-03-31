@@ -19,5 +19,6 @@ declare module 'vue' {
     ThemeGrid: typeof import('./src/components/ThemeGrid.vue')['default']
     ThemeSkeleton: typeof import('./src/components/ThemeSkeleton.vue')['default']
     ThemesView: typeof import('./src/views/ThemesView.vue')['default']
+    Toast: typeof import('./src/components/Toast.vue')['default']
   }
 }

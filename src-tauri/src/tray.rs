@@ -2,7 +2,7 @@ use crate::i18n::{get_current_locale_data, set_locale};
 use crate::{log_info, log_warn};
 use std::process;
 use std::sync::Mutex;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -33,17 +33,7 @@ pub fn create_tray_menu<R: Runtime>(app: &AppHandle<R>) -> Menu<R> {
         MenuItem::with_id(app, "open_web", translations.open_web, true, None::<&str>).unwrap();
     let quit = MenuItem::with_id(app, "quit", translations.quit, true, None::<&str>).unwrap();
 
-    Menu::with_items(
-        app,
-        &[
-            &show_window,
-            &PredefinedMenuItem::separator(app).unwrap(),
-            &open_web,
-            &PredefinedMenuItem::separator(app).unwrap(),
-            &quit,
-        ],
-    )
-    .unwrap()
+    Menu::with_items(app, &[&show_window, &open_web, &quit]).unwrap()
 }
 
 /// 显示窗口
@@ -96,8 +86,8 @@ pub fn create_tray_icon<R: Runtime>(app: &AppHandle<R>, port: u16) -> Result<(),
     // 创建托盘菜单
     let tray_menu = create_tray_menu(app);
 
-    // 创建系统托盘图标（不存储引用，每次通过 builder 创建）
-    let _tray = TrayIconBuilder::new()
+    // 创建系统托盘图标
+    TrayIconBuilder::with_id("main-tray")
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&tray_menu)
         .show_menu_on_left_click(true)
@@ -114,17 +104,30 @@ pub fn create_tray_icon<R: Runtime>(app: &AppHandle<R>, port: u16) -> Result<(),
 }
 
 /// 更新托盘菜单语言
-/// 注意：Tauri 2.0 限制，托盘菜单语言切换需要应用重启才能完全生效
-/// 但我们已经更新了语言设置，下次创建时会使用新语言
-pub fn update_tray_menu_language(
-    _app: &AppHandle<impl Runtime>,
+/// 实时更新托盘菜单显示语言
+pub fn update_tray_menu_language<R: Runtime>(
+    app: &AppHandle<R>,
     new_locale: &str,
 ) -> Result<(), String> {
     // 设置新语言
     set_locale(new_locale)?;
 
+    // 获取托盘图标并更新菜单
+    // 通过 app.tray_by_id 获取托盘图标
+    if let Some(tray) = app.tray_by_id("main-tray") {
+        // 创建新语言的菜单
+        let new_menu = create_tray_menu(app);
+        // 更新托盘菜单
+        if let Err(e) = tray.set_menu(Some(new_menu)) {
+            log_warn!("Failed to update tray menu: {}", e);
+            return Err(format!("Failed to update tray menu: {}", e));
+        }
+        log_info!("Tray menu language updated to: {}", new_locale);
+    } else {
+        log_warn!("Tray icon not found, language will apply on next restart");
+    }
+
     log_info!("Locale set to: {}", new_locale);
-    log_warn!("Tray menu language will update on next app restart");
 
     Ok(())
 }

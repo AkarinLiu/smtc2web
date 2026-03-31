@@ -1,3 +1,15 @@
+---
+name: windows-api-usage
+description: Windows API 使用指南，包括 SMTC 媒体控制、异步模式和缩略图处理
+license: MIT
+compatibility: Windows 10/11, smtc2web >=1.0
+metadata:
+  category: api-reference
+  language: zh-CN
+  platform: windows
+  type: skill
+---
+
 # Windows API Usage Skill
 
 ## Project Windows Features

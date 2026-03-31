@@ -1,3 +1,15 @@
+---
+name: rust-development
+description: Rust 开发指南，包括常用命令、项目结构和开发模式
+license: MIT
+compatibility: Rust >=1.70, smtc2web >=1.0
+metadata:
+  category: language
+  language: zh-CN
+  language_rust: "1.70"
+  type: skill
+---
+
 # Rust Development Skill
 
 ## Commands

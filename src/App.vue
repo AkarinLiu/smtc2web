@@ -4,6 +4,7 @@
     <main class="page">
       <RouterView />
     </main>
+    <Toast />
   </div>
 </template>
 
@@ -11,6 +12,7 @@
 import { onMounted } from 'vue'
 import { useConfigStore } from '@/stores/config'
 import { useLocaleStore } from '@/stores/locale'
+import Toast from '@/components/Toast.vue'
 
 const configStore = useConfigStore()
 const localeStore = useLocaleStore()

@@ -11,9 +11,21 @@ importers:
       '@fluentui/web-components':
         specifier: ^2.6.1
         version: 2.6.1
+      '@fortawesome/fontawesome-svg-core':
+        specifier: ^7.2.0
+        version: 7.2.0
+      '@fortawesome/free-solid-svg-icons':
+        specifier: ^7.2.0
+        version: 7.2.0
+      '@fortawesome/vue-fontawesome':
+        specifier: ^3.1.3
+        version: 3.1.3(@fortawesome/fontawesome-svg-core@7.2.0)(vue@3.5.30(typescript@5.9.3))
       '@tauri-apps/api':
         specifier: ^2.0.0
         version: 2.10.1
+      '@tauri-apps/plugin-dialog':
+        specifier: ^2.6.0
+        version: 2.6.0
       pinia:
         specifier: ^2.2.0
         version: 2.3.1(typescript@5.9.3)(vue@3.5.30(typescript@5.9.3))
@@ -229,6 +241,24 @@ packages:
 
   '@fluentui/web-components@2.6.1':
     resolution: {integrity: sha512-coyV+QZBVqcrJbncR2iyL0ZMXGFRJmP+JYUlewkYBt8bgmTMIwKBdUX0cN9S6KUp8JHoC2OSRqL8MYgT3T+YLQ==}
+
+  '@fortawesome/fontawesome-common-types@7.2.0':
+    resolution: {integrity: sha512-IpR0bER9FY25p+e7BmFH25MZKEwFHTfRAfhOyJubgiDnoJNsSvJ7nigLraHtp4VOG/cy8D7uiV0dLkHOne5Fhw==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/fontawesome-svg-core@7.2.0':
+    resolution: {integrity: sha512-6639htZMjEkwskf3J+e6/iar+4cTNM9qhoWuRfj9F3eJD6r7iCzV1SWnQr2Mdv0QT0suuqU8BoJCZUyCtP9R4Q==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/free-solid-svg-icons@7.2.0':
+    resolution: {integrity: sha512-YTVITFGN0/24PxzXrwqCgnyd7njDuzp5ZvaCx5nq/jg55kUYd94Nj8UTchBdBofi/L0nwRfjGOg0E41d2u9T1w==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/vue-fontawesome@3.1.3':
+    resolution: {integrity: sha512-OHHUTLPEzdwP8kcYIzhioUdUOjZ4zzmi+midwa4bqscza4OJCOvTKJEHkXNz8PgZ23kWci1HkKVX0bm8f9t9gQ==}
+    peerDependencies:
+      '@fortawesome/fontawesome-svg-core': ~1 || ~6 || ~7
+      vue: '>= 3.0.0 < 4'
 
   '@intlify/core-base@9.14.4':
     resolution: {integrity: sha512-vtZCt7NqWhKEtHa3SD/322DlgP5uR9MqWxnE0y8Q0tjDs9H5Lxhss+b5wv8rmuXRoHKLESNgw9d+EN9ybBbj9g==}
@@ -494,6 +524,9 @@ packages:
     resolution: {integrity: sha512-jQNGF/5quwORdZSSLtTluyKQ+o6SMa/AUICfhf4egCGFdMHqWssApVgYSbg+jmrZoc8e1DscNvjTnXtlHLS11g==}
     engines: {node: '>= 10'}
     hasBin: true
+
+  '@tauri-apps/plugin-dialog@2.6.0':
+    resolution: {integrity: sha512-q4Uq3eY87TdcYzXACiYSPhmpBA76shgmQswGkSVio4C82Sz2W4iehe9TnKYwbq7weHiL88Yw19XZm7v28+Micg==}
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
@@ -1036,6 +1069,21 @@ snapshots:
       '@microsoft/fast-web-utilities': 5.4.1
       tslib: 2.8.1
 
+  '@fortawesome/fontawesome-common-types@7.2.0': {}
+
+  '@fortawesome/fontawesome-svg-core@7.2.0':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 7.2.0
+
+  '@fortawesome/free-solid-svg-icons@7.2.0':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 7.2.0
+
+  '@fortawesome/vue-fontawesome@3.1.3(@fortawesome/fontawesome-svg-core@7.2.0)(vue@3.5.30(typescript@5.9.3))':
+    dependencies:
+      '@fortawesome/fontawesome-svg-core': 7.2.0
+      vue: 3.5.30(typescript@5.9.3)
+
   '@intlify/core-base@9.14.4':
     dependencies:
       '@intlify/message-compiler': 9.14.4
@@ -1208,6 +1256,10 @@ snapshots:
       '@tauri-apps/cli-win32-arm64-msvc': 2.10.1
       '@tauri-apps/cli-win32-ia32-msvc': 2.10.1
       '@tauri-apps/cli-win32-x64-msvc': 2.10.1
+
+  '@tauri-apps/plugin-dialog@2.6.0':
+    dependencies:
+      '@tauri-apps/api': 2.10.1
 
   '@types/estree@1.0.8': {}
 

@@ -1,3 +1,14 @@
+---
+name: smtc2web-skills-index
+description: 技能文档索引和快速参考指南
+license: MIT
+compatibility: smtc2web >=1.0
+metadata:
+  category: documentation
+  language: zh-CN
+  type: index
+---
+
 # smtc2web Skills 索引
 
 ## Rust & Tauri 开发 Skills

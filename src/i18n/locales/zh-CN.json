@@ -5,11 +5,11 @@
   },
   "themes": {
     "title": "主题列表",
-    "upload": "上传主题",
-    "uploading": "上传中...",
+    "upload": "导入主题",
+    "uploading": "导入中...",
     "empty": {
       "title": "暂无主题",
-      "description": "点击「上传主题」按钮添加新主题"
+      "description": "点击「导入主题」按钮添加新主题"
     },
     "loading": "加载中...",
     "card": {
@@ -44,6 +44,23 @@
     "error": "错误",
     "success": "成功",
     "cancel": "取消",
-    "confirm": "确认"
+    "confirm": "确认",
+    "delete": "删除"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "主题 \"{name}\" 上传成功！",
+      "uploadError": "上传主题失败：{message}",
+      "invalidFormat": "请选择 ZIP 格式的主题文件",
+      "invalidTheme": "此主题无效！",
+      "missingRootFolder": "此主题无效：压缩包内必须有且只有一个根文件夹！",
+      "missingThemeToml": "此主题无效：根文件夹内缺少 theme.toml 文件！",
+      "missingConfigSection": "此主题无效：theme.toml 缺少 [smtc2web.theme] 配置节！",
+      "switchSuccess": "主题切换成功！",
+      "switchError": "切换主题失败：{message}",
+      "deleteConfirm": "确定要删除主题 \"{name}\" 吗？",
+      "deleteError": "删除主题失败：{message}",
+      "loadError": "加载主题失败"
+    }
   }
 }
