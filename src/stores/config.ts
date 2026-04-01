@@ -7,7 +7,8 @@ export const useConfigStore = defineStore('config', () => {
     server_port: 3030,
     address: '127.0.0.1',
     show_console: false,
-    current_theme: ''
+    current_theme: '',
+    locale: 'zh-CN'
   })
   
   const loading = ref(false)

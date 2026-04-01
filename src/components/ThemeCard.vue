@@ -3,15 +3,15 @@
     <div class="theme-preview">
       <img v-if="screenshotUrl" :src="screenshotUrl" :alt="theme.name" />
       <div v-else class="preview-placeholder">
-        <span class="placeholder-icon">🖼️</span>
-        <span>无预览图</span>
+        <span class="placeholder-icon"><font-awesome-icon icon="image" /></span>
+        <span>{{ t('themes.card.noPreview') }}</span>
       </div>
       <div v-if="isActive" class="active-badge">
         <span class="badge-dot"></span>
-        <span>当前使用中</span>
+        <span>{{ t('themes.card.active') }}</span>
       </div>
       <div v-if="theme.is_default" class="default-badge">
-        <span>默认</span>
+        <span>{{ t('themes.card.default') }}</span>
       </div>
     </div>
     <div class="theme-info">
@@ -25,14 +25,15 @@
       v-if="!isActive && !theme.is_default"
       class="delete-btn" 
       @click.stop="$emit('delete')"
-      title="删除主题"
+      :title="t('themes.card.delete')"
     >
-      🗑️
+      <font-awesome-icon icon="trash" />
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { Theme } from '@/types/theme'
 
 interface Props {
@@ -40,6 +41,8 @@ interface Props {
   isActive: boolean
   screenshotUrl: string | null
 }
+
+const { t } = useI18n()
 
 defineProps<Props>()
 defineEmits<{

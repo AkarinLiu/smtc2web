@@ -55,6 +55,11 @@ jobs:
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: pnpm install # change this to npm or pnpm depending on which one you use.
 
+      - uses: actions-js/push@master
+        with:
+          branch: nightly
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: build app
         run: pnpm tauri:build --target ${{ matrix.target }}
 

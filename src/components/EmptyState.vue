@@ -1,6 +1,6 @@
 <template>
   <div class="empty-state">
-    <div class="empty-icon">{{ icon }}</div>
+    <div class="empty-icon"><font-awesome-icon :icon="icon" /></div>
     <h3 class="empty-title">{{ title }}</h3>
     <p class="empty-description">{{ description }}</p>
   </div>
@@ -8,7 +8,7 @@
 
 <script setup lang="ts">
 interface Props {
-  icon: string
+  icon: string | string[] | [string, string]
   title: string
   description: string
 }
@@ -27,6 +27,8 @@ defineProps<Props>()
   font-size: 48px;
   margin-bottom: var(--fluent-space-md);
   opacity: 0.6;
+  display: flex;
+  justify-content: center;
 }
 
 .empty-title {

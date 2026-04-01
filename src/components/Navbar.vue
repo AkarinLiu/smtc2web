@@ -1,21 +1,27 @@
 <template>
   <nav class="navbar">
     <div class="navbar-brand">
-      <span class="brand-icon">🎵</span>
+      <span class="brand-icon"><font-awesome-icon icon="music" /></span>
       <span class="brand-text">smtc2web</span>
     </div>
     <div class="navbar-tabs">
       <RouterLink to="/themes" class="nav-tab" active-class="active">
-        <span class="tab-icon">🎨</span>
-        主题
+        <span class="tab-icon"><font-awesome-icon icon="paint-brush" /></span>
+        {{ t('nav.themes') }}
       </RouterLink>
       <RouterLink to="/settings" class="nav-tab" active-class="active">
-        <span class="tab-icon">⚙️</span>
-        设置
+        <span class="tab-icon"><font-awesome-icon icon="gear" /></span>
+        {{ t('nav.settings') }}
       </RouterLink>
     </div>
   </nav>
 </template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+</script>
 
 <style scoped>
 .navbar {

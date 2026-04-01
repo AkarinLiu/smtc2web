@@ -1,0 +1,66 @@
+{
+  "nav": {
+    "themes": "主题",
+    "settings": "设置"
+  },
+  "themes": {
+    "title": "主题列表",
+    "upload": "导入主题",
+    "uploading": "导入中……",
+    "empty": {
+      "title": "没有主题",
+      "description": "点击“导入主题”按钮添加新主题"
+    },
+    "loading": "加载中……",
+    "card": {
+      "noPreview": "无预览图",
+      "active": "当前使用中",
+      "default": "默认",
+      "delete": "删除主题"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "language": {
+      "label": "语言",
+      "placeholder": "选择语言"
+    },
+    "serverPort": {
+      "label": "服务器端口"
+    },
+    "serverAddress": {
+      "label": "服务器地址"
+    },
+    "showConsole": {
+      "label": "显示控制台",
+      "hint": "重启应用后生效"
+    },
+    "save": "保存",
+    "saving": "保存中……",
+    "saved": "已保存"
+  },
+  "common": {
+    "loading": "加载中……",
+    "error": "错误",
+    "success": "成功",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "主题 “{name}” 导入成功！",
+      "uploadError": "导入主题失败：{message}",
+      "invalidFormat": "请选择一个ZIP格式主题文件",
+      "invalidTheme": "此主题无效！",
+      "missingRootFolder": "此主题无效：归档必须包含一个根目录！",
+      "missingThemeToml": "此主题无效：根目录中缺少 theme.toml 文件！",
+      "missingConfigSection": "此主题无效：theme.toml 缺少 [smtc2web.theme] 配置部分！",
+      "switchSuccess": "主题切换成功！",
+      "switchError": "导入主题失败：{message}",
+      "deleteConfirm": "是否删除主题 “{name}” ？",
+      "deleteError": "导入主题失败：{message}",
+      "loadError": "主题加载失败"
+    }
+  }
+}

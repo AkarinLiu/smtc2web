@@ -1,0 +1,66 @@
+{
+  "nav": {
+    "themes": "Themes",
+    "settings": "Settings"
+  },
+  "themes": {
+    "title": "Theme List",
+    "upload": "Import Theme",
+    "uploading": "Importing...",
+    "empty": {
+      "title": "No Themes",
+      "description": "Click the \"Import Theme\" button to add a new theme"
+    },
+    "loading": "Loading...",
+    "card": {
+      "noPreview": "No Preview",
+      "active": "Currently Active",
+      "default": "Default",
+      "delete": "Delete Theme"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language": {
+      "label": "Language",
+      "placeholder": "Select Language"
+    },
+    "serverPort": {
+      "label": "Server Port"
+    },
+    "serverAddress": {
+      "label": "Server Address"
+    },
+    "showConsole": {
+      "label": "Show Console",
+      "hint": "Takes effect after restarting the app"
+    },
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "Theme \"{name}\" uploaded successfully!",
+      "uploadError": "Failed to load theme: {message}",
+      "invalidFormat": "Please select a ZIP format theme file",
+      "invalidTheme": "This theme is invalid!",
+      "missingRootFolder": "This theme is invalid: The archive must contain exactly one root folder!",
+      "missingThemeToml": "This theme is invalid: Missing theme.toml file in the root folder!",
+      "missingConfigSection": "This theme is invalid: theme.toml is missing the [smtc2web.theme] configuration section!",
+      "switchSuccess": "Theme switched successfully!",
+      "switchError": "Failed to switch theme: {message}",
+      "deleteConfirm": "Are you sure you want to delete the theme \"{name}\"?",
+      "deleteError": "Failed to delete theme: {message}",
+      "loadError": "Failed to load themes"
+    }
+  }
+}

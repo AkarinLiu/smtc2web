@@ -1,3 +1,15 @@
+---
+name: system-integration
+description: 系统集成指南，包括单实例、系统托盘、配置管理和主题服务
+license: MIT
+compatibility: Windows 10/11, smtc2web >=1.0
+metadata:
+  category: system
+  language: zh-CN
+  platform: windows
+  type: skill
+---
+
 # System Integration Skill
 
 ## Single Instance

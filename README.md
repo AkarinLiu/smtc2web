@@ -4,6 +4,8 @@
 
 **LinuxDO 原帖子链接:** https://linux.do/t/topic/937994
 
+**[参与翻译](https://zh.crowdin.com/project/smtc2web)** **[English](./README.en.md)**
+
 ![OBS 接入 smtc2web 截图](./screenshot.png)
 
 > 新图标将 Bootstrap 的耳机图片和 Rust 的 Ferris 形象形成了戴耳机听音乐的图标。
@@ -19,4 +21,4 @@
 
 ## 构建
 
-- [Windows](https://github.com/AkarinLiu/smtc2web/wiki/%E5%9C%A8-Windows-%E7%8E%AF%E5%A2%83%E4%B8%8B%E7%BC%96%E8%AF%91)
+- [Windows](https://smtc2web.org/wiki/compile/windows)

@@ -1,7 +1,13 @@
 <template>
   <div class="settings-form">
+    <!-- 语言选择 -->
     <div class="form-group">
-      <label>服务器端口</label>
+      <label>{{ t("settings.language.label") }}</label>
+      <LanguageSelector />
+    </div>
+
+    <div class="form-group">
+      <label>{{ t("settings.serverPort.label") }}</label>
       <input
         type="number"
         v-model.number="localConfig.server_port"
@@ -10,9 +16,9 @@
         class="form-input"
       />
     </div>
-    
+
     <div class="form-group">
-      <label>服务器地址</label>
+      <label>{{ t("settings.serverAddress.label") }}</label>
       <input
         type="text"
         v-model="localConfig.address"
@@ -20,56 +26,49 @@
         class="form-input"
       />
     </div>
-    
-    <div class="form-group checkbox">
-      <label class="checkbox-label">
-        <input
-          type="checkbox"
-          v-model="localConfig.show_console"
-        />
-        <span>显示控制台</span>
-      </label>
-      <p class="hint">重启应用后生效</p>
-    </div>
-    
+
     <div class="form-actions">
-      <button 
-        class="btn btn-primary"
-        @click="handleSave"
-        :disabled="loading"
-      >
-        <span v-if="loading">⏳ 保存中...</span>
-        <span v-else-if="saved">✓ 已保存</span>
-        <span v-else>💾 保存</span>
+      <button class="btn btn-primary" @click="handleSave" :disabled="loading">
+        <span v-if="loading"><font-awesome-icon icon="spinner" spin /> {{ t("settings.saving") }}</span>
+        <span v-else-if="saved"><font-awesome-icon icon="check" /> {{ t("settings.saved") }}</span>
+        <span v-else><font-awesome-icon icon="floppy-disk" /> {{ t("settings.save") }}</span>
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
-import type { AppConfig } from '@/types/config'
+import { reactive, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import LanguageSelector from "./LanguageSelector.vue";
+import type { AppConfig } from "@/types/config";
 
 interface Props {
-  config: AppConfig
-  loading: boolean
-  saved: boolean
+  config: AppConfig;
+  loading: boolean;
+  saved: boolean;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 const emit = defineEmits<{
-  save: []
-}>()
+  save: [];
+}>();
 
-const localConfig = reactive<AppConfig>({ ...props.config })
+const { t } = useI18n();
 
-watch(() => props.config, (newConfig: AppConfig) => {
-  Object.assign(localConfig, newConfig)
-}, { deep: true })
+const localConfig = reactive<AppConfig>({ ...props.config });
+
+watch(
+  () => props.config,
+  (newConfig: AppConfig) => {
+    Object.assign(localConfig, newConfig);
+  },
+  { deep: true },
+);
 
 function handleSave() {
-  Object.assign(props.config, localConfig)
-  emit('save')
+  Object.assign(props.config, localConfig);
+  emit("save");
 }
 </script>
 

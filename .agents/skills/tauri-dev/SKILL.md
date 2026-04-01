@@ -1,3 +1,15 @@
+---
+name: tauri-development
+description: Tauri 开发指南，包括命令、配置和前端通信
+license: MIT
+compatibility: Tauri v1/v2, smtc2web >=1.0
+metadata:
+  category: framework
+  language: zh-CN
+  framework: tauri
+  type: skill
+---
+
 # Tauri Development Skill
 
 ## Commands
