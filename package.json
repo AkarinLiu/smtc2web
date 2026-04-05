@@ -1,6 +1,6 @@
 {
   "name": "smtc2web",
-  "version": "2026.3.31-nightly",
+  "version": "2026.4.5-nightly",
   "type": "module",
   "scripts": {
     "dev": "vite",
