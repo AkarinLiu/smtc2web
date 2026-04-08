@@ -3,7 +3,7 @@ authors = ["AkarinLiu"]
 description = "A Tauri App"
 edition = "2024"
 name = "smtc2web"
-version = "2026.4.5-nightly"
+version = "2026.4.8-nightly"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -24,6 +24,7 @@ humantime = "2.1"
 mime_guess = "2.0"
 open = "5.0"
 notify = "6"
+regex = "1"
 rust-embed = "8.0"
 serde = {version = "1", features = ["derive"] }
 serde_json = "1"
@@ -48,11 +49,16 @@ features = [
   "Media_Control",
   "Storage",
   "Storage_Streams",
+  "Management_Deployment",
+  "ApplicationModel",
+  "System",
   "Win32_System_WinRT",
   "Win32_UI_WindowsAndMessaging",
   "Win32_UI_Shell",
   "Win32_System_Console",
   "Win32_System_Threading",
+  "Win32_System_Diagnostics_ToolHelp",
+  "Win32_System_ProcessStatus",
   "Win32_Foundation",
   "Win32_Security",
 ]

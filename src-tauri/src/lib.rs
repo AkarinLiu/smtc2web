@@ -9,6 +9,9 @@ use tauri::Manager;
 use tokio::sync::oneshot;
 use warp::Filter;
 
+// Windows API imports for process and app info
+use windows::Management::Deployment::PackageManager;
+
 mod config;
 mod console;
 mod i18n;
@@ -122,6 +125,99 @@ struct AppState {
     server_tx: Option<oneshot::Sender<()>>,
     server_port: u16,
     shared_state: Option<Shared>,
+}
+
+// 当前应用ID（用于显示在设置页面）
+static CURRENT_APP_ID: once_cell::sync::Lazy<Mutex<String>> = once_cell::sync::Lazy::new(|| {
+    Mutex::new(String::new())
+});
+
+// 当前应用显示名称（用于显示在设置页面）
+static CURRENT_APP_DISPLAY_NAME: once_cell::sync::Lazy<Mutex<String>> = once_cell::sync::Lazy::new(|| {
+    Mutex::new(String::new())
+});
+
+// AUMID 到显示名称的缓存
+static AUMID_DISPLAY_NAME_CACHE: once_cell::sync::Lazy<Mutex<HashMap<String, String>>> = 
+    once_cell::sync::Lazy::new(|| Mutex::new(HashMap::new()));
+
+/// 从 AUMID 获取应用显示名称
+/// 对于 Store 应用，使用 PackageManager 获取友好名称
+/// 对于传统应用，返回 PID
+fn get_app_display_name(aumid: &str) -> String {
+    if aumid.is_empty() {
+        return String::new();
+    }
+    
+    // 检查缓存
+    {
+        let cache = AUMID_DISPLAY_NAME_CACHE.lock().unwrap();
+        if let Some(name) = cache.get(aumid) {
+            return name.clone();
+        }
+    }
+    
+    let display_name = if is_store_app(aumid) {
+        // 尝试使用 PackageManager 获取 Store 应用名称
+        get_store_app_display_name(aumid)
+            .unwrap_or_else(|| get_fallback_display_name(aumid))
+    } else {
+        // 传统应用：查找 PID
+        get_fallback_display_name(aumid)
+    };
+    
+    // 缓存结果
+    {
+        let mut cache = AUMID_DISPLAY_NAME_CACHE.lock().unwrap();
+        cache.insert(aumid.to_string(), display_name.clone());
+    }
+    
+    display_name
+}
+
+/// 判断是否为 Store 应用（UWP/MSIX）
+fn is_store_app(aumid: &str) -> bool {
+    // Store 应用 AUMID 格式: PackageFamilyName!AppId
+    aumid.contains('!') && aumid.contains('_')
+}
+
+/// 获取 Store 应用的显示名称
+fn get_store_app_display_name(aumid: &str) -> Option<String> {
+    let family_name = aumid.split('!').next()?;
+    
+    let package_manager = PackageManager::new().ok()?;
+    
+    // 查找所有包
+    let packages = package_manager.FindPackages().ok()?;
+    
+    // 查找匹配的包并获取显示名称
+    for package in packages {
+        if let Ok(id) = package.Id() {
+            if let Ok(family) = id.FamilyName() {
+                if family.to_string() == family_name {
+                    if let Ok(display_name) = package.DisplayName() {
+                        let name = display_name.to_string();
+                        if !name.is_empty() && name != family_name {
+                            return Some(name);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    None
+}
+
+/// 获取回退显示名称
+/// 对于传统应用，由于无法轻易获取 PID，返回简短的 AUMID 标识
+fn get_fallback_display_name(aumid: &str) -> String {
+    if aumid.len() > 20 {
+        // 如果 AUMID 太长，显示前 20 个字符
+        format!("{}...", &aumid[..20])
+    } else {
+        aumid.to_string()
+    }
 }
 
 static APP_STATE: once_cell::sync::Lazy<Mutex<AppState>> = once_cell::sync::Lazy::new(|| {
@@ -239,6 +335,61 @@ fn smtc_worker(state: Shared) {
         current_song.last_update = timestamp;
 
         if let Ok(session) = manager.GetCurrentSession() {
+            // 获取应用ID并更新全局变量
+            let app_id = session.SourceAppUserModelId()
+                .ok()
+                .and_then(|hstring| Some(hstring.to_string()))
+                .unwrap_or_default();
+            
+            // 获取应用显示名称
+            let display_name = get_app_display_name(&app_id);
+            
+            {
+                let mut current_app = CURRENT_APP_ID.lock().unwrap();
+                *current_app = app_id.clone();
+            }
+            {
+                let mut current_display_name = CURRENT_APP_DISPLAY_NAME.lock().unwrap();
+                *current_display_name = display_name.clone();
+            }
+
+            // 检查进程过滤器
+            let should_process = {
+                let app_state = APP_STATE.lock().unwrap();
+                let config = app_state.config.lock().unwrap();
+                let filter = config.process_filter.trim();
+
+                // 如果过滤器为 "*" 或空，监听所有应用
+                if filter == "*" || filter.is_empty() {
+                    true
+                } else {
+                    // 逐行检查，任意一行匹配即通过（不区分大小写）
+                    let app_id_lower = app_id.to_lowercase();
+                    let display_name_lower = display_name.to_lowercase();
+                    
+                    filter.lines().any(|line| {
+                        let pattern = line.trim().to_lowercase();
+                        if pattern.is_empty() {
+                            return false;
+                        }
+                        // 简单字符串包含匹配（不区分大小写）
+                        app_id_lower.contains(&pattern) || display_name_lower.contains(&pattern)
+                    })
+                }
+            };
+
+            // 如果不匹配过滤器，清空当前歌曲信息并跳过
+            if !should_process {
+                let empty_song = Song::default();
+                let mut s = state.write().unwrap();
+                *s = empty_song.clone();
+                last_song = empty_song.clone();
+                last_position = None;
+                
+                std::thread::sleep(Duration::from_millis(500));
+                continue;
+            }
+
             // 获取播放状态
             if let Ok(playback_info) = session.GetPlaybackInfo() {
                 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionPlaybackStatus;
@@ -497,6 +648,7 @@ struct ConfigDto {
     address: String,
     current_theme: String,
     locale: String,
+    process_filter: String,
 }
 
 #[tauri::command]
@@ -509,6 +661,7 @@ async fn get_config() -> Result<ConfigDto, String> {
         address: config.address.clone(),
         current_theme: config.current_theme.clone(),
         locale: config.locale.clone(),
+        process_filter: config.process_filter.clone(),
     })
 }
 
@@ -522,6 +675,7 @@ async fn save_config(config_dto: ConfigDto) -> Result<(), String> {
     config.address = config_dto.address;
     config.current_theme = config_dto.current_theme;
     config.locale = config_dto.locale;
+    config.process_filter = config_dto.process_filter;
 
     config.save().map_err(|e| e.to_string())
 }
@@ -530,6 +684,12 @@ async fn save_config(config_dto: ConfigDto) -> Result<(), String> {
 async fn set_locale(locale: String, app: tauri::AppHandle) -> Result<(), String> {
     log_info!("Setting locale to: {}", locale);
     tray::update_tray_menu_language(&app, &locale)
+}
+
+#[tauri::command]
+async fn get_current_app_id() -> Result<String, String> {
+    let display_name = CURRENT_APP_DISPLAY_NAME.lock().map_err(|e| e.to_string())?;
+    Ok(display_name.clone())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -621,7 +781,8 @@ pub fn run() {
             delete_theme,
             get_config,
             save_config,
-            set_locale
+            set_locale,
+            get_current_app_id
         ])
         .setup(move |app| {
             // 从配置中读取语言设置并应用

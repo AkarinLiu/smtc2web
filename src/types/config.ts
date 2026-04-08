@@ -4,4 +4,5 @@ export interface AppConfig {
   show_console: boolean
   current_theme: string
   locale: string
+  process_filter: string
 }
