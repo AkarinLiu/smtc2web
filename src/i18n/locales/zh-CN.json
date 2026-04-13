@@ -31,6 +31,11 @@
     "serverAddress": {
       "label": "服务器地址"
     },
+    "processFilter": {
+      "label": "进程过滤",
+      "hint": "每行输入一个应用程序名称，使用 * 来监听所有应用程序。不区分大小写。",
+      "currentApp": "当前应用： "
+    },
     "showConsole": {
       "label": "显示控制台",
       "hint": "重启应用后生效"

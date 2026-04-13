@@ -31,6 +31,11 @@
     "serverAddress": {
       "label": "Server Address"
     },
+    "processFilter": {
+      "label": "Process Filter",
+      "hint": "Enter one application name per line, use * to listen to all applications. Case-insensitive.",
+      "currentApp": "Current App: "
+    },
     "showConsole": {
       "label": "Show Console",
       "hint": "Takes effect after restarting the app"
