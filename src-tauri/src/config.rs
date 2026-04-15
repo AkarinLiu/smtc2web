@@ -17,6 +17,7 @@ pub struct Config {
     pub address: String,
     pub current_theme: String,
     pub locale: String,
+    pub process_filter: String,
 }
 
 impl Default for Config {
@@ -27,6 +28,7 @@ impl Default for Config {
             address: "127.0.0.1".to_string(),
             current_theme: "".to_string(),
             locale: "zh-CN".to_string(),
+            process_filter: "*".to_string(),
         }
     }
 }

@@ -27,6 +27,24 @@
       />
     </div>
 
+    <!-- 进程过滤器 -->
+    <div class="form-group">
+      <label>{{ t("settings.processFilter.label") }}</label>
+      <textarea
+        v-model="localConfig.process_filter"
+        class="form-input form-textarea"
+        rows="4"
+        placeholder="*"
+      />
+      <p class="hint">{{ t("settings.processFilter.hint") }}</p>
+
+      <!-- 当前应用名称 -->
+      <div v-if="currentAppId" class="current-app">
+        <span class="current-app-label">{{ t("settings.processFilter.currentApp") }}</span>
+        <code class="current-app-value">{{ currentAppId }}</code>
+      </div>
+    </div>
+
     <div class="form-actions">
       <button class="btn btn-primary" @click="handleSave" :disabled="loading">
         <span v-if="loading"><font-awesome-icon icon="spinner" spin /> {{ t("settings.saving") }}</span>
@@ -47,6 +65,7 @@ interface Props {
   config: AppConfig;
   loading: boolean;
   saved: boolean;
+  currentAppId?: string;
 }
 
 const props = defineProps<Props>();
@@ -109,6 +128,12 @@ function handleSave() {
   border-color: var(--fluent-accent);
 }
 
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: monospace;
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;
@@ -128,7 +153,56 @@ function handleSave() {
   font-size: 12px;
   color: var(--fluent-text-secondary);
   margin-top: var(--fluent-space-xs);
-  margin-left: 26px;
+}
+
+.regex-error {
+  margin-top: var(--fluent-space-sm);
+  padding: var(--fluent-space-sm);
+  background-color: var(--fluent-error-bg, #fef2f2);
+  border: 1px solid var(--fluent-error-border, #fecaca);
+  border-radius: var(--fluent-radius-md);
+}
+
+.regex-error p {
+  font-size: 13px;
+  color: var(--fluent-error-text, #dc2626);
+  margin: 0 0 var(--fluent-space-xs) 0;
+  font-weight: 500;
+}
+
+.regex-error ul {
+  margin: 0;
+  padding-left: var(--fluent-space-lg);
+  font-size: 12px;
+  color: var(--fluent-error-text, #dc2626);
+}
+
+.regex-error li {
+  margin-bottom: 2px;
+}
+
+.current-app {
+  margin-top: var(--fluent-space-sm);
+  padding: var(--fluent-space-sm) var(--fluent-space-md);
+  background-color: var(--fluent-bg-secondary);
+  border-radius: var(--fluent-radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--fluent-space-sm);
+}
+
+.current-app-label {
+  font-size: 12px;
+  color: var(--fluent-text-secondary);
+}
+
+.current-app-value {
+  font-size: 13px;
+  font-family: monospace;
+  color: var(--fluent-text-primary);
+  background-color: var(--fluent-bg-primary);
+  padding: 2px 8px;
+  border-radius: var(--fluent-radius-sm);
 }
 
 .form-actions {

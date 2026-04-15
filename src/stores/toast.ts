@@ -169,8 +169,14 @@ export const useToastStore = defineStore('toast', () => {
     },
     title?: string
   ): string {
-    return addToast(message, 'confirm', { 
-      title, 
+    // 检查是否已存在 confirm 类型的 toast，防止重复弹窗
+    const existingConfirm = toasts.value.find(t => t.type === 'confirm')
+    if (existingConfirm) {
+      return existingConfirm.id
+    }
+
+    return addToast(message, 'confirm', {
+      title,
       actions: {
         confirmText: actions.confirmText,
         cancelText: actions.cancelText,
