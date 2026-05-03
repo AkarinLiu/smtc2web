@@ -9,13 +9,11 @@ use tauri::Manager;
 use tokio::sync::oneshot;
 use warp::Filter;
 
-// Windows API imports for process and app info
-use windows::Management::Deployment::PackageManager;
-
 mod config;
 mod console;
 mod i18n;
 mod logger;
+mod media;
 mod theme;
 mod theme_manager;
 mod tray;
@@ -33,93 +31,14 @@ struct Song {
     last_update: u64,
 }
 
-// 将秒数格式化为 MM:SS 格式
 fn format_duration(seconds: u64) -> String {
     let minutes = seconds / 60;
     let secs = seconds % 60;
     format!("{:02}:{:02}", minutes, secs)
 }
 
-// 专辑图片缓存系统
-use std::collections::HashMap;
-use std::sync::Mutex as StdMutex;
-use once_cell::sync::Lazy;
-
-static ALBUM_ART_CACHE: Lazy<StdMutex<HashMap<String, (String, u64)>>> = 
-    Lazy::new(|| StdMutex::new(HashMap::new()));
-
-fn get_cached_album_art(song_id: &str) -> Option<String> {
-    let cache = ALBUM_ART_CACHE.lock().unwrap();
-    cache.get(song_id).map(|(art, _)| art.clone())
-}
-
-fn set_cached_album_art(song_id: &str, art: String) {
-    let mut cache = ALBUM_ART_CACHE.lock().unwrap();
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    cache.insert(song_id.to_string(), (art, timestamp));
-    
-    // 清理过期缓存（保留最近30个）
-    if cache.len() > 30 {
-        let mut entries: Vec<_> = cache.iter().collect();
-        entries.sort_by(|a, b| b.1.1.cmp(&a.1.1));
-        let to_remove: Vec<String> = entries.iter().skip(30).map(|(k, _)| (*k).clone()).collect();
-        for key in to_remove {
-            cache.remove(key.as_str());
-        }
-    }
-}
-
-fn generate_song_id(title: &str, artist: &str, album: &str) -> String {
-    format!("{}|{}|{}", title, artist, album)
-}
-
-async fn get_album_art(
-    session: &windows::Media::Control::GlobalSystemMediaTransportControlsSession,
-    song_id: &str,
-) -> Option<String> {
-    // 首先检查缓存
-    if let Some(cached) = get_cached_album_art(song_id) {
-        return Some(cached);
-    }
-    
-    use windows::Storage::Streams::Buffer;
-    use windows::Storage::Streams::DataReader;
-
-    if let Ok(info) = session.TryGetMediaPropertiesAsync().and_then(|f| f.get())
-        && let Ok(thumbnail) = info.Thumbnail()
-        && let Ok(stream) = thumbnail.OpenReadAsync().and_then(|f| f.get())
-    {
-        let size = stream.Size().ok()?;
-        if size > 0 && size < 10 * 1024 * 1024 {
-            let buffer = Buffer::Create(size as u32).ok()?;
-            if let Ok(read_operation) = stream.ReadAsync(
-                &buffer,
-                size as u32,
-                windows::Storage::Streams::InputStreamOptions::ReadAhead,
-            ) && let Ok(result_buffer) = read_operation.get()
-            {
-                let reader = DataReader::FromBuffer(&result_buffer).ok()?;
-                let length = result_buffer.Length().ok()? as usize;
-                let mut data = vec![0u8; length];
-                reader.ReadBytes(&mut data).ok()?;
-                use base64::{Engine, engine::general_purpose::STANDARD};
-                let mime = "data:image/jpeg";
-                let data_uri = format!("{};base64,{}", mime, STANDARD.encode(&data));
-                // 缓存结果
-                set_cached_album_art(song_id, data_uri.clone());
-                return Some(data_uri);
-            }
-        }
-    }
-    None
-}
-
 type Shared = Arc<RwLock<Song>>;
 
-// 全局状态
 struct AppState {
     config: Arc<Mutex<config::Config>>,
     server_tx: Option<oneshot::Sender<()>>,
@@ -127,98 +46,11 @@ struct AppState {
     shared_state: Option<Shared>,
 }
 
-// 当前应用ID（用于显示在设置页面）
-static CURRENT_APP_ID: once_cell::sync::Lazy<Mutex<String>> = once_cell::sync::Lazy::new(|| {
-    Mutex::new(String::new())
-});
+static CURRENT_APP_ID: once_cell::sync::Lazy<Mutex<String>> =
+    once_cell::sync::Lazy::new(|| Mutex::new(String::new()));
 
-// 当前应用显示名称（用于显示在设置页面）
-static CURRENT_APP_DISPLAY_NAME: once_cell::sync::Lazy<Mutex<String>> = once_cell::sync::Lazy::new(|| {
-    Mutex::new(String::new())
-});
-
-// AUMID 到显示名称的缓存
-static AUMID_DISPLAY_NAME_CACHE: once_cell::sync::Lazy<Mutex<HashMap<String, String>>> = 
-    once_cell::sync::Lazy::new(|| Mutex::new(HashMap::new()));
-
-/// 从 AUMID 获取应用显示名称
-/// 对于 Store 应用，使用 PackageManager 获取友好名称
-/// 对于传统应用，返回 PID
-fn get_app_display_name(aumid: &str) -> String {
-    if aumid.is_empty() {
-        return String::new();
-    }
-    
-    // 检查缓存
-    {
-        let cache = AUMID_DISPLAY_NAME_CACHE.lock().unwrap();
-        if let Some(name) = cache.get(aumid) {
-            return name.clone();
-        }
-    }
-    
-    let display_name = if is_store_app(aumid) {
-        // 尝试使用 PackageManager 获取 Store 应用名称
-        get_store_app_display_name(aumid)
-            .unwrap_or_else(|| get_fallback_display_name(aumid))
-    } else {
-        // 传统应用：查找 PID
-        get_fallback_display_name(aumid)
-    };
-    
-    // 缓存结果
-    {
-        let mut cache = AUMID_DISPLAY_NAME_CACHE.lock().unwrap();
-        cache.insert(aumid.to_string(), display_name.clone());
-    }
-    
-    display_name
-}
-
-/// 判断是否为 Store 应用（UWP/MSIX）
-fn is_store_app(aumid: &str) -> bool {
-    // Store 应用 AUMID 格式: PackageFamilyName!AppId
-    aumid.contains('!') && aumid.contains('_')
-}
-
-/// 获取 Store 应用的显示名称
-fn get_store_app_display_name(aumid: &str) -> Option<String> {
-    let family_name = aumid.split('!').next()?;
-    
-    let package_manager = PackageManager::new().ok()?;
-    
-    // 查找所有包
-    let packages = package_manager.FindPackages().ok()?;
-    
-    // 查找匹配的包并获取显示名称
-    for package in packages {
-        if let Ok(id) = package.Id() {
-            if let Ok(family) = id.FamilyName() {
-                if family.to_string() == family_name {
-                    if let Ok(display_name) = package.DisplayName() {
-                        let name = display_name.to_string();
-                        if !name.is_empty() && name != family_name {
-                            return Some(name);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    None
-}
-
-/// 获取回退显示名称
-/// 对于传统应用，由于无法轻易获取 PID，返回简短的 AUMID 标识
-fn get_fallback_display_name(aumid: &str) -> String {
-    if aumid.len() > 20 {
-        // 如果 AUMID 太长，显示前 20 个字符
-        format!("{}...", &aumid[..20])
-    } else {
-        aumid.to_string()
-    }
-}
+static CURRENT_APP_DISPLAY_NAME: once_cell::sync::Lazy<Mutex<String>> =
+    once_cell::sync::Lazy::new(|| Mutex::new(String::new()));
 
 static APP_STATE: once_cell::sync::Lazy<Mutex<AppState>> = once_cell::sync::Lazy::new(|| {
     Mutex::new(AppState {
@@ -237,26 +69,29 @@ fn with_state(
     warp::any().map(move || s.clone())
 }
 
-// 单进程检测 - 使用 Windows CreateMutex
-use open::that;
-use std::ptr;
+// 单进程检测 - 跨平台实现
+#[cfg(target_os = "windows")]
 use windows::Win32::Foundation::GetLastError;
+#[cfg(target_os = "windows")]
 use windows::Win32::Foundation::{CloseHandle, HANDLE, WIN32_ERROR};
+#[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::CreateMutexW;
+use open::that;
 
+#[cfg(target_os = "windows")]
 pub struct SingleInstance {
     handle: HANDLE,
 }
 
+#[cfg(target_os = "windows")]
 impl SingleInstance {
-    pub fn new(name: &str) -> Result<Self, String> {
-        // 将 Rust 字符串转换为宽字符
+    fn new(name: &str) -> Result<Self, String> {
         let name_wide: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
 
         unsafe {
             let handle_result = CreateMutexW(
-                Some(ptr::null()), // 安全属性
-                false,             // 初始不持有
+                Some(std::ptr::null()),
+                false,
                 windows::core::PCWSTR(name_wide.as_ptr()),
             );
 
@@ -270,12 +105,9 @@ impl SingleInstance {
             }
 
             let error = GetLastError();
-            // ERROR_ALREADY_EXISTS 表示互斥量已存在，说明已有实例在运行
             if error == WIN32_ERROR(183) {
-                // 183 = ERROR_ALREADY_EXISTS
                 let _ = CloseHandle(handle);
 
-                // 打开浏览器
                 let config = config::Config::load().unwrap_or_default();
                 let port = config.server_port;
                 let url = format!("http://localhost:{}", port);
@@ -291,10 +123,55 @@ impl SingleInstance {
     }
 }
 
+#[cfg(target_os = "windows")]
 impl Drop for SingleInstance {
     fn drop(&mut self) {
         unsafe {
             let _ = CloseHandle(self.handle);
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+pub struct SingleInstance {
+    _lock: Box<named_lock::NamedLock>,
+    _guard: named_lock::NamedLockGuard<'static>,
+}
+
+#[cfg(target_os = "linux")]
+impl SingleInstance {
+    fn new(name: &str) -> Result<Self, String> {
+        use named_lock::NamedLock;
+
+        let lock = Box::new(
+            NamedLock::create(name).map_err(|e| format!("创建互斥锁失败: {}", e))?,
+        );
+
+        // SAFETY: lock is in a Box (stable address). We'll store it in
+        // SingleInstance._lock, which lives for the entire process lifetime.
+        // The reference is therefore valid for 'static.
+        let lock_ref: &'static NamedLock = unsafe { std::mem::transmute(lock.as_ref()) };
+
+        match lock_ref.try_lock() {
+            Ok(guard) => {
+                // SAFETY: guard borrows lock_ref which has 'static lifetime.
+                let guard: named_lock::NamedLockGuard<'static> =
+                    unsafe { std::mem::transmute(guard) };
+                Ok(SingleInstance {
+                    _lock: lock,
+                    _guard: guard,
+                })
+            }
+            Err(_) => {
+                let config = config::Config::load().unwrap_or_default();
+                let port = config.server_port;
+                let url = format!("http://localhost:{}", port);
+                if let Err(e) = that(&url) {
+                    log_error!("打开浏览器失败: {}", e);
+                }
+
+                Err("程序已在运行".to_string())
+            }
         }
     }
 }
@@ -304,22 +181,23 @@ fn check_single_instance() -> Result<SingleInstance, String> {
 }
 
 // -------------------- 后台轮询 --------------------
-fn smtc_worker(state: Shared) {
+fn media_worker(state: Shared) {
+    use media::{MediaSession, PlatformSession};
     use std::time::{SystemTime, UNIX_EPOCH};
-    use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager;
 
-    let manager = match GlobalSystemMediaTransportControlsSessionManager::RequestAsync()
-        .and_then(|f| f.get())
-    {
-        Ok(m) => m,
-        Err(_) => {
-            log_error!("Failed to get session manager");
+    let process_filter = {
+        let app_state = APP_STATE.lock().unwrap();
+        let config = app_state.config.lock().unwrap();
+        config.process_filter.clone()
+    };
+
+    let session = match PlatformSession::new(&process_filter) {
+        Ok(s) => s,
+        Err(e) => {
+            log_error!("Failed to create media session: {}", e);
             return;
         }
     };
-
-    // 创建一次性的 tokio runtime 用于异步操作
-    let runtime = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
 
     let mut last_song = Song::default();
     let mut last_position = None::<String>;
@@ -334,147 +212,83 @@ fn smtc_worker(state: Shared) {
             .as_secs();
         current_song.last_update = timestamp;
 
-        if let Ok(session) = manager.GetCurrentSession() {
-            // 获取应用ID并更新全局变量
-            let app_id = session.SourceAppUserModelId()
-                .ok()
-                .and_then(|hstring| Some(hstring.to_string()))
-                .unwrap_or_default();
-            
-            // 获取应用显示名称
-            let display_name = get_app_display_name(&app_id);
-            
+        if let Some(info) = session.poll_current() {
             {
                 let mut current_app = CURRENT_APP_ID.lock().unwrap();
-                *current_app = app_id.clone();
+                *current_app = info.app_id.clone();
             }
             {
                 let mut current_display_name = CURRENT_APP_DISPLAY_NAME.lock().unwrap();
-                *current_display_name = display_name.clone();
+                *current_display_name = info.app_name.clone();
             }
 
-            // 检查进程过滤器
-            let should_process = {
-                let app_state = APP_STATE.lock().unwrap();
-                let config = app_state.config.lock().unwrap();
-                let filter = config.process_filter.trim();
+            current_song.is_playing = info.is_playing;
+            current_song.title = info.title;
+            current_song.artist = info.artist;
+            current_song.album = info.album;
 
-                // 如果过滤器为 "*" 或空，监听所有应用
-                if filter == "*" || filter.is_empty() {
-                    true
-                } else {
-                    // 逐行检查，任意一行匹配即通过（不区分大小写）
-                    let app_id_lower = app_id.to_lowercase();
-                    let display_name_lower = display_name.to_lowercase();
-                    
-                    filter.lines().any(|line| {
-                        let pattern = line.trim().to_lowercase();
-                        if pattern.is_empty() {
-                            return false;
-                        }
-                        // 简单字符串包含匹配（不区分大小写）
-                        app_id_lower.contains(&pattern) || display_name_lower.contains(&pattern)
-                    })
-                }
-            };
-
-            // 如果不匹配过滤器，清空当前歌曲信息并跳过
-            if !should_process {
-                let empty_song = Song::default();
-                let mut s = state.write().unwrap();
-                *s = empty_song.clone();
-                last_song = empty_song.clone();
-                last_position = None;
-                
-                std::thread::sleep(Duration::from_millis(500));
-                continue;
-            }
-
-            // 获取播放状态
-            if let Ok(playback_info) = session.GetPlaybackInfo() {
-                use windows::Media::Control::GlobalSystemMediaTransportControlsSessionPlaybackStatus;
-                current_song.is_playing = playback_info.PlaybackStatus().unwrap_or_default()
-                    == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
-            }
-
-            // 元数据
-            if let Ok(info) = session.TryGetMediaPropertiesAsync().and_then(|f| f.get()) {
-                current_song.title = info.Title().unwrap_or_default().to_string();
-                current_song.artist = info.Artist().unwrap_or_default().to_string();
-                current_song.album = info.AlbumTitle().unwrap_or_default().to_string();
-            }
-
-            // 生成歌曲唯一标识
-            let current_song_id = generate_song_id(
+            let current_song_id = media::generate_song_id(
                 &current_song.title,
                 &current_song.artist,
-                &current_song.album
+                &current_song.album,
             );
 
-            // 先检查缓存
-            let cached_art = get_cached_album_art(&current_song_id);
-            
-            // 只在以下情况获取新图片：
-            // 1. 缓存中没有
-            // 2. 超过30秒未更新且歌曲发生了变化
-            let should_fetch_art = cached_art.is_none() || 
-                (current_song_id != last_song_id && timestamp.saturating_sub(last_art_update) > 30);
-            
+            let cached_art = media::get_cached_album_art(&current_song_id);
+
+            let should_fetch_art = cached_art.is_none()
+                || (current_song_id != last_song_id
+                    && timestamp.saturating_sub(last_art_update) > 30);
+
             if should_fetch_art {
-                current_song.album_art = runtime.block_on(get_album_art(&session, &current_song_id));
+                current_song.album_art = session.get_album_art_base64(
+                    &current_song.artist,
+                    &current_song.title,
+                    &current_song.album,
+                );
                 last_song_id = current_song_id;
                 last_art_update = timestamp;
             } else {
-                // 使用缓存的图片
                 current_song.album_art = cached_art;
             }
 
-            // 进度
-            if let Ok(timeline) = session.GetTimelineProperties() {
-                let pos = timeline.Position().unwrap().Duration;
-                let dur = timeline.EndTime().unwrap().Duration;
-                let pos_s = pos / 10_000_000;
-                let dur_s = dur / 10_000_000;
-
-                if dur != 0 {
-                    current_song.position = Some(format_duration(pos_s as u64));
-                    current_song.duration = Some(format_duration(dur_s as u64));
-                    let percentage = (pos_s as f64 * 100.0) / dur_s as f64;
-                    current_song.pct = Some((percentage * 10.0).round() / 10.0);
-                } else {
-                    current_song.position = None;
-                    current_song.duration = None;
-                    current_song.pct = None;
-                }
+            if info.duration_secs > 0 {
+                current_song.position =
+                    Some(format_duration(info.position_secs));
+                current_song.duration =
+                    Some(format_duration(info.duration_secs));
+                let percentage =
+                    (info.position_secs as f64 * 100.0) / info.duration_secs as f64;
+                current_song.pct = Some((percentage * 10.0).round() / 10.0);
             }
+        } else {
+            let empty_song = Song::default();
+            let mut s = state.write().unwrap();
+            *s = empty_song.clone();
+            last_song = empty_song.clone();
+            last_position = None;
+
+            std::thread::sleep(Duration::from_millis(500));
+            continue;
         }
 
-        // 简化的更新逻辑
-        let should_update =
-            // 播放状态变化
-            current_song.is_playing != last_song.is_playing ||
-            // 位置变化
-            current_song.position != last_position ||
-            // 元数据变化
-            current_song.title != last_song.title ||
-            current_song.artist != last_song.artist ||
-            current_song.album != last_song.album ||
-            // 专辑图片变化
-            current_song.album_art != last_song.album_art ||
-            // 强制更新（每10秒）
-            timestamp.saturating_sub(last_song.last_update) > 10;
+        let should_update = current_song.is_playing != last_song.is_playing
+            || current_song.position != last_position
+            || current_song.title != last_song.title
+            || current_song.artist != last_song.artist
+            || current_song.album != last_song.album
+            || current_song.album_art != last_song.album_art
+            || timestamp.saturating_sub(last_song.last_update) > 10;
 
         if should_update {
             let mut s = state.write().unwrap();
             *s = current_song.clone();
             last_song = current_song.clone();
-            last_position = current_song.position;
+            last_position = current_song.position.clone();
         }
 
-        // 根据播放状态调整轮询间隔（平衡响应速度和CPU占用）
         let sleep_duration = match current_song.is_playing {
-            true => Duration::from_millis(200),  // 播放时200ms，平衡响应速度和CPU占用
-            false => Duration::from_millis(1000), // 暂停时1000ms
+            true => Duration::from_millis(200),
+            false => Duration::from_millis(1000),
         };
         std::thread::sleep(sleep_duration);
     }
@@ -486,7 +300,6 @@ async fn start_server(
     port: u16,
     current_theme: String,
 ) -> (oneshot::Sender<()>, tokio::task::JoinHandle<()>) {
-    // 获取服务器地址
     let address = {
         let app_state = APP_STATE.lock().unwrap();
         let config = app_state.config.lock().unwrap();
@@ -496,37 +309,29 @@ async fn start_server(
             .expect("Invalid IP address in config")
     };
 
-    // 确定主题路径
-    // "default" 或空字符串都表示使用内置的 RustEmbed 主题
     let theme_path = if current_theme.is_empty() || current_theme == "default" {
-        PathBuf::new() // 使用内置主题
+        PathBuf::new()
     } else {
         theme_manager::ThemeManager::get_theme_server_path(&current_theme)
     };
 
-    // 创建主题管理器
     let theme_manager = theme::ThemeManager::new(&theme_path.to_string_lossy());
 
-    // JSON 接口
     let api = warp::path!("api" / "now")
         .and(with_state(state))
         .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
 
-    // 主题文件托管
     let theme_files = warp::path("theme")
         .and(warp::path::tail())
         .and(theme::ThemeManager::with_manager(theme_manager.clone()))
         .and_then(|tail, manager: theme::ThemeManager| manager.serve_theme_file(tail));
 
-    // 静态文件托管（前端）
     let static_files = warp::path::tail()
         .and(theme::ThemeManager::with_manager(theme_manager))
         .and_then(|tail, manager: theme::ThemeManager| manager.serve_theme_file(tail));
 
-    // 创建关闭信号
     let (tx, rx) = oneshot::channel::<()>();
 
-    // 启动服务器
     let server_handle = tokio::spawn(async move {
         let (_, server) = warp::serve(api.or(theme_files).or(static_files))
             .bind_with_graceful_shutdown((address, port), async {
@@ -556,21 +361,18 @@ async fn get_current_theme() -> Result<String, String> {
 
 #[tauri::command]
 async fn set_theme(theme_name: String, _app_handle: tauri::AppHandle) -> Result<(), String> {
-    // 停止现有服务器并获取共享状态
     let (port, state) = {
         let mut app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
         if let Some(tx) = app_state.server_tx.take() {
             let _ = tx.send(());
         }
 
-        // 更新配置
         {
             let mut config = app_state.config.lock().map_err(|e| e.to_string())?;
             config.current_theme = theme_name.clone();
             config.save().map_err(|e| e.to_string())?;
         }
 
-        // 获取端口和共享状态
         let port = app_state
             .config
             .lock()
@@ -583,7 +385,6 @@ async fn set_theme(theme_name: String, _app_handle: tauri::AppHandle) -> Result<
         (port, state)
     };
 
-    // 重新启动服务器，使用现有的共享状态
     let (tx, _) = start_server(state, port, theme_name).await;
 
     {
@@ -604,22 +405,18 @@ async fn upload_theme(file_path: String) -> Result<String, String> {
 async fn upload_theme_from_bytes(file_name: String, file_data: Vec<u8>) -> Result<String, String> {
     use std::io::Write;
 
-    // 创建临时文件
     let temp_dir = std::env::temp_dir();
     let temp_file_path = temp_dir.join(&file_name);
 
-    // 写入文件数据
     let mut temp_file =
         std::fs::File::create(&temp_file_path).map_err(|e| format!("创建临时文件失败: {}", e))?;
     temp_file
         .write_all(&file_data)
         .map_err(|e| format!("写入临时文件失败: {}", e))?;
 
-    // 解压主题
     let theme_name = theme_manager::ThemeManager::extract_theme(&temp_file_path)
         .map_err(|e| format!("解压主题失败: {}", e))?;
 
-    // 删除临时文件
     let _ = std::fs::remove_file(&temp_file_path);
 
     Ok(theme_name)
@@ -627,7 +424,6 @@ async fn upload_theme_from_bytes(file_name: String, file_data: Vec<u8>) -> Resul
 
 #[tauri::command]
 async fn delete_theme(theme_folder: String) -> Result<(), String> {
-    // 检查是否是当前主题
     let current = {
         let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
         let config = app_state.config.lock().map_err(|e| e.to_string())?;
@@ -694,12 +490,9 @@ async fn get_current_app_id() -> Result<String, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // 初始化日志系统
     logger::init();
     log_info!("应用程序启动");
 
-    // 单进程检测 - 确保只有一个实例运行
-    // SingleInstance 必须保持在作用域内，否则锁会被释放
     let _single_instance = match check_single_instance() {
         Ok(instance) => instance,
         Err(e) => {
@@ -708,26 +501,20 @@ pub fn run() {
         }
     };
 
-    // 检查是否是重启后的实例
     let args: Vec<String> = std::env::args().collect();
     let is_restarted = args.contains(&"--restarted".to_string());
 
     if is_restarted {
         log_info!("应用程序已重启");
-        // 等待一小段时间确保前一个实例完全退出
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
 
-    // 确保主题目录存在
     theme_manager::ThemeManager::ensure_themes_dir().expect("Failed to create themes directory");
 
-    // 加载配置
     let config = Arc::new(Mutex::new(config::Config::load().unwrap_or_default()));
 
-    // 启动配置文件监控
     config::Config::start_monitoring(config.clone());
 
-    // 根据配置决定是否隐藏控制台
     {
         let config_guard = config.lock().unwrap();
         if !config_guard.show_console {
@@ -735,28 +522,22 @@ pub fn run() {
         }
     }
 
-    // 创建 Tokio 运行时
     let runtime = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
 
-    // 启动 Web 服务器
     let state: Shared = Arc::default();
     let st = state.clone();
 
-    // 在单独的线程中运行后台轮询
-    std::thread::spawn(move || smtc_worker(st));
+    std::thread::spawn(move || media_worker(st));
 
-    // 获取服务器配置
     let (port, current_theme) = {
         let config_guard = config.lock().unwrap();
         (config_guard.server_port, config_guard.current_theme.clone())
     };
 
-    // 在Tokio运行时中启动Web服务器
     let state_for_server = state.clone();
     let (server_tx, server_handle) =
         runtime.block_on(async { start_server(state_for_server, port, current_theme).await });
 
-    // 更新全局状态
     {
         let mut app_state = APP_STATE.lock().unwrap();
         app_state.config = config.clone();
@@ -765,12 +546,11 @@ pub fn run() {
         app_state.shared_state = Some(state);
     }
 
-    // 使用 Tauri 应用程序，配置托盘事件处理
     let port_clone = port;
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_media::init())
+        // tauri-plugin-media removed — unused, broken on Linux
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             get_themes,
@@ -785,27 +565,21 @@ pub fn run() {
             get_current_app_id
         ])
         .setup(move |app| {
-            // 从配置中读取语言设置并应用
             {
                 let app_state = APP_STATE.lock().unwrap();
                 let config_guard = app_state.config.lock().unwrap();
                 let locale = config_guard.locale.clone();
-                // 设置语言（托盘菜单将使用此语言）
                 let _ = i18n::set_locale(&locale);
                 log_info!("Applied locale from config: {}", locale);
             }
-            
-            // 创建系统托盘图标并配置事件处理
+
             tray::create_tray_icon(app.handle(), port_clone)?;
 
-            // 配置窗口关闭行为：隐藏到托盘而不是退出
             let window = app.get_webview_window("main").unwrap();
             let window_clone = window.clone();
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                    // 阻止窗口关闭
                     api.prevent_close();
-                    // 隐藏窗口
                     let _ = window_clone.hide();
                 }
             });
@@ -815,7 +589,6 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 
-    // 清理：停止服务器
     runtime.block_on(async {
         let _ = server_handle.await;
     });

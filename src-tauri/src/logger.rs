@@ -51,7 +51,7 @@ impl Logger {
 
         let logger = Self {
             log_dir,
-            current_level: LogLevel::Info,
+            current_level: LogLevel::Debug,
             max_age_days: 30,
         };
 

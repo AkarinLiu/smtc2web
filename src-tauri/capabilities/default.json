@@ -8,7 +8,6 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "media:default",
     "fs:default",
     "dialog:default",
     "dialog:allow-confirm"

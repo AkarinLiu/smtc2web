@@ -18,6 +18,8 @@ jobs:
             target: "x86_64-pc-windows-msvc"
           - platform: "windows-latest"
             target: "aarch64-pc-windows-msvc"
+          - platform: "ubuntu-latest"
+            target: "x86_64-unknown-linux-gnu"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -40,7 +42,7 @@ jobs:
         run: volta install pnpm
 
       - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable # Set this to dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
 
       - name: install aarch64 target
         if: matrix.target == 'aarch64-pc-windows-msvc'
@@ -52,8 +54,7 @@ jobs:
           workspaces: "./src-tauri -> target"
 
       - name: install frontend dependencies
-        # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
-        run: pnpm install # change this to npm or pnpm depending on which one you use.
+        run: pnpm install
 
       - uses: actions-js/push@master
         with:
