@@ -99,7 +99,7 @@ fn get_fallback_display_name(aumid: &str) -> String {
 }
 
 impl MediaSession for SmtcSession {
-    fn new(process_filter: &str) -> Result<Self>
+    fn new(process_filter: &str) -> Result<Self, String>
     where
         Self: Sized,
     {
