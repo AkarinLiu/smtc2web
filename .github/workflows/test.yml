@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - nightly
+      - master
 
 jobs:
   publish-tauri:
@@ -46,9 +46,8 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: install aarch64 target
-        if: matrix.target == 'aarch64-pc-windows-msvc'
-        run: rustup target add aarch64-pc-windows-msvc
+      - name: install target
+        run: rustup target add ${{ matrix.target }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
