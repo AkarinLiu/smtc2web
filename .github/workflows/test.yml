@@ -58,6 +58,9 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
+      - name: install tauri cli
+        run: npm install -g @tauri-apps/cli
+
       - name: install frontend dependencies
         run: pnpm install
 
