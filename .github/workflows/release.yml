@@ -51,7 +51,9 @@ jobs:
         uses: volta-cli/action@v4.2.1
         with:
           node-version: 24
-          npm-version: 11
+
+      - name: install pnpm
+        run: npm install -g pnpm
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -66,10 +68,10 @@ jobs:
           workspaces: "./src-tauri -> target"
 
       - name: install frontend dependencies
-        run: npm install
+        run: pnpm install
 
       - name: build frontend
-        run: npm run build
+        run: pnpm build
 
       - uses: tauri-apps/tauri-action@v0
         env:
