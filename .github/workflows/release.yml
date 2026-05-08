@@ -59,7 +59,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: install target
-        if: matrix.target == 'aarch64-pc-windows-msvc'
         run: rustup target add ${{ matrix.target }}
 
       - name: Rust cache
