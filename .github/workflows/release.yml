@@ -20,12 +20,12 @@ jobs:
             target: "aarch64-pc-windows-msvc"
           - platform: "ubuntu-latest"
             target: "x86_64-unknown-linux-gnu"
-          - platform: "ubuntu-latest"
-            target: "aarch64-unknown-linux-gnu"
-          - platform: "ubuntu-latest"
-            target: "riscv64gc-unknown-linux-gnu"
-          - platform: "ubuntu-latest"
-            target: "loongarch64-unknown-linux-gnu"
+          # - platform: "ubuntu-latest"
+          #   target: "aarch64-unknown-linux-gnu"
+          # - platform: "ubuntu-latest"
+          #   target: "riscv64gc-unknown-linux-gnu"
+          # - platform: "ubuntu-latest"
+          #   target: "loongarch64-unknown-linux-gnu"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -36,26 +36,28 @@ jobs:
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-latest'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-          libwebkit2gtk-4.1-dev \
-          libappindicator3-dev \
-          librsvg2-dev \
-          patchelf \
-          libglib2.0-dev
+          sudo apt update
+          sudo apt install libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
 
       - name: setup volta
         uses: volta-cli/action@v4.2.1
         with:
           node-version: 24
-
-      - name: install pnpm
-        run: volta install pnpm
+          pnpm-version: 10
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
       - name: install target
+        if: matrix.target != 'aarch64-pc-windows-msvc'
         run: rustup target add ${{ matrix.target }}
 
       - name: Rust cache
