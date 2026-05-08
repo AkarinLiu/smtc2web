@@ -61,10 +61,9 @@ jobs:
       - name: install frontend dependencies
         run: pnpm install
 
-      - uses: actions-js/push@master
+      - uses: actions/checkout@v4
         with:
-          branch: master
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: "recursive"
 
       - name: build app
         run: pnpm tauri:build --target ${{ matrix.target }}
