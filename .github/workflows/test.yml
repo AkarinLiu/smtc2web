@@ -1,4 +1,4 @@
-name: "Nightly"
+name: "Test"
 
 on:
   workflow_dispatch:
@@ -59,7 +59,7 @@ jobs:
 
       - uses: actions-js/push@master
         with:
-          branch: nightly
+          branch: master
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: build app
