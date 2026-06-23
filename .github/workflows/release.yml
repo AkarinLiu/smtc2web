@@ -75,6 +75,8 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          OFFICIAL_UPDATE_URL: ${{ secrets.OFFICIAL_UPDATE_URL }}
         with:
           tagName: v__VERSION__
           releaseName: "v__VERSION__"
@@ -82,3 +84,73 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.target }}
+
+  upload-to-r2:
+    name: Upload to Cloudflare R2
+    runs-on: ubuntu-latest
+    needs: publish-tauri
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all release assets (including latest.json)
+        uses: robinraju/release-downloader@v1.11
+        with:
+          tag: ${{ github.ref_name }}
+          fileName: "*"
+          out-file-path: "artifacts"
+
+      - name: Rewrite latest.json URLs for R2
+        run: |
+          python3 << 'PYEOF'
+          import json, os
+          R2_PUBLIC = os.environ["R2_PUBLIC_URL"]
+
+          with open("artifacts/latest.json") as f:
+              manifest = json.load(f)
+
+          for platform, entry in manifest.get("platforms", {}).items():
+              old_url = entry.get("url", "")
+              filename = old_url.rsplit("/", 1)[-1]
+              entry["url"] = f"{R2_PUBLIC}/{filename}"
+              print(f"  {platform}: {filename}")
+
+          with open("artifacts/latest.json", "w") as f:
+              json.dump(manifest, f, indent=2)
+
+          print("latest.json URLs rewritten to R2")
+          PYEOF
+        env:
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+
+      - name: Upload files to Cloudflare R2
+        run: |
+          pip install awscli
+          aws configure set aws_access_key_id ${{ secrets.R2_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          aws configure set region auto
+
+          ENDPOINT="${{ secrets.R2_ENDPOINT }}"
+          BUCKET="${{ secrets.R2_BUCKET_NAME }}"
+
+          for f in artifacts/*; do
+            if [ -f "$f" ]; then
+              filename=$(basename "$f")
+              echo "Uploading: $filename"
+
+              # latest.json 需要设置正确的 Content-Type
+              if [ "$filename" = "latest.json" ]; then
+                aws s3 cp "$f" "s3://${BUCKET}/latest.json" \
+                  --endpoint-url "${ENDPOINT}" \
+                  --content-type application/json \
+                  --no-progress
+              else
+                aws s3 cp "$f" "s3://${BUCKET}/${filename}" \
+                  --endpoint-url "${ENDPOINT}" \
+                  --no-progress
+              fi
+            fi
+          done
+
+          echo "All files uploaded to R2 successfully!"
+          echo "latest.json URL: https://YOUR_R2_PUBLIC_DOMAIN/latest.json"

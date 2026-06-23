@@ -51,5 +51,17 @@
         "displayLanguageSelector": true
       }
     }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/AkarinLiu/smtc2web/releases/latest/download/latest.json",
+        "https://download.smtc2web.org/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDIxMDE5MUE1RTFDNEY1MApSV1JRVHh4ZUdoa1FBbC9NMnFlZFJkZm9nV3dGRW5XWkN1bnJaUHJMdW5sMjdqSWxCdE9rczlFYwo",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

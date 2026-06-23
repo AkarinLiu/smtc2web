@@ -45,6 +45,42 @@
       </div>
     </div>
 
+    <!-- 更新设置 -->
+    <div class="form-section">
+      <h3 class="section-title">{{ t("settings.update.title") }}</h3>
+
+      <div class="form-group">
+        <label>{{ t("settings.update.source.label") }}</label>
+        <select v-model="localConfig.update_source" class="form-input">
+          <option value="github">GitHub</option>
+          <option value="official">{{ t("settings.update.source.official") }}</option>
+        </select>
+        <p class="hint">{{ t("settings.update.source.hint") }}</p>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="localConfig.auto_check_update" />
+          {{ t("settings.update.autoCheck") }}
+        </label>
+        <p class="hint">{{ t("settings.update.autoCheckHint") }}</p>
+      </div>
+
+      <div class="form-group">
+        <button
+          class="btn btn-secondary"
+          @click="handleCheckUpdate"
+          :disabled="checkingUpdate"
+        >
+          <font-awesome-icon icon="rotate" :spin="checkingUpdate" />
+          {{ checkingUpdate ? t("settings.update.checking") : t("settings.update.checkNow") }}
+        </button>
+        <span v-if="updateStatus" class="update-status" :class="{ 'has-update': updateStatus.has_update }">
+          {{ updateStatusText }}
+        </span>
+      </div>
+    </div>
+
     <div class="form-actions">
       <button class="btn btn-primary" @click="handleSave" :disabled="loading">
         <span v-if="loading"><font-awesome-icon icon="spinner" spin /> {{ t("settings.saving") }}</span>
@@ -56,10 +92,11 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from "vue";
+import { reactive, ref, watch , computed } from "vue";
 import { useI18n } from "vue-i18n";
 import LanguageSelector from "./LanguageSelector.vue";
 import type { AppConfig } from "@/types/config";
+import { useUpdateStore, type UpdateCheckResult } from "@/stores/update";
 
 interface Props {
   config: AppConfig;
@@ -74,8 +111,26 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const updateStore = useUpdateStore();
 
 const localConfig = reactive<AppConfig>({ ...props.config });
+const checkingUpdate = ref(false);
+const updateStatus = ref<UpdateCheckResult | null>(null);
+
+const updateStatusText = computed(() => {
+  if (!updateStatus.value) return '';
+  if (updateStatus.value.error) {
+    return `⚠ ${updateStatus.value.error}`;
+  }
+  if (updateStatus.value.has_update) {
+    return t('settings.update.newVersionAvailable', {
+      version: updateStatus.value.latest_version
+    });
+  }
+  return t('settings.update.alreadyLatest', {
+    version: updateStatus.value.current_version
+  });
+});
 
 watch(
   () => props.config,
@@ -84,6 +139,17 @@ watch(
   },
   { deep: true },
 );
+
+async function handleCheckUpdate() {
+  checkingUpdate.value = true;
+  updateStatus.value = null;
+  try {
+    const result = await updateStore.checkForUpdates();
+    updateStatus.value = result;
+  } finally {
+    checkingUpdate.value = false;
+  }
+}
 
 function handleSave() {
   Object.assign(props.config, localConfig);
@@ -236,5 +302,41 @@ function handleSave() {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: var(--fluent-bg-secondary);
+  color: var(--fluent-text-primary);
+  border: 1px solid var(--fluent-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--fluent-bg-primary);
+  border-color: var(--fluent-accent);
+}
+
+.form-section {
+  margin-top: var(--fluent-space-lg);
+  padding-top: var(--fluent-space-lg);
+  border-top: 1px solid var(--fluent-border);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: var(--fluent-space-lg);
+  color: var(--fluent-text-primary);
+}
+
+.update-status {
+  display: inline-block;
+  margin-left: var(--fluent-space-md);
+  font-size: 13px;
+  color: var(--fluent-text-secondary);
+}
+
+.update-status.has-update {
+  color: var(--fluent-accent);
+  font-weight: 600;
 }
 </style>

@@ -42,7 +42,32 @@
     },
     "save": "保存",
     "saving": "保存中……",
-    "saved": "已保存"
+    "saved": "已保存",
+    "update": {
+      "title": "更新设置",
+      "source": {
+        "label": "更新源",
+        "official": "官网 (Cloudflare)",
+        "hint": "选择从 GitHub 或官网获取更新。官网源在中国大陆访问更快。"
+      },
+      "autoCheck": "启动时自动检查更新",
+      "autoCheckHint": "应用启动时自动检查是否有新版本可用",
+      "checkNow": "检查更新",
+      "checking": "检查中……",
+      "newVersionAvailable": "发现新版本 {version}！",
+      "alreadyLatest": "已是最新版本 ({version})"
+    }
+  },
+  "update": {
+    "title": "发现新版本",
+    "currentVersion": "当前版本",
+    "latestVersion": "最新版本",
+    "download": "下载更新",
+    "downloading": "下载中……",
+    "later": "稍后提醒",
+    "checkError": "检查更新失败",
+    "noUpdate": "已是最新版本",
+    "installPrompt": "更新已下载，是否立即重启安装？"
   },
   "common": {
     "loading": "加载中……",

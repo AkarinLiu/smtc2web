@@ -17,6 +17,7 @@ mod media;
 mod theme;
 mod theme_manager;
 mod tray;
+mod updater;
 
 pub mod cli;
 pub mod dev;
@@ -448,6 +449,8 @@ struct ConfigDto {
     current_theme: String,
     locale: String,
     process_filter: String,
+    update_source: String,
+    auto_check_update: bool,
 }
 
 #[tauri::command]
@@ -461,6 +464,8 @@ async fn get_config() -> Result<ConfigDto, String> {
         current_theme: config.current_theme.clone(),
         locale: config.locale.clone(),
         process_filter: config.process_filter.clone(),
+        update_source: config.update_source.clone(),
+        auto_check_update: config.auto_check_update,
     })
 }
 
@@ -475,6 +480,8 @@ async fn save_config(config_dto: ConfigDto) -> Result<(), String> {
     config.current_theme = config_dto.current_theme;
     config.locale = config_dto.locale;
     config.process_filter = config_dto.process_filter;
+    config.update_source = config_dto.update_source;
+    config.auto_check_update = config_dto.auto_check_update;
 
     config.save().map_err(|e| e.to_string())
 }
@@ -555,6 +562,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         // tauri-plugin-media removed — unused, broken on Linux
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_themes,
             get_current_theme,
@@ -565,7 +573,9 @@ pub fn run() {
             get_config,
             save_config,
             set_locale,
-            get_current_app_id
+            get_current_app_id,
+            updater::check_update,
+            updater::get_update_source_urls
         ])
         .setup(move |app| {
             {
@@ -577,6 +587,21 @@ pub fn run() {
             }
 
             tray::create_tray_icon(app.handle(), port_clone)?;
+
+            // 启动时自动检查更新
+            {
+                let app_handle = app.handle().clone();
+                let auto_check = {
+                    let app_state = APP_STATE.lock().unwrap();
+                    let config = app_state.config.lock().unwrap();
+                    config.auto_check_update
+                };
+                if auto_check {
+                    tauri::async_runtime::spawn(async move {
+                        updater::check_update_inner(app_handle).await;
+                    });
+                }
+            }
 
             let window = app.get_webview_window("main").unwrap();
             let window_clone = window.clone();

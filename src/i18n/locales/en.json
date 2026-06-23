@@ -42,7 +42,32 @@
     },
     "save": "Save",
     "saving": "Saving...",
-    "saved": "Saved"
+    "saved": "Saved",
+    "update": {
+      "title": "Update Settings",
+      "source": {
+        "label": "Update Source",
+        "official": "Official (Cloudflare)",
+        "hint": "Choose whether to fetch updates from GitHub or the official website. The official source is faster in mainland China."
+      },
+      "autoCheck": "Automatically check for updates on startup",
+      "autoCheckHint": "Check for new versions automatically when the app starts",
+      "checkNow": "Check for Updates",
+      "checking": "Checking...",
+      "newVersionAvailable": "New version {version} available!",
+      "alreadyLatest": "Already up to date ({version})"
+    }
+  },
+  "update": {
+    "title": "New Version Available",
+    "currentVersion": "Current Version",
+    "latestVersion": "Latest Version",
+    "download": "Download Update",
+    "downloading": "Downloading...",
+    "later": "Remind Me Later",
+    "checkError": "Update check failed",
+    "noUpdate": "Already up to date",
+    "installPrompt": "Update downloaded. Restart now to install?"
   },
   "common": {
     "loading": "Loading...",

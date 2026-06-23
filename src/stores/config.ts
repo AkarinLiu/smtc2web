@@ -9,7 +9,9 @@ export const useConfigStore = defineStore('config', () => {
     show_console: false,
     current_theme: '',
     locale: 'zh-CN',
-    process_filter: '*'
+    process_filter: '*',
+    update_source: 'github',
+    auto_check_update: true
   })
 
   const loading = ref(false)

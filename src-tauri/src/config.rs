@@ -18,6 +18,10 @@ pub struct Config {
     pub current_theme: String,
     pub locale: String,
     pub process_filter: String,
+    /// 更新源: "github" 或 "official"（官网）
+    pub update_source: String,
+    /// 是否启用自动检查更新
+    pub auto_check_update: bool,
 }
 
 impl Default for Config {
@@ -29,6 +33,8 @@ impl Default for Config {
             current_theme: "".to_string(),
             locale: "zh-CN".to_string(),
             process_filter: "*".to_string(),
+            update_source: "github".to_string(),
+            auto_check_update: true,
         }
     }
 }

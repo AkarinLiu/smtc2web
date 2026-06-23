@@ -25,5 +25,8 @@ dist-ssr
 
 # AI Agents
 AGENTS.md
-
 nul
+
+# Keys
+*.key
+*.key.pub

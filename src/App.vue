@@ -5,6 +5,7 @@
       <RouterView />
     </main>
     <Toast />
+    <UpdateDialog />
   </div>
 </template>
 
@@ -13,6 +14,7 @@ import { onMounted } from 'vue'
 import { useConfigStore } from '@/stores/config'
 import { useLocaleStore } from '@/stores/locale'
 import Toast from '@/components/Toast.vue'
+import UpdateDialog from '@/components/UpdateDialog.vue'
 
 const configStore = useConfigStore()
 const localeStore = useLocaleStore()
