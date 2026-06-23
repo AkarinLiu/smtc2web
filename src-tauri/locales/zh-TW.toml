@@ -2,3 +2,16 @@
 show_window = "Show Window"
 open_web = "Open Web"
 quit = "Quit"
+
+[cli]
+about = "SMTC to Web — 將系統媒體控制資訊同步到瀏覽器主題"
+
+[cli.dev]
+about = "啟動主題開發伺服器（不啟動 GUI，支援熱重載）"
+
+[cli.dev.args]
+port = "HTTP 伺服器埠號"
+no-open = "不自動開啟瀏覽器"
+vite = "啟用 Vite 模式（若目錄下有 vite.config 則自動啟用）"
+vite-port = "Vite dev server 埠號"
+path = "主題目錄路徑（預設當前目錄）"

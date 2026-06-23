@@ -2,3 +2,16 @@
 show_window = "Show Window"
 open_web = "Open Web"
 quit = "Quit"
+
+[cli]
+about = "SMTC to Web — Sync system media control info to browser themes"
+
+[cli.dev]
+about = "Start theme dev server (no GUI, with hot reload)"
+
+[cli.dev.args]
+port = "HTTP server port"
+no-open = "Do not open browser automatically"
+vite = "Enable Vite mode (auto-detected if vite.config present)"
+vite-port = "Vite dev server port"
+path = "Theme directory path (defaults to current directory)"

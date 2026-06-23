@@ -18,26 +18,29 @@ mod theme;
 mod theme_manager;
 mod tray;
 
+pub mod cli;
+pub mod dev;
+
 #[derive(Default, Clone, Serialize, PartialEq)]
-struct Song {
-    title: String,
-    artist: String,
-    album: String,
-    album_art: Option<String>,
-    position: Option<String>,
-    duration: Option<String>,
-    pct: Option<f64>,
-    is_playing: bool,
-    last_update: u64,
+pub struct Song {
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    pub album_art: Option<String>,
+    pub position: Option<String>,
+    pub duration: Option<String>,
+    pub pct: Option<f64>,
+    pub is_playing: bool,
+    pub last_update: u64,
 }
 
-fn format_duration(seconds: u64) -> String {
+pub fn format_duration(seconds: u64) -> String {
     let minutes = seconds / 60;
     let secs = seconds % 60;
     format!("{:02}:{:02}", minutes, secs)
 }
 
-type Shared = Arc<RwLock<Song>>;
+pub type Shared = Arc<RwLock<Song>>;
 
 struct AppState {
     config: Arc<Mutex<config::Config>>,
