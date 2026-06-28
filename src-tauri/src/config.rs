@@ -22,6 +22,8 @@ pub struct Config {
     pub update_source: String,
     /// 是否启用自动检查更新
     pub auto_check_update: bool,
+    /// 是否开机自启动
+    pub autostart: bool,
 }
 
 impl Default for Config {
@@ -35,6 +37,7 @@ impl Default for Config {
             process_filter: "*".to_string(),
             update_source: "github".to_string(),
             auto_check_update: true,
+            autostart: false,
         }
     }
 }

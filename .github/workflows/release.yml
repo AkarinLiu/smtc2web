@@ -6,6 +6,9 @@ on:
     tags:
       - v*.*.*
 
+permissions:
+  contents: read
+
 jobs:
   publish-tauri:
     permissions:

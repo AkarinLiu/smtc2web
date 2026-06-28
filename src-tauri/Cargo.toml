@@ -3,7 +3,7 @@ authors = ["AkarinLiu"]
 description = "A Tauri App"
 edition = "2024"
 name = "smtc2web"
-version = "0.4.1"
+version = "0.4.2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -65,6 +65,7 @@ features = [
   "Win32_Foundation",
   "Win32_Globalization",
   "Win32_Security",
+  "Win32_System_Registry",
 ]
 version = "0.58"
 

@@ -7,6 +7,7 @@
     "title": "Theme List",
     "upload": "Import Theme",
     "uploading": "Importing...",
+    "download": "Download Theme",
     "empty": {
       "title": "No Themes",
       "description": "Click the \"Import Theme\" button to add a new theme"
@@ -56,6 +57,11 @@
       "checking": "Checking...",
       "newVersionAvailable": "New version {version} available!",
       "alreadyLatest": "Already up to date ({version})"
+    },
+    "system": {
+      "title": "System Settings",
+      "autostart": "Start on boot",
+      "autostartHint": "Automatically run this app when the system starts"
     }
   },
   "update": {
@@ -76,6 +82,12 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "delete": "Delete"
+  },
+  "titlebar": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore Down",
+    "close": "Close"
   },
   "messages": {
     "theme": {

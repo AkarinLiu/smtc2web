@@ -9,7 +9,6 @@ declare module 'vue' {
   export interface GlobalComponents {
     EmptyState: typeof import('./src/components/EmptyState.vue')['default']
     LanguageSelector: typeof import('./src/components/LanguageSelector.vue')['default']
-    Navbar: typeof import('./src/components/Navbar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SettingsForm: typeof import('./src/components/SettingsForm.vue')['default']
@@ -19,6 +18,8 @@ declare module 'vue' {
     ThemeGrid: typeof import('./src/components/ThemeGrid.vue')['default']
     ThemeSkeleton: typeof import('./src/components/ThemeSkeleton.vue')['default']
     ThemesView: typeof import('./src/views/ThemesView.vue')['default']
+    TitleBar: typeof import('./src/components/TitleBar.vue')['default']
     Toast: typeof import('./src/components/Toast.vue')['default']
+    UpdateDialog: typeof import('./src/components/UpdateDialog.vue')['default']
   }
 }

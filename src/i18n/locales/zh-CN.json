@@ -7,6 +7,7 @@
     "title": "主题列表",
     "upload": "导入主题",
     "uploading": "导入中……",
+    "download": "下载主题",
     "empty": {
       "title": "没有主题",
       "description": "点击“导入主题”按钮添加新主题"
@@ -56,6 +57,11 @@
       "checking": "检查中……",
       "newVersionAvailable": "发现新版本 {version}！",
       "alreadyLatest": "已是最新版本 ({version})"
+    },
+    "system": {
+      "title": "系统设置",
+      "autostart": "开机自启动",
+      "autostartHint": "系统启动时自动运行本应用"
     }
   },
   "update": {
@@ -76,6 +82,12 @@
     "cancel": "取消",
     "confirm": "确认",
     "delete": "删除"
+  },
+  "titlebar": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "向下还原",
+    "close": "关闭"
   },
   "messages": {
     "theme": {

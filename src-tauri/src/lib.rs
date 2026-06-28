@@ -451,6 +451,7 @@ struct ConfigDto {
     process_filter: String,
     update_source: String,
     auto_check_update: bool,
+    autostart: bool,
 }
 
 #[tauri::command]
@@ -466,6 +467,7 @@ async fn get_config() -> Result<ConfigDto, String> {
         process_filter: config.process_filter.clone(),
         update_source: config.update_source.clone(),
         auto_check_update: config.auto_check_update,
+        autostart: config.autostart,
     })
 }
 
@@ -482,6 +484,7 @@ async fn save_config(config_dto: ConfigDto) -> Result<(), String> {
     config.process_filter = config_dto.process_filter;
     config.update_source = config_dto.update_source;
     config.auto_check_update = config_dto.auto_check_update;
+    config.autostart = config_dto.autostart;
 
     config.save().map_err(|e| e.to_string())
 }
@@ -496,6 +499,143 @@ async fn set_locale(locale: String, app: tauri::AppHandle) -> Result<(), String>
 async fn get_current_app_id() -> Result<String, String> {
     let display_name = CURRENT_APP_DISPLAY_NAME.lock().map_err(|e| e.to_string())?;
     Ok(display_name.clone())
+}
+
+/// 同步开机自启动注册表项（不修改配置）
+fn sync_autostart(enable: bool) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::System::Registry::{
+            RegSetValueExW, RegCreateKeyExW, RegCloseKey, RegDeleteValueW,
+            HKEY_CURRENT_USER, KEY_WRITE, REG_SZ, REG_OPTION_NON_VOLATILE,
+        };
+        use windows::core::PCWSTR;
+
+        let subkey = windows::core::w!("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+        let value_name = windows::core::w!("smtc2web");
+
+        unsafe {
+            let mut hkey = std::mem::zeroed();
+            let result = RegCreateKeyExW(
+                HKEY_CURRENT_USER,
+                subkey,
+                0u32,
+                PCWSTR::null(),
+                REG_OPTION_NON_VOLATILE,
+                KEY_WRITE,
+                None,
+                &mut hkey,
+                None,
+            );
+            if result.is_err() {
+                return Err(format!("Failed to open registry key: {:?}", result));
+            }
+
+            if enable {
+                let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+                let exe_str = exe_path.to_string_lossy();
+                let exe_wide: Vec<u16> = exe_str.encode_utf16().chain(std::iter::once(0)).collect();
+                let data_bytes: &[u8] = std::slice::from_raw_parts(
+                    exe_wide.as_ptr() as *const u8,
+                    exe_wide.len() * 2,
+                );
+
+                let result = RegSetValueExW(
+                    hkey,
+                    value_name,
+                    0u32,
+                    REG_SZ,
+                    Some(data_bytes),
+                );
+                if result.is_err() {
+                    let _ = RegCloseKey(hkey);
+                    return Err(format!("Failed to set registry value: {:?}", result));
+                }
+            } else {
+                let _ = RegDeleteValueW(hkey, value_name);
+            }
+
+            let _ = RegCloseKey(hkey);
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = enable;
+        return Err("Auto-start is only supported on Windows".to_string());
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn set_autostart(enable: bool) -> Result<(), String> {
+    sync_autostart(enable)?;
+
+    let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+    let mut config = app_state.config.lock().map_err(|e| e.to_string())?;
+    config.autostart = enable;
+    config.save().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn window_minimize(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.minimize().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn window_toggle_maximize(window: tauri::WebviewWindow) -> Result<(), String> {
+    let maximized = window.is_maximized().map_err(|e| e.to_string())?;
+    if maximized {
+        window.unmaximize().map_err(|e| e.to_string())
+    } else {
+        window.maximize().map_err(|e| e.to_string())
+    }
+}
+
+#[tauri::command]
+async fn window_close(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.close().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn window_is_maximized(window: tauri::WebviewWindow) -> Result<bool, String> {
+    window.is_maximized().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn open_url(url: String) -> Result<(), String> {
+    open::that(&url).map_err(|e| e.to_string())
+}
+
+/// Windows 11 圆角适配：通过 DWM API 为无边框窗口启用原生圆角
+#[cfg(target_os = "windows")]
+fn apply_window_rounded_corners(window: &tauri::WebviewWindow) {
+    // 直接通过 FFI 调用 dwmapi.dll，避免 windows crate 版本冲突
+    unsafe extern "system" {
+        fn DwmSetWindowAttribute(
+            hwnd: isize,
+            dw_attribute: u32,
+            pv_attribute: *const std::ffi::c_void,
+            cb_attribute: u32,
+        ) -> i32;
+    }
+
+    if let Ok(hwnd) = window.hwnd() {
+        // 从 Tauri 的 HWND 中提取原始指针值
+        let raw: isize = unsafe { std::mem::transmute_copy(&hwnd) };
+        // DWMWA_WINDOW_CORNER_PREFERENCE = 33
+        // DWMWCP_ROUND = 2
+        let corner: u32 = 2;
+        unsafe {
+            DwmSetWindowAttribute(
+                raw,
+                33, // DWMWA_WINDOW_CORNER_PREFERENCE
+                &corner as *const _ as *const std::ffi::c_void,
+                std::mem::size_of::<u32>() as u32,
+            );
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -556,6 +696,13 @@ pub fn run() {
         app_state.shared_state = Some(state);
     }
 
+    // 同步开机自启动设置到注册表
+    {
+        let app_state = APP_STATE.lock().unwrap();
+        let config = app_state.config.lock().unwrap();
+        let _ = sync_autostart(config.autostart);
+    }
+
     let port_clone = port;
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
@@ -575,7 +722,13 @@ pub fn run() {
             set_locale,
             get_current_app_id,
             updater::check_update,
-            updater::get_update_source_urls
+            updater::get_update_source_urls,
+            set_autostart,
+            window_minimize,
+            window_toggle_maximize,
+            window_close,
+            window_is_maximized,
+            open_url
         ])
         .setup(move |app| {
             {
@@ -604,6 +757,14 @@ pub fn run() {
             }
 
             let window = app.get_webview_window("main").unwrap();
+
+            // 确保无边框窗口生效（在 Windows 上有时 config 的 decorations: false 不够）
+            let _ = window.set_decorations(false);
+
+            // Windows 11 圆角适配
+            #[cfg(target_os = "windows")]
+            apply_window_rounded_corners(&window);
+
             let window_clone = window.clone();
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
