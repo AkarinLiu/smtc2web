@@ -1,9 +1,7 @@
-# 更新日志
+# Changelog
 
-## v0.4.1
+## v0.4.2
 
-### 新增
-
-- 更新后将自动注册环境变量
-- 新增主题开发服务器功能
-- 支持 Vite 生态
+- Enable auto-update support with `latest.json` generation at build time
+- Fix CI race condition: sequential platform builds ensure complete update manifest
+- Add `verify-latest-json` CI job to validate platform coverage before R2 upload

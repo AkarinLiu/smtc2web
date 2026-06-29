@@ -74,13 +74,13 @@ fn with_state(
 }
 
 // 单进程检测 - 跨平台实现
+use open::that;
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::GetLastError;
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::{CloseHandle, HANDLE, WIN32_ERROR};
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::CreateMutexW;
-use open::that;
 
 #[cfg(target_os = "windows")]
 pub struct SingleInstance {
@@ -147,9 +147,7 @@ impl SingleInstance {
     fn new(name: &str) -> Result<Self, String> {
         use named_lock::NamedLock;
 
-        let lock = Box::new(
-            NamedLock::create(name).map_err(|e| format!("创建互斥锁失败: {}", e))?,
-        );
+        let lock = Box::new(NamedLock::create(name).map_err(|e| format!("创建互斥锁失败: {}", e))?);
 
         // SAFETY: lock is in a Box (stable address). We'll store it in
         // SingleInstance._lock, which lives for the entire process lifetime.
@@ -256,12 +254,9 @@ fn media_worker(state: Shared) {
             }
 
             if info.duration_secs > 0 {
-                current_song.position =
-                    Some(format_duration(info.position_secs));
-                current_song.duration =
-                    Some(format_duration(info.duration_secs));
-                let percentage =
-                    (info.position_secs as f64 * 100.0) / info.duration_secs as f64;
+                current_song.position = Some(format_duration(info.position_secs));
+                current_song.duration = Some(format_duration(info.duration_secs));
+                let percentage = (info.position_secs as f64 * 100.0) / info.duration_secs as f64;
                 current_song.pct = Some((percentage * 10.0).round() / 10.0);
             }
         } else {
@@ -506,8 +501,8 @@ fn sync_autostart(enable: bool) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         use windows::Win32::System::Registry::{
-            RegSetValueExW, RegCreateKeyExW, RegCloseKey, RegDeleteValueW,
-            HKEY_CURRENT_USER, KEY_WRITE, REG_SZ, REG_OPTION_NON_VOLATILE,
+            HKEY_CURRENT_USER, KEY_WRITE, REG_OPTION_NON_VOLATILE, REG_SZ, RegCloseKey,
+            RegCreateKeyExW, RegDeleteValueW, RegSetValueExW,
         };
         use windows::core::PCWSTR;
 
@@ -535,18 +530,10 @@ fn sync_autostart(enable: bool) -> Result<(), String> {
                 let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
                 let exe_str = exe_path.to_string_lossy();
                 let exe_wide: Vec<u16> = exe_str.encode_utf16().chain(std::iter::once(0)).collect();
-                let data_bytes: &[u8] = std::slice::from_raw_parts(
-                    exe_wide.as_ptr() as *const u8,
-                    exe_wide.len() * 2,
-                );
+                let data_bytes: &[u8] =
+                    std::slice::from_raw_parts(exe_wide.as_ptr() as *const u8, exe_wide.len() * 2);
 
-                let result = RegSetValueExW(
-                    hkey,
-                    value_name,
-                    0u32,
-                    REG_SZ,
-                    Some(data_bytes),
-                );
+                let result = RegSetValueExW(hkey, value_name, 0u32, REG_SZ, Some(data_bytes));
                 if result.is_err() {
                     let _ = RegCloseKey(hkey);
                     return Err(format!("Failed to set registry value: {:?}", result));
