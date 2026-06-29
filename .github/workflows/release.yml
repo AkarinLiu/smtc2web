@@ -7,7 +7,7 @@ on:
       - v*.*.*
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   publish-tauri:
@@ -95,6 +95,7 @@ jobs:
       # Save the per-platform latest.json as an artifact for verification / debugging
       - name: find and upload per-platform latest.json
         if: always()
+        shell: bash
         run: |
           # Tauri v2 generates latest.json in the bundle output directory.
           # The exact path may vary; search for it.
