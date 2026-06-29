@@ -3,7 +3,7 @@ authors = ["AkarinLiu"]
 description = "A Tauri App"
 edition = "2024"
 name = "smtc2web"
-version = "0.4.2"
+version = "0.4.3"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
