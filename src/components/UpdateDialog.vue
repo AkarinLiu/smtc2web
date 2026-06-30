@@ -9,9 +9,14 @@
           </div>
 
           <div class="dialog-body">
-            <!-- 错误状态 -->
+            <!-- 检查错误状态 -->
             <div v-if="lastResult?.error" class="dialog-error">
               <p>{{ lastResult.error }}</p>
+            </div>
+
+            <!-- 下载错误状态 -->
+            <div v-else-if="updateStore.downloadError" class="dialog-error">
+              <p>{{ t('update.downloadError') }}: {{ updateStore.downloadError }}</p>
             </div>
 
             <!-- 无更新 -->
@@ -36,7 +41,7 @@
               </div>
 
               <div v-if="lastResult.notes" class="release-notes">
-                <h4>更新内容</h4>
+                <h4>{{ t('update.releaseNotes') }}</h4>
                 <p>{{ lastResult.notes }}</p>
               </div>
             </div>
@@ -45,7 +50,7 @@
           <div class="dialog-footer">
             <!-- 有更新时显示下载按钮 -->
             <button
-              v-if="lastResult?.has_update"
+              v-if="lastResult?.has_update && !updateStore.downloadError"
               class="btn btn-primary"
               @click="handleDownload"
               :disabled="updateStore.downloading"

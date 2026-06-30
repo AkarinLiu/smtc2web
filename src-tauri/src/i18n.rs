@@ -9,6 +9,7 @@ use std::sync::Mutex;
 pub struct TrayTranslations {
     pub show_window: String,
     pub open_web: String,
+    pub check_update: String,
     pub quit: String,
 }
 

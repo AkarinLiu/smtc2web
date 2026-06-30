@@ -1,6 +1,7 @@
 [tray]
 show_window = "显示窗口"
 open_web = "打开网页"
+check_update = "检查更新"
 quit = "退出"
 
 [cli]

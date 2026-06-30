@@ -73,7 +73,9 @@
     "later": "稍后提醒",
     "checkError": "检查更新失败",
     "noUpdate": "已是最新版本",
-    "installPrompt": "更新已下载，是否立即重启安装？"
+    "installPrompt": "更新已下载，是否立即重启安装？",
+    "downloadError": "下载失败",
+    "releaseNotes": "更新内容"
   },
   "common": {
     "loading": "加载中……",

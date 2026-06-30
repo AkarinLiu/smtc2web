@@ -9,14 +9,12 @@
 ; English (always present as default)
 LangString smtc2_registering_path  ${LANG_ENGLISH}   "Registering smtc2web in PATH..."
 LangString smtc2_removing_path     ${LANG_ENGLISH}   "Removing smtc2web from PATH..."
-LangString smtc2_delete_data_msg   ${LANG_ENGLISH}   "Do you also want to delete smtc2web user data?$\n$\n(Configuration, installed themes, logs)"
 LangString smtc2_deleting_data     ${LANG_ENGLISH}   "Deleting smtc2web user data..."
 
 ; Simplified Chinese
 !ifdef LANG_SIMPCHINESE
 LangString smtc2_registering_path  ${LANG_SIMPCHINESE} "正在将 smtc2web 注册到 PATH..."
 LangString smtc2_removing_path     ${LANG_SIMPCHINESE} "正在从 PATH 移除 smtc2web..."
-LangString smtc2_delete_data_msg   ${LANG_SIMPCHINESE} "是否同时删除 smtc2web 用户数据？$\n$\n包括: 配置文件、已安装主题、日志"
 LangString smtc2_deleting_data     ${LANG_SIMPCHINESE} "正在删除 smtc2web 用户数据..."
 !endif
 
@@ -24,7 +22,6 @@ LangString smtc2_deleting_data     ${LANG_SIMPCHINESE} "正在删除 smtc2web �
 !ifdef LANG_TRADCHINESE
 LangString smtc2_registering_path  ${LANG_TRADCHINESE} "正在將 smtc2web 註冊到 PATH..."
 LangString smtc2_removing_path     ${LANG_TRADCHINESE} "正在從 PATH 移除 smtc2web..."
-LangString smtc2_delete_data_msg   ${LANG_TRADCHINESE} "是否同時刪除 smtc2web 使用者資料？$\n$\n包括: 設定檔、已安裝主題、日誌"
 LangString smtc2_deleting_data     ${LANG_TRADCHINESE} "正在刪除 smtc2web 使用者資料..."
 !endif
 
@@ -33,8 +30,6 @@ ${StrStr}
 ${UnStrStr}
 ${StrRep}
 ${UnStrRep}
-
-Var RemoveUserData
 
 !macro NSIS_HOOK_POSTINSTALL
   DetailPrint "$(smtc2_registering_path)"
@@ -65,11 +60,8 @@ Var RemoveUserData
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
-  MessageBox MB_ICONQUESTION|MB_YESNO "$(smtc2_delete_data_msg)" IDYES +2
-    StrCpy $RemoveUserData "0"
-    Goto preuninstall_done
-  StrCpy $RemoveUserData "1"
-  preuninstall_done:
+  ; Uses built-in checkbox on uninstall confirm page
+  ; $DeleteAppDataCheckboxState is set by un.ConfirmLeave
 !macroend
 
 !macro NSIS_HOOK_POSTUNINSTALL
@@ -97,7 +89,8 @@ Var RemoveUserData
 
   SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment"
 
-  ${If} $RemoveUserData == "1"
+  ${If} $DeleteAppDataCheckboxState = 1
+  ${AndIf} $UpdateMode <> 1
     DetailPrint "$(smtc2_deleting_data)"
     RMDir /r "$APPDATA\smtc2web"
     RMDir /r "$LOCALAPPDATA\smtc2web"

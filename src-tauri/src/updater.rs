@@ -240,6 +240,98 @@ pub async fn get_update_source_urls() -> Result<Vec<(String, String)>, String> {
     ])
 }
 
+/// 从 URL 下载更新包并执行安装
+#[tauri::command]
+pub async fn start_update(app: AppHandle, download_url: String) -> Result<(), String> {
+    log_info!("开始下载更新: {}", download_url);
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(300))
+        .user_agent(format!("smtc2web/{}", get_current_version()))
+        .build()
+        .map_err(|e| format!("创建 HTTP 客户端失败: {}", e))?;
+
+    let response = client
+        .get(&download_url)
+        .send()
+        .await
+        .map_err(|e| format!("下载请求失败: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("下载失败: HTTP {}", response.status()));
+    }
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("读取下载数据失败: {}", e))?;
+
+    let temp_dir = std::env::temp_dir().join("smtc2web-update");
+    std::fs::create_dir_all(&temp_dir)
+        .map_err(|e| format!("创建临时目录失败: {}", e))?;
+
+    let ext = if download_url.ends_with(".msi") {
+        ".msi"
+    } else {
+        ".exe"
+    };
+    let installer_path = temp_dir.join(format!("update{}", ext));
+    std::fs::write(&installer_path, &bytes)
+        .map_err(|e| format!("写入安装包失败: {}", e))?;
+
+    log_info!("更新包已下载到: {:?}", installer_path);
+
+    // Windows: 使用 NSIS 或 MSI 安装器
+    #[cfg(target_os = "windows")]
+    {
+        let path_str = installer_path.to_string_lossy().to_string();
+        std::thread::spawn(move || {
+            let _ = std::process::Command::new(&path_str)
+                .arg("/SILENT")
+                .arg("/UPDATE")
+                .spawn();
+        });
+    }
+
+    // Linux: 使用 deb/rpm/AppImage
+    #[cfg(target_os = "linux")]
+    {
+        let path_str = installer_path.to_string_lossy().to_string();
+        std::thread::spawn(move || {
+            if download_url.ends_with(".deb") {
+                let _ = std::process::Command::new("pkexec")
+                    .arg("dpkg")
+                    .arg("-i")
+                    .arg(&path_str)
+                    .spawn();
+            } else if download_url.ends_with(".rpm") {
+                let _ = std::process::Command::new("pkexec")
+                    .arg("rpm")
+                    .arg("-Uvh")
+                    .arg(&path_str)
+                    .spawn();
+            } else {
+                // AppImage: 标记为可执行并运行
+                #[allow(unused_imports)]
+                use std::os::unix::fs::PermissionsExt;
+                let _ = std::fs::set_permissions(
+                    &path_str,
+                    std::fs::Permissions::from_mode(0o755),
+                );
+                let _ = std::process::Command::new(&path_str)
+                    .arg("--updated")
+                    .spawn();
+            }
+        });
+    }
+
+    // 给安装器一点时间启动，然后退出当前应用
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    app.exit(0);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

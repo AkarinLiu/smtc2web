@@ -15,9 +15,6 @@ jobs:
       contents: write
     strategy:
       fail-fast: false
-      # max-parallel: 1 ensures sequential builds so that latest.json
-      # is correctly merged across platforms without race conditions.
-      max-parallel: 1
       matrix:
         include:
           - platform: "windows-latest"
@@ -26,7 +23,7 @@ jobs:
             target: "aarch64-pc-windows-msvc"
           - platform: "ubuntu-latest"
             target: "x86_64-unknown-linux-gnu"
-          - platform: "ubuntu-latest-arm64"
+          - platform: "ubuntu-latest"
             target: "aarch64-unknown-linux-gnu"
           # - platform: "ubuntu-latest"
           #   target: "riscv64gc-unknown-linux-gnu"
@@ -42,7 +39,7 @@ jobs:
           submodules: "recursive"
 
       - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: |
           sudo apt update
           sudo apt install libwebkit2gtk-4.1-dev \
@@ -54,6 +51,16 @@ jobs:
             libssl-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            sudo dpkg --add-architecture arm64
+            sudo apt update
+            sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+            sudo apt install libwebkit2gtk-4.1-dev:arm64 \
+              libssl-dev:arm64 \
+              libayatana-appindicator3-dev:arm64 \
+              librsvg2-dev:arm64 \
+              libxdo-dev:arm64
+          fi
 
       - name: setup volta
         uses: volta-cli/action@v5.0.0
@@ -85,6 +92,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           OFFICIAL_UPDATE_URL: ${{ secrets.OFFICIAL_UPDATE_URL }}
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          PKG_CONFIG_ALLOW_CROSS: 1
         with:
           tagName: v__VERSION__
           releaseName: "v__VERSION__"
@@ -119,11 +128,72 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # Merge per-platform latest.json artifacts into a single latest.json and
+  # upload it to the release. This runs after all parallel build jobs finish,
+  # so each build job can produce its own manifest without conflicts.
+  merge-latest-json:
+    name: Merge latest.json
+    runs-on: ubuntu-latest
+    needs: publish-tauri
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: install tauri-cli
+        run: cargo install tauri-cli --version "^2"
+
+      - name: download per-platform manifests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: latest-json-*
+          merge-multiple: true
+          path: manifests
+
+      - name: merge platforms into one latest.json
+        run: |
+          python3 << 'PYEOF'
+          import json, glob
+
+          merged = {"version": "", "notes": "", "pub_date": "", "platforms": {}}
+          for f in sorted(glob.glob("manifests/latest-*.json")):
+              with open(f) as fh:
+                  data = json.load(fh)
+              if not merged["version"]:
+                  merged["version"] = data.get("version", "")
+                  merged["notes"] = data.get("notes", "")
+                  merged["pub_date"] = data.get("pub_date", "")
+              merged["platforms"].update(data.get("platforms", {}))
+
+          with open("merged.json", "w") as fh:
+              json.dump(merged, fh, indent=2)
+
+          print(f"Merged {len(merged['platforms'])} platforms")
+          PYEOF
+
+      - name: sign merged latest.json
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          cargo tauri signer sign \
+            --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
+            merged.json
+          mv merged.json latest.json
+
+      - name: upload merged latest.json to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" latest.json --clobber
+
   # Verify that latest.json on the release contains all expected platforms.
   verify-latest-json:
     name: Verify latest.json completeness
     runs-on: ubuntu-latest
-    needs: publish-tauri
+    needs: merge-latest-json
     steps:
       - name: Download merged latest.json from release
         uses: robinraju/release-downloader@v1.13

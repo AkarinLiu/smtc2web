@@ -710,6 +710,7 @@ pub fn run() {
             get_current_app_id,
             updater::check_update,
             updater::get_update_source_urls,
+            updater::start_update,
             set_autostart,
             window_minimize,
             window_toggle_maximize,
@@ -727,21 +728,6 @@ pub fn run() {
             }
 
             tray::create_tray_icon(app.handle(), port_clone)?;
-
-            // 启动时自动检查更新
-            {
-                let app_handle = app.handle().clone();
-                let auto_check = {
-                    let app_state = APP_STATE.lock().unwrap();
-                    let config = app_state.config.lock().unwrap();
-                    config.auto_check_update
-                };
-                if auto_check {
-                    tauri::async_runtime::spawn(async move {
-                        updater::check_update_inner(app_handle).await;
-                    });
-                }
-            }
 
             let window = app.get_webview_window("main").unwrap();
 

@@ -16,6 +16,7 @@ export const useUpdateStore = defineStore("update", () => {
   const downloading = ref(false);
   const lastResult = ref<UpdateCheckResult | null>(null);
   const showDialog = ref(false);
+  const downloadError = ref<string | null>(null);
 
   const hasTauri = computed(() => {
     return typeof window !== "undefined" && window.__TAURI__ !== undefined;
@@ -25,6 +26,7 @@ export const useUpdateStore = defineStore("update", () => {
   async function checkForUpdates(): Promise<UpdateCheckResult | null> {
     if (!hasTauri.value || !window.__TAURI__) return null;
     checking.value = true;
+    downloadError.value = null;
 
     try {
       const { invoke } = window.__TAURI__.core;
@@ -51,20 +53,21 @@ export const useUpdateStore = defineStore("update", () => {
     }
   }
 
-  /** 通过 Tauri updater 插件下载并安装更新 */
+  /** 下载并安装更新 */
   async function downloadAndInstall(): Promise<void> {
     if (!hasTauri.value || !window.__TAURI__) return;
+    if (!lastResult.value?.download_url) return;
     downloading.value = true;
+    downloadError.value = null;
 
     try {
-      const { check } = await import("@tauri-apps/plugin-updater");
-      const update = await check();
-      if (update) {
-        await update.downloadAndInstall();
-        // 安装后 Tauri 会自动重启应用
-      }
+      const { invoke } = window.__TAURI__.core;
+      await invoke("start_update", {
+        downloadUrl: lastResult.value.download_url,
+      });
     } catch (e) {
       console.error("下载更新失败:", e);
+      downloadError.value = String(e);
       throw e;
     } finally {
       downloading.value = false;
@@ -73,6 +76,7 @@ export const useUpdateStore = defineStore("update", () => {
 
   function closeDialog() {
     showDialog.value = false;
+    downloadError.value = null;
   }
 
   return {
@@ -80,6 +84,7 @@ export const useUpdateStore = defineStore("update", () => {
     downloading,
     lastResult,
     showDialog,
+    downloadError,
     checkForUpdates,
     downloadAndInstall,
     closeDialog,

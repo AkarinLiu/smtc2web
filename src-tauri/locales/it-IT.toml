@@ -1,4 +1,5 @@
 [tray]
 show_window = "Show Window"
 open_web = "Open Web"
+check_update = "Check for Updates"
 quit = "Quit"

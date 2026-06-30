@@ -73,7 +73,9 @@
     "later": "Remind Me Later",
     "checkError": "Update check failed",
     "noUpdate": "Already up to date",
-    "installPrompt": "Update downloaded. Restart now to install?"
+    "installPrompt": "Update downloaded. Restart now to install?",
+    "downloadError": "Download failed",
+    "releaseNotes": "Release Notes"
   },
   "common": {
     "loading": "Loading...",

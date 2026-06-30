@@ -4,7 +4,7 @@ use std::process;
 use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 /// 全局端口存储，用于重建菜单
 static TRAY_PORT: once_cell::sync::Lazy<Mutex<u16>> =
@@ -18,6 +18,7 @@ pub fn create_tray_menu<R: Runtime>(app: &AppHandle<R>) -> Menu<R> {
         .unwrap_or_else(|| crate::i18n::TrayTranslations {
             show_window: "显示窗口".to_string(),
             open_web: "打开网页".to_string(),
+            check_update: "检查更新".to_string(),
             quit: "退出应用".to_string(),
         });
 
@@ -31,9 +32,17 @@ pub fn create_tray_menu<R: Runtime>(app: &AppHandle<R>) -> Menu<R> {
     .unwrap();
     let open_web =
         MenuItem::with_id(app, "open_web", translations.open_web, true, None::<&str>).unwrap();
+    let check_update = MenuItem::with_id(
+        app,
+        "check_update",
+        translations.check_update,
+        true,
+        None::<&str>,
+    )
+    .unwrap();
     let quit = MenuItem::with_id(app, "quit", translations.quit, true, None::<&str>).unwrap();
 
-    Menu::with_items(app, &[&show_window, &open_web, &quit]).unwrap()
+    Menu::with_items(app, &[&show_window, &open_web, &check_update, &quit]).unwrap()
 }
 
 /// 显示窗口
@@ -59,6 +68,9 @@ pub fn handle_tray_menu_event<R: Runtime>(
             if let Err(e) = open::that(&url) {
                 eprintln!("Failed to open web page: {}", e);
             }
+        }
+        "check_update" => {
+            let _ = app.emit("check-update", ());
         }
         "quit" => {
             process::exit(0);
