@@ -6,18 +6,14 @@ use tauri::AppHandle;
 
 /// Tauri updater 兼容的 JSON 更新清单
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 pub struct UpdateManifest {
     pub version: String,
     pub notes: Option<String>,
-    pub pub_date: Option<String>,
     pub platforms: std::collections::HashMap<String, PlatformUpdate>,
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 pub struct PlatformUpdate {
-    pub signature: String,
     pub url: String,
 }
 
@@ -229,15 +225,6 @@ pub async fn check_update_inner(_app: AppHandle) -> UpdateCheckResult {
 pub async fn check_update(app: AppHandle) -> Result<UpdateCheckResult, String> {
     let result = check_update_inner(app).await;
     Ok(result)
-}
-
-/// 获取可用的更新源 URL 列表（供前端显示）
-#[tauri::command]
-pub async fn get_update_source_urls() -> Result<Vec<(String, String)>, String> {
-    Ok(vec![
-        ("github".to_string(), GITHUB_LATEST_JSON.to_string()),
-        ("official".to_string(), OFFICIAL_LATEST_JSON.to_string()),
-    ])
 }
 
 /// 从 URL 下载更新包并执行安装

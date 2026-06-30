@@ -1,4 +1,4 @@
-use super::{generate_song_id, get_cached_album_art, set_cached_album_art, MediaSession, SessionInfo};
+use super::{generate_song_id, get_cached_album_art, matches_process_filter, set_cached_album_art, MediaSession, SessionInfo};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use once_cell::sync::Lazy;
@@ -15,25 +15,6 @@ pub struct SmtcSession {
 }
 
 impl SmtcSession {
-    fn matches_filter(&self, app_id: &str, app_name: &str) -> bool {
-        let filter = self.process_filter.trim();
-
-        if filter == "*" || filter.is_empty() {
-            return true;
-        }
-
-        let app_id_lower = app_id.to_lowercase();
-        let app_name_lower = app_name.to_lowercase();
-
-        filter.lines().any(|line| {
-            let pattern = line.trim().to_lowercase();
-            if pattern.is_empty() {
-                return false;
-            }
-            app_id_lower.contains(&pattern) || app_name_lower.contains(&pattern)
-        })
-    }
-
     fn get_app_display_name(&self, aumid: &str) -> String {
         if aumid.is_empty() {
             return String::new();
@@ -128,7 +109,7 @@ impl MediaSession for SmtcSession {
 
         let app_name = self.get_app_display_name(&app_id);
 
-        if !self.matches_filter(&app_id, &app_name) {
+        if !matches_process_filter(&self.process_filter, &app_id, &app_name) {
             return None;
         }
 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { hasTauri, tauriInvoke } from '@/utils'
 
 export interface UpdateCheckResult {
   has_update: boolean;
@@ -18,19 +19,13 @@ export const useUpdateStore = defineStore("update", () => {
   const showDialog = ref(false);
   const downloadError = ref<string | null>(null);
 
-  const hasTauri = computed(() => {
-    return typeof window !== "undefined" && window.__TAURI__ !== undefined;
-  });
-
-  /** 手动检查更新 */
   async function checkForUpdates(): Promise<UpdateCheckResult | null> {
-    if (!hasTauri.value || !window.__TAURI__) return null;
+    if (!hasTauri()) return null;
     checking.value = true;
     downloadError.value = null;
 
     try {
-      const { invoke } = window.__TAURI__.core;
-      const result = await invoke<UpdateCheckResult>("check_update");
+      const result = await tauriInvoke<UpdateCheckResult>("check_update");
       lastResult.value = result;
       if (result.has_update || result.error) {
         showDialog.value = true;
@@ -53,16 +48,14 @@ export const useUpdateStore = defineStore("update", () => {
     }
   }
 
-  /** 下载并安装更新 */
   async function downloadAndInstall(): Promise<void> {
-    if (!hasTauri.value || !window.__TAURI__) return;
+    if (!hasTauri()) return;
     if (!lastResult.value?.download_url) return;
     downloading.value = true;
     downloadError.value = null;
 
     try {
-      const { invoke } = window.__TAURI__.core;
-      await invoke("start_update", {
+      await tauriInvoke("start_update", {
         downloadUrl: lastResult.value.download_url,
       });
     } catch (e) {

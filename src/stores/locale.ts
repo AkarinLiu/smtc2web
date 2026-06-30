@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useConfigStore } from './config'
+import { hasTauri, tauriInvoke } from '@/utils'
 
 export const useLocaleStore = defineStore('locale', () => {
   const { locale: i18nLocale } = useI18n()
@@ -64,12 +65,10 @@ export const useLocaleStore = defineStore('locale', () => {
     }, 0)
   }
   
-  // 通知后端更新托盘菜单
   async function notifyBackend(code: string) {
     try {
-      if (typeof window !== 'undefined' && window.__TAURI__) {
-        const { invoke } = window.__TAURI__.core
-        await invoke('set_locale', { locale: code })
+      if (hasTauri()) {
+        await tauriInvoke('set_locale', { locale: code })
       }
     } catch (e) {
       console.error('Failed to notify backend of locale change:', e)

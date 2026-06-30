@@ -45,10 +45,10 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { onMounted, nextTick } from "vue";
+import { onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useThemeStore } from "@/stores/theme";
-import { invoke } from "@tauri-apps/api/core";
+import { tauriInvoke } from "@/utils";
 import type { Theme } from "@/types/theme";
 
 const { t } = useI18n();
@@ -58,9 +58,6 @@ const { themes, currentTheme, loading, uploadLoading, hasThemes } =
     storeToRefs(themeStore);
 
 onMounted(async () => {
-    // 使用 nextTick 确保 DOM 先渲染完成
-    await nextTick();
-    // 并行加载主题数据，减少等待时间
     await Promise.all([themeStore.loadThemes(), themeStore.loadCurrentTheme()]);
 });
 
@@ -77,7 +74,7 @@ function handleUpload() {
 }
 
 function handleDownload() {
-    invoke("open_url", {
+    tauriInvoke("open_url", {
         url: "https://github.com/AkarinLiu/smtc2web/discussions/categories/5-theme-%E4%B8%BB%E9%A2%98",
     });
 }

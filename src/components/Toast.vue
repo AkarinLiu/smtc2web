@@ -14,8 +14,6 @@
           'has-progress': toast.duration > 0 && toast.type !== 'confirm',
           'is-confirm': toast.type === 'confirm'
         }]"
-        @mouseenter="pauseToast(toast.id)"
-        @mouseleave="resumeToast(toast.id)"
       >
         <div class="toast-content">
           <div class="toast-icon">
@@ -29,13 +27,13 @@
             <div v-if="toast.type === 'confirm' && toast.actions" class="toast-actions">
               <button 
                 class="toast-btn toast-btn-confirm" 
-                @click="handleConfirm(toast.id, true)"
+                @click="confirmToast(toast.id, true)"
               >
                 {{ toast.actions.confirmText }}
               </button>
               <button 
                 class="toast-btn toast-btn-cancel" 
-                @click="handleConfirm(toast.id, false)"
+                @click="confirmToast(toast.id, false)"
               >
                 {{ toast.actions.cancelText }}
               </button>
@@ -67,7 +65,7 @@ import { useToastStore } from '@/stores/toast'
 
 const toastStore = useToastStore()
 const { toasts, position } = storeToRefs(toastStore)
-const { removeToast, pauseToast, resumeToast, confirmToast } = toastStore
+const { removeToast, confirmToast } = toastStore
 
 function getIcon(type: string): string {
   switch (type) {
@@ -82,10 +80,6 @@ function getIcon(type: string): string {
     default:
       return 'info-circle'
   }
-}
-
-function handleConfirm(id: string, confirmed: boolean) {
-  confirmToast(id, confirmed)
 }
 </script>
 

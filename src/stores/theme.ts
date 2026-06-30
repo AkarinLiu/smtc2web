@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useToastStore } from "./toast";
 import type { Theme } from "@/types/theme";
+import { hasTauri, tauriInvoke } from "@/utils";
 
 export const useThemeStore = defineStore("theme", () => {
   const { t } = useI18n();
@@ -14,10 +15,6 @@ export const useThemeStore = defineStore("theme", () => {
   const uploadLoading = ref(false);
 
   const hasThemes = computed(() => themes.value.length > 0);
-
-  const hasTauri = computed(() => {
-    return typeof window !== "undefined" && window.__TAURI__ !== undefined;
-  });
 
   const mockThemes: Theme[] = [
     {
@@ -33,9 +30,8 @@ export const useThemeStore = defineStore("theme", () => {
   async function loadThemes() {
     loading.value = true;
     try {
-      if (hasTauri.value && window.__TAURI__) {
-        const { invoke } = window.__TAURI__.core;
-        themes.value = await invoke<Theme[]>("get_themes");
+      if (hasTauri()) {
+        themes.value = await tauriInvoke<Theme[]>("get_themes");
       } else {
         themes.value = mockThemes;
       }
@@ -50,9 +46,8 @@ export const useThemeStore = defineStore("theme", () => {
 
   async function loadCurrentTheme() {
     try {
-      if (hasTauri.value && window.__TAURI__) {
-        const { invoke } = window.__TAURI__.core;
-        currentTheme.value = await invoke<string>("get_current_theme");
+      if (hasTauri()) {
+        currentTheme.value = await tauriInvoke<string>("get_current_theme");
       } else {
         currentTheme.value = "default";
       }
@@ -65,9 +60,8 @@ export const useThemeStore = defineStore("theme", () => {
     if (folderName === currentTheme.value) return;
 
     try {
-      if (hasTauri.value && window.__TAURI__) {
-        const { invoke } = window.__TAURI__.core;
-        await invoke("set_theme", { themeName: folderName });
+      if (hasTauri()) {
+        await tauriInvoke("set_theme", { themeName: folderName });
         await loadCurrentTheme();
         toast.success(t("messages.theme.switchSuccess"));
       } else {
@@ -82,7 +76,6 @@ export const useThemeStore = defineStore("theme", () => {
   }
 
   async function deleteTheme(theme: Theme) {
-    // 使用 Toast 确认弹窗
     toast.confirm(
       t("messages.theme.deleteConfirm", { name: theme.name }),
       {
@@ -90,9 +83,8 @@ export const useThemeStore = defineStore("theme", () => {
         cancelText: t("common.cancel"),
         onConfirm: async () => {
           try {
-            if (hasTauri.value && window.__TAURI__) {
-              const { invoke } = window.__TAURI__.core;
-              await invoke("delete_theme", { themeFolder: theme.folder_name });
+            if (hasTauri()) {
+              await tauriInvoke("delete_theme", { themeFolder: theme.folder_name });
               await loadThemes();
             } else {
               themes.value = themes.value.filter(
@@ -111,7 +103,7 @@ export const useThemeStore = defineStore("theme", () => {
   }
 
   async function uploadTheme() {
-    if (!hasTauri.value) {
+    if (!hasTauri()) {
       toast.error("上传功能需要 Tauri 环境");
       return;
     }
@@ -134,17 +126,14 @@ export const useThemeStore = defineStore("theme", () => {
         const arrayBuffer = await file.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
 
-        if (window.__TAURI__) {
-          const { invoke } = window.__TAURI__.core;
-          const themeName = await invoke<string>("upload_theme_from_bytes", {
-            fileName: file.name,
-            fileData: Array.from(uint8Array),
-          });
+        const themeName = await tauriInvoke<string>("upload_theme_from_bytes", {
+          fileName: file.name,
+          fileData: Array.from(uint8Array),
+        });
 
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          await loadThemes();
-          toast.success(t("messages.theme.uploadSuccess", { name: themeName }));
-        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await loadThemes();
+        toast.success(t("messages.theme.uploadSuccess", { name: themeName }));
       } catch (e: any) {
         console.error("上传主题失败:", e);
         // 处理 Tauri 返回的错误信息

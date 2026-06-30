@@ -29,6 +29,22 @@ pub(crate) fn generate_song_id(title: &str, artist: &str, album: &str) -> String
     format!("{}|{}|{}", title, artist, album)
 }
 
+pub(crate) fn matches_process_filter(filter: &str, id: &str, name: &str) -> bool {
+    let filter = filter.trim();
+    if filter == "*" || filter.is_empty() {
+        return true;
+    }
+    let id_lower = id.to_lowercase();
+    let name_lower = name.to_lowercase();
+    filter.lines().any(|line| {
+        let pattern = line.trim().to_lowercase();
+        if pattern.is_empty() {
+            return false;
+        }
+        id_lower.contains(&pattern) || name_lower.contains(&pattern)
+    })
+}
+
 pub(crate) fn get_cached_album_art(song_id: &str) -> Option<String> {
     let cache = ALBUM_ART_CACHE.lock().unwrap();
     cache.get(song_id).map(|(art, _)| art.clone())

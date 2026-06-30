@@ -12,7 +12,7 @@ export default defineConfig({
         "vue",
         "vue-router",
         {
-          pinia: ["defineStore", "storeToRefs", "acceptHMRUpdate"],
+          pinia: ["defineStore", "storeToRefs"],
         },
       ],
       dts: "auto-imports.d.ts",

@@ -1,12 +1,12 @@
 import { defineStore } from "pinia";
-import { reactive, ref, computed } from "vue";
+import { reactive, ref } from "vue";
 import type { AppConfig } from "@/types/config";
+import { hasTauri, tauriInvoke } from "@/utils";
 
 export const useConfigStore = defineStore("config", () => {
   const config = reactive<AppConfig>({
     server_port: 3030,
     address: "127.0.0.1",
-    show_console: false,
     current_theme: "",
     locale: "zh-CN",
     process_filter: "*",
@@ -19,15 +19,10 @@ export const useConfigStore = defineStore("config", () => {
   const saved = ref(false);
   const currentAppId = ref("");
 
-  const hasTauri = computed(() => {
-    return typeof window !== "undefined" && window.__TAURI__ !== undefined;
-  });
-
   async function loadConfig() {
     try {
-      if (hasTauri.value && window.__TAURI__) {
-        const { invoke } = window.__TAURI__.core;
-        const data = await invoke<AppConfig>("get_config");
+      if (hasTauri()) {
+        const data = await tauriInvoke<AppConfig>("get_config");
         Object.assign(config, data);
       }
     } catch (e) {
@@ -40,10 +35,9 @@ export const useConfigStore = defineStore("config", () => {
     saved.value = false;
 
     try {
-      if (hasTauri.value && window.__TAURI__) {
-        const { invoke } = window.__TAURI__.core;
-        await invoke("save_config", { configDto: config });
-        await invoke("set_autostart", { enable: config.autostart });
+      if (hasTauri()) {
+        await tauriInvoke("save_config", { configDto: config });
+        await tauriInvoke("set_autostart", { enable: config.autostart });
       }
       saved.value = true;
       setTimeout(() => (saved.value = false), 2000);
@@ -57,9 +51,8 @@ export const useConfigStore = defineStore("config", () => {
 
   async function getCurrentAppId() {
     try {
-      if (hasTauri.value && window.__TAURI__) {
-        const { invoke } = window.__TAURI__.core;
-        const appId = await invoke<string>("get_current_app_id");
+      if (hasTauri()) {
+        const appId = await tauriInvoke<string>("get_current_app_id");
         currentAppId.value = appId;
         return appId;
       }

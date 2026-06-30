@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'confirm'
 export type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center'
@@ -17,8 +17,6 @@ export interface Toast {
   message: string
   title?: string
   duration: number
-  paused: boolean
-  remainingTime: number
   actions?: ToastActions
 }
 
@@ -30,7 +28,7 @@ export const useToastStore = defineStore('toast', () => {
   let toastIdCounter = 0
   const timers = new Map<string, number>()
 
-  const toastCount = computed(() => toasts.value.length)
+
 
   function generateId(): string {
     return `toast-${Date.now()}-${++toastIdCounter}`
@@ -55,8 +53,6 @@ export const useToastStore = defineStore('toast', () => {
       message,
       title: options.title,
       duration,
-      paused: false,
-      remainingTime: duration,
       actions: options.actions
     }
 
@@ -107,22 +103,6 @@ export const useToastStore = defineStore('toast', () => {
     if (timerId) {
       window.clearTimeout(timerId)
       timers.delete(id)
-    }
-  }
-
-  function pauseToast(id: string) {
-    const toast = toasts.value.find(t => t.id === id)
-    if (toast && !toast.paused && toast.duration > 0) {
-      toast.paused = true
-      clearTimer(id)
-    }
-  }
-
-  function resumeToast(id: string) {
-    const toast = toasts.value.find(t => t.id === id)
-    if (toast && toast.paused && toast.duration > 0) {
-      toast.paused = false
-      startTimer(id, toast.duration)
     }
   }
 
@@ -193,12 +173,9 @@ export const useToastStore = defineStore('toast', () => {
   return {
     toasts,
     position,
-    toastCount,
     addToast,
     removeToast,
     clearAll,
-    pauseToast,
-    resumeToast,
     confirmToast,
     success,
     error,

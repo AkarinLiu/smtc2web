@@ -111,8 +111,4 @@ pub fn is_locale_supported(locale: &str) -> bool {
     matches!(locale, "zh-CN" | "en")
 }
 
-/// 获取默认语言
-#[allow(dead_code)]
-pub fn get_default_locale() -> &'static str {
-    "zh-CN"
-}
+

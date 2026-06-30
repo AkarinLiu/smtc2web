@@ -1,4 +1,4 @@
-use super::{generate_song_id, get_cached_album_art, set_cached_album_art, MediaSession, SessionInfo};
+use super::{generate_song_id, get_cached_album_art, matches_process_filter, set_cached_album_art, MediaSession, SessionInfo};
 use mpris::PlaybackStatus;
 use std::sync::Mutex;
 
@@ -40,28 +40,9 @@ impl MprisSession {
             }
         });
 
-        let filter = self.process_filter.trim();
-        if filter == "*" || filter.is_empty() {
-            return Ok(sorted_players.into_iter().next().unwrap());
-        }
-
         for player in sorted_players {
-            let bus_name = player.bus_name();
-            let identity = player.identity();
-            
-            let player_lower = bus_name.to_lowercase();
-            let display_lower = identity.to_lowercase();
-
-            let matches = filter.lines().any(|line| {
-                let pattern = line.trim().to_lowercase();
-                if pattern.is_empty() {
-                    return false;
-                }
-                player_lower.contains(&pattern) || display_lower.contains(&pattern)
-            });
-
-            if matches {
-                crate::log_debug!("MPRIS2: Selected player: {}", bus_name);
+            if matches_process_filter(&self.process_filter, &player.bus_name(), &player.identity()) {
+                crate::log_debug!("MPRIS2: Selected player: {}", player.bus_name());
                 return Ok(player);
             }
         }

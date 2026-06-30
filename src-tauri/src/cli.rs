@@ -96,6 +96,7 @@ fn detect_system_lang() -> &'static str {
     #[cfg(target_os = "windows")]
     {
         use windows::Win32::Globalization::GetUserDefaultUILanguage;
+        // SAFETY: GetUserDefaultUILanguage is a trivial Win32 FFI call — no preconditions, returns a LANGID.
         let lang_id = unsafe { GetUserDefaultUILanguage() };
         match lang_id {
             0x0804 | 0x0c04 | 0x1004 | 0x1404 => return "zh-CN",

@@ -111,81 +111,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
+import { hasTauri, tauriInvoke } from "@/utils";
 
 const { t } = useI18n();
 
 const isMaximized = ref(false);
 
-function tauriInvoke(
-    cmd: string,
-    args?: Record<string, unknown>,
-): Promise<unknown> {
-    return (window as any).__TAURI__?.core?.invoke(cmd, args);
-}
-
-function hasTauri(): boolean {
-    return !!(window as any).__TAURI__;
-}
-
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-
 async function initWindow() {
     if (!hasTauri()) return;
-
     try {
-        isMaximized.value = (await tauriInvoke(
-            "window_is_maximized",
-        )) as boolean;
-    } catch (e) {
-        console.error("TitleBar: init isMaximized failed", e);
-        return;
+        isMaximized.value = await tauriInvoke<boolean>("window_is_maximized");
+    } catch {
+        /* ignore polling failure */
     }
-
-    // 轮询检查最大化状态
-    pollTimer = setInterval(async () => {
-        try {
-            isMaximized.value = (await tauriInvoke(
-                "window_is_maximized",
-            )) as boolean;
-        } catch {
-            /* ignore */
-        }
-    }, 500);
 }
 
 async function minimize() {
-    try {
-        await tauriInvoke("window_minimize");
-    } catch (e) {
-        console.error("TitleBar: minimize failed", e);
-    }
+    try { await tauriInvoke("window_minimize"); } catch { /* ignore */ }
 }
 
 async function toggleMaximize() {
-    try {
-        await tauriInvoke("window_toggle_maximize");
-    } catch (e) {
-        console.error("TitleBar: toggleMaximize failed", e);
-    }
+    try { await tauriInvoke("window_toggle_maximize"); } catch { /* ignore */ }
 }
 
 async function closeWindow() {
-    try {
-        await tauriInvoke("window_close");
-    } catch (e) {
-        console.error("TitleBar: closeWindow failed", e);
-    }
+    try { await tauriInvoke("window_close"); } catch { /* ignore */ }
 }
 
-onMounted(() => {
-    initWindow();
-});
-
-onUnmounted(() => {
-    if (pollTimer) clearInterval(pollTimer);
-});
+onMounted(() => { initWindow(); });
 </script>
 
 <style scoped>

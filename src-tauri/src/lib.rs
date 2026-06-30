@@ -10,7 +10,6 @@ use tokio::sync::oneshot;
 use warp::Filter;
 
 mod config;
-mod console;
 mod i18n;
 mod logger;
 mod media;
@@ -19,7 +18,9 @@ mod theme_manager;
 mod tray;
 mod updater;
 
+#[cfg(feature = "dev")]
 pub mod cli;
+#[cfg(feature = "dev")]
 pub mod dev;
 
 #[derive(Default, Clone, Serialize, PartialEq)]
@@ -92,6 +93,9 @@ impl SingleInstance {
     fn new(name: &str) -> Result<Self, String> {
         let name_wide: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
 
+        // SAFETY: CreateMutexW expects a valid null-terminated UTF-16 name (we provide one).
+        // The returned HANDLE is checked for validity and error code 183 (ERROR_ALREADY_EXISTS)
+        // is handled. GetLastError must be called immediately after CreateMutexW per MSDN.
         unsafe {
             let handle_result = CreateMutexW(
                 Some(std::ptr::null()),
@@ -130,6 +134,7 @@ impl SingleInstance {
 #[cfg(target_os = "windows")]
 impl Drop for SingleInstance {
     fn drop(&mut self) {
+        // SAFETY: self.handle is a valid HANDLE from CreateMutexW, not yet closed (we own it).
         unsafe {
             let _ = CloseHandle(self.handle);
         }
@@ -138,7 +143,6 @@ impl Drop for SingleInstance {
 
 #[cfg(target_os = "linux")]
 pub struct SingleInstance {
-    _lock: Box<named_lock::NamedLock>,
     _guard: named_lock::NamedLockGuard<'static>,
 }
 
@@ -147,23 +151,11 @@ impl SingleInstance {
     fn new(name: &str) -> Result<Self, String> {
         use named_lock::NamedLock;
 
-        let lock = Box::new(NamedLock::create(name).map_err(|e| format!("创建互斥锁失败: {}", e))?);
+        let lock: &'static NamedLock =
+            Box::leak(Box::new(NamedLock::create(name).map_err(|e| format!("创建互斥锁失败: {}", e))?));
 
-        // SAFETY: lock is in a Box (stable address). We'll store it in
-        // SingleInstance._lock, which lives for the entire process lifetime.
-        // The reference is therefore valid for 'static.
-        let lock_ref: &'static NamedLock = unsafe { std::mem::transmute(lock.as_ref()) };
-
-        match lock_ref.try_lock() {
-            Ok(guard) => {
-                // SAFETY: guard borrows lock_ref which has 'static lifetime.
-                let guard: named_lock::NamedLockGuard<'static> =
-                    unsafe { std::mem::transmute(guard) };
-                Ok(SingleInstance {
-                    _lock: lock,
-                    _guard: guard,
-                })
-            }
+        match lock.try_lock() {
+            Ok(guard) => Ok(SingleInstance { _guard: guard }),
             Err(_) => {
                 let config = config::Config::load().unwrap_or_default();
                 let port = config.server_port;
@@ -439,7 +431,6 @@ async fn delete_theme(theme_folder: String) -> Result<(), String> {
 #[derive(Serialize, Deserialize)]
 struct ConfigDto {
     server_port: u16,
-    show_console: bool,
     address: String,
     current_theme: String,
     locale: String,
@@ -455,7 +446,6 @@ async fn get_config() -> Result<ConfigDto, String> {
     let config = app_state.config.lock().map_err(|e| e.to_string())?;
     Ok(ConfigDto {
         server_port: config.server_port,
-        show_console: config.show_console,
         address: config.address.clone(),
         current_theme: config.current_theme.clone(),
         locale: config.locale.clone(),
@@ -472,7 +462,6 @@ async fn save_config(config_dto: ConfigDto) -> Result<(), String> {
     let mut config = app_state.config.lock().map_err(|e| e.to_string())?;
 
     config.server_port = config_dto.server_port;
-    config.show_console = config_dto.show_console;
     config.address = config_dto.address;
     config.current_theme = config_dto.current_theme;
     config.locale = config_dto.locale;
@@ -530,7 +519,7 @@ fn sync_autostart(enable: bool) -> Result<(), String> {
                 let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
                 let exe_str = exe_path.to_string_lossy();
                 let exe_wide: Vec<u16> = exe_str.encode_utf16().chain(std::iter::once(0)).collect();
-                let data_bytes: &[u8] =
+                let data_bytes =
                     std::slice::from_raw_parts(exe_wide.as_ptr() as *const u8, exe_wide.len() * 2);
 
                 let result = RegSetValueExW(hkey, value_name, 0u32, REG_SZ, Some(data_bytes));
@@ -598,7 +587,7 @@ async fn open_url(url: String) -> Result<(), String> {
 /// Windows 11 圆角适配：通过 DWM API 为无边框窗口启用原生圆角
 #[cfg(target_os = "windows")]
 fn apply_window_rounded_corners(window: &tauri::WebviewWindow) {
-    // 直接通过 FFI 调用 dwmapi.dll，避免 windows crate 版本冲突
+    // ponytail: raw FFI to avoid windows crate version conflict with Tauri's bundled windows crate
     unsafe extern "system" {
         fn DwmSetWindowAttribute(
             hwnd: isize,
@@ -609,15 +598,13 @@ fn apply_window_rounded_corners(window: &tauri::WebviewWindow) {
     }
 
     if let Ok(hwnd) = window.hwnd() {
-        // 从 Tauri 的 HWND 中提取原始指针值
-        let raw: isize = unsafe { std::mem::transmute_copy(&hwnd) };
         // DWMWA_WINDOW_CORNER_PREFERENCE = 33
         // DWMWCP_ROUND = 2
         let corner: u32 = 2;
         unsafe {
             DwmSetWindowAttribute(
-                raw,
-                33, // DWMWA_WINDOW_CORNER_PREFERENCE
+                hwnd.0 as isize,
+                33,
                 &corner as *const _ as *const std::ffi::c_void,
                 std::mem::size_of::<u32>() as u32,
             );
@@ -651,13 +638,6 @@ pub fn run() {
     let config = Arc::new(Mutex::new(config::Config::load().unwrap_or_default()));
 
     config::Config::start_monitoring(config.clone());
-
-    {
-        let config_guard = config.lock().unwrap();
-        if !config_guard.show_console {
-            console::hide_console();
-        }
-    }
 
     let runtime = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
 
@@ -709,7 +689,6 @@ pub fn run() {
             set_locale,
             get_current_app_id,
             updater::check_update,
-            updater::get_update_source_urls,
             updater::start_update,
             set_autostart,
             window_minimize,

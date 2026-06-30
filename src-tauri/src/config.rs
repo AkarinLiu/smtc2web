@@ -13,7 +13,6 @@ use std::time::Duration;
 #[serde(default)]
 pub struct Config {
     pub server_port: u16,
-    pub show_console: bool,
     pub address: String,
     pub current_theme: String,
     pub locale: String,
@@ -30,7 +29,6 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             server_port: 3030,
-            show_console: false,
             address: "127.0.0.1".to_string(),
             current_theme: "".to_string(),
             locale: "zh-CN".to_string(),
