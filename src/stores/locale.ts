@@ -22,11 +22,6 @@ export const useLocaleStore = defineStore('locale', () => {
     }
   })
   
-  // 计算属性：当前语言的显示名称
-  const currentLocaleName = computed(() => {
-    const lang = availableLocales.find(l => l.code === currentLocale.value)
-    return lang?.name || '简体中文'
-  })
   
   // 初始化语言设置
   function initLocale() {
@@ -78,7 +73,7 @@ export const useLocaleStore = defineStore('locale', () => {
   return {
     availableLocales,
     currentLocale,
-    currentLocaleName,
+
     initLocale,
     setLocale
   }

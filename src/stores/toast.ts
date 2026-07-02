@@ -166,10 +166,6 @@ export const useToastStore = defineStore('toast', () => {
     })
   }
 
-  function setPosition(newPosition: ToastPosition) {
-    position.value = newPosition
-  }
-
   return {
     toasts,
     position,
@@ -182,6 +178,5 @@ export const useToastStore = defineStore('toast', () => {
     warning,
     info,
     confirm,
-    setPosition
   }
 })

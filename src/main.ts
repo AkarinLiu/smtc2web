@@ -1,11 +1,13 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import { pinia } from './stores'
 import i18n from './i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import './config/fontawesome'
 import './styles/global.css'
+
+const pinia = createPinia()
 
 const app = createApp(App)
 

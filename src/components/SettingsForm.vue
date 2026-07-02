@@ -262,32 +262,6 @@ function handleSave() {
     margin-top: var(--fluent-space-xs);
 }
 
-.regex-error {
-    margin-top: var(--fluent-space-sm);
-    padding: var(--fluent-space-sm);
-    background-color: var(--fluent-error-bg, #fef2f2);
-    border: 1px solid var(--fluent-error-border, #fecaca);
-    border-radius: var(--fluent-radius-md);
-}
-
-.regex-error p {
-    font-size: 13px;
-    color: var(--fluent-error-text, #dc2626);
-    margin: 0 0 var(--fluent-space-xs) 0;
-    font-weight: 500;
-}
-
-.regex-error ul {
-    margin: 0;
-    padding-left: var(--fluent-space-lg);
-    font-size: 12px;
-    color: var(--fluent-error-text, #dc2626);
-}
-
-.regex-error li {
-    margin-bottom: 2px;
-}
-
 .current-app {
     margin-top: var(--fluent-space-sm);
     padding: var(--fluent-space-sm) var(--fluent-space-md);

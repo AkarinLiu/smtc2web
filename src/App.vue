@@ -14,6 +14,7 @@ import { onMounted } from "vue";
 import { useConfigStore } from "@/stores/config";
 import { useLocaleStore } from "@/stores/locale";
 import { useUpdateStore } from "@/stores/update";
+import TitleBar from "@/components/TitleBar.vue";
 import Toast from "@/components/Toast.vue";
 import UpdateDialog from "@/components/UpdateDialog.vue";
 import { hasTauri } from "@/utils";

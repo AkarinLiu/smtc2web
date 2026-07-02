@@ -20,6 +20,8 @@ import { storeToRefs } from 'pinia'
 import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useConfigStore } from '@/stores/config'
+import SettingsForm from '@/components/SettingsForm.vue'
+import SettingsSkeleton from '@/components/SettingsSkeleton.vue'
 
 const { t } = useI18n()
 const configStore = useConfigStore()

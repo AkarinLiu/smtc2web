@@ -14,6 +14,7 @@
 
 <script setup lang="ts">
 import type { Theme } from '@/types/theme'
+import ThemeCard from './ThemeCard.vue'
 
 interface Props {
   themes: Theme[]

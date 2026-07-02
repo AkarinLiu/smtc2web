@@ -50,6 +50,9 @@ import { useI18n } from "vue-i18n";
 import { useThemeStore } from "@/stores/theme";
 import { tauriInvoke } from "@/utils";
 import type { Theme } from "@/types/theme";
+import ThemeSkeleton from "@/components/ThemeSkeleton.vue";
+import EmptyState from "@/components/EmptyState.vue";
+import ThemeGrid from "@/components/ThemeGrid.vue";
 
 const { t } = useI18n();
 const themeStore = useThemeStore();
