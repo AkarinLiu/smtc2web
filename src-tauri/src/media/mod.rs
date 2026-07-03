@@ -5,6 +5,7 @@ use once_cell::sync::Lazy;
 static ALBUM_ART_CACHE: Lazy<Mutex<HashMap<String, (String, u64)>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
+#[cfg(target_os = "linux")]
 #[derive(Debug, Clone, Default)]
 pub struct SessionInfo {
     pub title: String,
@@ -17,6 +18,7 @@ pub struct SessionInfo {
     pub app_name: String,
 }
 
+#[cfg(target_os = "linux")]
 pub trait MediaSession: Send + 'static {
     fn new(process_filter: &str) -> Result<Self, String>
     where
@@ -69,9 +71,7 @@ pub(crate) fn set_cached_album_art(song_id: &str, art: String) {
 }
 
 #[cfg(target_os = "windows")]
-mod smtc;
-#[cfg(target_os = "windows")]
-pub type PlatformSession = smtc::SmtcSession;
+pub mod smtc;
 
 #[cfg(target_os = "linux")]
 mod mpris;

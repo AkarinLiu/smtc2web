@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
+#[cfg(target_os = "linux")]
 use std::time::Duration;
 use tauri::Manager;
 use tokio::sync::oneshot;
@@ -174,114 +175,124 @@ fn check_single_instance() -> Result<SingleInstance, String> {
     SingleInstance::new("smtc2web_single_instance_mutex")
 }
 
-// -------------------- 后台轮询 --------------------
+// -------------------- 后台媒体事件 (Windows: 事件驱动, Linux: 轮询) --------------------
 fn media_worker(state: Shared) {
-    use media::{MediaSession, PlatformSession};
-    use std::time::{SystemTime, UNIX_EPOCH};
-
     let process_filter = {
         let app_state = APP_STATE.lock().unwrap();
         let config = app_state.config.lock().unwrap();
         config.process_filter.clone()
     };
 
-    let session = match PlatformSession::new(&process_filter) {
-        Ok(s) => s,
-        Err(e) => {
-            log_error!("Failed to create media session: {}", e);
-            return;
+    #[cfg(target_os = "windows")]
+    {
+        if let Err(e) = media::smtc::run_event_driven(state, &process_filter) {
+            log_error!("Media event worker failed: {}", e);
         }
-    };
+    }
 
-    let mut last_song = Song::default();
-    let mut last_position = None::<String>;
-    let mut last_song_id = String::new();
-    let mut last_art_update = 0u64;
+    #[cfg(target_os = "linux")]
+    {
+        use media::{MediaSession, PlatformSession};
+        use std::time::{SystemTime, UNIX_EPOCH};
 
-    loop {
-        let mut current_song = Song::default();
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        current_song.last_update = timestamp;
-
-        if let Some(info) = session.poll_current() {
-            {
-                let mut current_app = CURRENT_APP_ID.lock().unwrap();
-                *current_app = info.app_id.clone();
+        let session = match PlatformSession::new(&process_filter) {
+            Ok(s) => s,
+            Err(e) => {
+                log_error!("Failed to create media session: {}", e);
+                return;
             }
-            {
-                let mut current_display_name = CURRENT_APP_DISPLAY_NAME.lock().unwrap();
-                *current_display_name = info.app_name.clone();
-            }
+        };
 
-            current_song.is_playing = info.is_playing;
-            current_song.title = info.title;
-            current_song.artist = info.artist;
-            current_song.album = info.album;
+        let mut last_song = Song::default();
+        let mut last_position = None::<String>;
+        let mut last_song_id = String::new();
+        let mut last_art_update = 0u64;
 
-            let current_song_id = media::generate_song_id(
-                &current_song.title,
-                &current_song.artist,
-                &current_song.album,
-            );
+        loop {
+            let mut current_song = Song::default();
+            let timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+            current_song.last_update = timestamp;
 
-            let cached_art = media::get_cached_album_art(&current_song_id);
+            if let Some(info) = session.poll_current() {
+                {
+                    let mut current_app = CURRENT_APP_ID.lock().unwrap();
+                    *current_app = info.app_id.clone();
+                }
+                {
+                    let mut current_display_name = CURRENT_APP_DISPLAY_NAME.lock().unwrap();
+                    *current_display_name = info.app_name.clone();
+                }
 
-            let should_fetch_art = cached_art.is_none()
-                || (current_song_id != last_song_id
-                    && timestamp.saturating_sub(last_art_update) > 30);
+                current_song.is_playing = info.is_playing;
+                current_song.title = info.title;
+                current_song.artist = info.artist;
+                current_song.album = info.album;
 
-            if should_fetch_art {
-                current_song.album_art = session.get_album_art_base64(
-                    &current_song.artist,
+                let current_song_id = media::generate_song_id(
                     &current_song.title,
+                    &current_song.artist,
                     &current_song.album,
                 );
-                last_song_id = current_song_id;
-                last_art_update = timestamp;
+
+                let cached_art = media::get_cached_album_art(&current_song_id);
+
+                let should_fetch_art = cached_art.is_none()
+                    || (current_song_id != last_song_id
+                        && timestamp.saturating_sub(last_art_update) > 30);
+
+                if should_fetch_art {
+                    current_song.album_art = session.get_album_art_base64(
+                        &current_song.artist,
+                        &current_song.title,
+                        &current_song.album,
+                    );
+                    last_song_id = current_song_id;
+                    last_art_update = timestamp;
+                } else {
+                    current_song.album_art = cached_art;
+                }
+
+                if info.duration_secs > 0 {
+                    current_song.position = Some(format_duration(info.position_secs));
+                    current_song.duration = Some(format_duration(info.duration_secs));
+                    let percentage = (info.position_secs as f64 * 100.0) / info.duration_secs as f64;
+                    current_song.pct = Some((percentage * 10.0).round() / 10.0);
+                }
             } else {
-                current_song.album_art = cached_art;
+                let empty_song = Song::default();
+                let mut s = state.write().unwrap();
+                *s = empty_song.clone();
+                last_song = empty_song.clone();
+                last_position = None;
+
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                continue;
             }
 
-            if info.duration_secs > 0 {
-                current_song.position = Some(format_duration(info.position_secs));
-                current_song.duration = Some(format_duration(info.duration_secs));
-                let percentage = (info.position_secs as f64 * 100.0) / info.duration_secs as f64;
-                current_song.pct = Some((percentage * 10.0).round() / 10.0);
+            let should_update = current_song.is_playing != last_song.is_playing
+                || current_song.position != last_position
+                || current_song.title != last_song.title
+                || current_song.artist != last_song.artist
+                || current_song.album != last_song.album
+                || current_song.album_art != last_song.album_art
+                || timestamp.saturating_sub(last_song.last_update) > 10;
+
+            if should_update {
+                let mut s = state.write().unwrap();
+                *s = current_song.clone();
+                last_song = current_song.clone();
+                last_position = current_song.position.clone();
             }
-        } else {
-            let empty_song = Song::default();
-            let mut s = state.write().unwrap();
-            *s = empty_song.clone();
-            last_song = empty_song.clone();
-            last_position = None;
 
-            std::thread::sleep(Duration::from_millis(500));
-            continue;
+            let sleep_duration = match current_song.is_playing {
+                true => std::time::Duration::from_millis(200),
+                false => std::time::Duration::from_millis(1000),
+            };
+            std::thread::sleep(sleep_duration);
         }
-
-        let should_update = current_song.is_playing != last_song.is_playing
-            || current_song.position != last_position
-            || current_song.title != last_song.title
-            || current_song.artist != last_song.artist
-            || current_song.album != last_song.album
-            || current_song.album_art != last_song.album_art
-            || timestamp.saturating_sub(last_song.last_update) > 10;
-
-        if should_update {
-            let mut s = state.write().unwrap();
-            *s = current_song.clone();
-            last_song = current_song.clone();
-            last_position = current_song.position.clone();
-        }
-
-        let sleep_duration = match current_song.is_playing {
-            true => Duration::from_millis(200),
-            false => Duration::from_millis(1000),
-        };
-        std::thread::sleep(sleep_duration);
     }
 }
 
