@@ -9,6 +9,7 @@ use std::time::Duration;
 use tauri::Manager;
 use tokio::sync::oneshot;
 use warp::Filter;
+use warp::Reply;
 
 mod config;
 mod font;
@@ -44,6 +45,16 @@ pub fn format_duration(seconds: u64) -> String {
     let minutes = seconds / 60;
     let secs = seconds % 60;
     format!("{:02}:{:02}", minutes, secs)
+}
+
+const DEFAULT_ALBUM_ART_SVG: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="24" fill="#1a1a2e"/><path d="M18 12v18a4 4 0 1 0 3 3.5V15h12v-3H18z" fill="#8888aa"/><circle cx="18" cy="30" r="3" fill="#8888aa"/></svg>"##;
+
+fn decode_data_uri(data_uri: &str) -> Option<(String, Vec<u8>)> {
+    let payload = data_uri.strip_prefix("data:")?;
+    let (mime, b64) = payload.split_once(";base64,")?;
+    use base64::{Engine, engine::general_purpose::STANDARD};
+    let bytes = STANDARD.decode(b64).ok()?;
+    Some((mime.to_string(), bytes))
 }
 
 pub type Shared = Arc<RwLock<Song>>;
@@ -323,7 +334,7 @@ async fn start_server(
     let theme_manager = theme::ThemeManager::new(&theme_path.to_string_lossy());
 
     let api = warp::path!("api" / "now")
-        .and(with_state(state))
+        .and(with_state(state.clone()))
         .map(|s: Shared| {
             let mut song = s.read().unwrap().clone();
             song.font_family = APP_STATE
@@ -332,6 +343,27 @@ async fn start_server(
                 .and_then(|app| app.config.lock().ok().map(|c| c.font_family.clone()))
                 .unwrap_or_default();
             warp::reply::json(&song)
+        });
+
+    let image = warp::path!("api" / "image.jpg")
+        .and(with_state(state))
+        .map(|s: Shared| {
+            let song = s.read().unwrap();
+            match &song.album_art {
+                Some(uri) if uri.starts_with("data:") => {
+                    if let Some((mime, bytes)) = decode_data_uri(uri) {
+                        return warp::reply::with_header(bytes, "content-type", mime)
+                            .into_response();
+                    }
+                }
+                _ => {}
+            }
+            warp::reply::with_header(
+                DEFAULT_ALBUM_ART_SVG.as_bytes().to_vec(),
+                "content-type",
+                "image/svg+xml",
+            )
+            .into_response()
         });
 
     let theme_files = warp::path("theme")
@@ -346,7 +378,7 @@ async fn start_server(
     let (tx, rx) = oneshot::channel::<()>();
 
     let server_handle = tokio::spawn(async move {
-        let (_, server) = warp::serve(api.or(theme_files).or(static_files))
+        let (_, server) = warp::serve(api.or(image).or(theme_files).or(static_files))
             .bind_with_graceful_shutdown((address, port), async {
                 let _ = rx.await;
             });
