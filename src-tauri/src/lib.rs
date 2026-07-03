@@ -11,6 +11,7 @@ use tokio::sync::oneshot;
 use warp::Filter;
 
 mod config;
+mod font;
 mod i18n;
 mod logger;
 mod media;
@@ -35,6 +36,8 @@ pub struct Song {
     pub pct: Option<f64>,
     pub is_playing: bool,
     pub last_update: u64,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub font_family: String,
 }
 
 pub fn format_duration(seconds: u64) -> String {
@@ -321,7 +324,15 @@ async fn start_server(
 
     let api = warp::path!("api" / "now")
         .and(with_state(state))
-        .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
+        .map(|s: Shared| {
+            let mut song = s.read().unwrap().clone();
+            song.font_family = APP_STATE
+                .lock()
+                .ok()
+                .and_then(|app| app.config.lock().ok().map(|c| c.font_family.clone()))
+                .unwrap_or_default();
+            warp::reply::json(&song)
+        });
 
     let theme_files = warp::path("theme")
         .and(warp::path::tail())
@@ -449,6 +460,7 @@ struct ConfigDto {
     update_source: String,
     auto_check_update: bool,
     autostart: bool,
+    font_family: String,
 }
 
 #[tauri::command]
@@ -464,6 +476,7 @@ async fn get_config() -> Result<ConfigDto, String> {
         update_source: config.update_source.clone(),
         auto_check_update: config.auto_check_update,
         autostart: config.autostart,
+        font_family: config.font_family.clone(),
     })
 }
 
@@ -480,6 +493,7 @@ async fn save_config(config_dto: ConfigDto) -> Result<(), String> {
     config.update_source = config_dto.update_source;
     config.auto_check_update = config_dto.auto_check_update;
     config.autostart = config_dto.autostart;
+    config.font_family = config_dto.font_family;
 
     config.save().map_err(|e| e.to_string())
 }
@@ -595,6 +609,11 @@ async fn open_url(url: String) -> Result<(), String> {
     open::that(&url).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn list_system_fonts() -> Result<Vec<String>, String> {
+    Ok(font::list_system_fonts())
+}
+
 /// Windows 11 圆角适配：通过 DWM API 为无边框窗口启用原生圆角
 #[cfg(target_os = "windows")]
 fn apply_window_rounded_corners(window: &tauri::WebviewWindow) {
@@ -706,7 +725,8 @@ pub fn run() {
             window_toggle_maximize,
             window_close,
             window_is_maximized,
-            open_url
+            open_url,
+            list_system_fonts
         ])
         .setup(move |app| {
             {

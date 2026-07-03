@@ -109,6 +109,31 @@
             </div>
         </div>
 
+        <!-- 外观设置 -->
+        <div class="form-section">
+            <h3 class="section-title">{{ t("settings.appearance.title") }}</h3>
+
+            <div class="form-group">
+                <label>{{ t("settings.appearance.fontFamily.label") }}</label>
+                <div class="font-selector">
+                    <input
+                        type="text"
+                        v-model="localConfig.font_family"
+                        :list="'font-list-' + uid"
+                        :placeholder="scanningFonts ? t('settings.appearance.fontFamily.scanning') : t('settings.appearance.fontFamily.placeholder')"
+                        class="form-input font-input"
+                    />
+                    <datalist :id="'font-list-' + uid">
+                        <option v-for="f in systemFonts" :key="f" :value="f" />
+                    </datalist>
+                    <span v-if="scanningFonts" class="font-scan-hint">
+                        {{ t("settings.appearance.fontFamily.scanningHint") }}
+                    </span>
+                </div>
+                <p class="hint">{{ t("settings.appearance.fontFamily.hint") }}</p>
+            </div>
+        </div>
+
         <div class="form-actions">
             <button
                 class="btn btn-primary"
@@ -133,11 +158,12 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, computed } from "vue";
+import { reactive, ref, watch, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import LanguageSelector from "./LanguageSelector.vue";
 import type { AppConfig } from "@/types/config";
 import { useUpdateStore, type UpdateCheckResult } from "@/stores/update";
+import { hasTauri, tauriInvoke } from "@/utils";
 
 interface Props {
     config: AppConfig;
@@ -157,6 +183,9 @@ const updateStore = useUpdateStore();
 const localConfig = reactive<AppConfig>({ ...props.config });
 const checkingUpdate = ref(false);
 const updateStatus = ref<UpdateCheckResult | null>(null);
+const systemFonts = ref<string[]>([]);
+const scanningFonts = ref(false);
+const uid = Math.random().toString(36).slice(2);
 
 const updateStatusText = computed(() => {
     if (!updateStatus.value) return "";
@@ -196,6 +225,24 @@ function handleSave() {
     Object.assign(props.config, localConfig);
     emit("save");
 }
+
+async function scanFonts() {
+    if (scanningFonts.value) return;
+    scanningFonts.value = true;
+    try {
+        if (hasTauri()) {
+            systemFonts.value = await tauriInvoke<string[]>("list_system_fonts");
+        }
+    } catch (e) {
+        console.error("扫描系统字体失败:", e);
+    } finally {
+        scanningFonts.value = false;
+    }
+}
+
+onMounted(() => {
+    scanFonts();
+});
 </script>
 
 <style scoped>
@@ -353,5 +400,19 @@ function handleSave() {
 .update-status.has-update {
     color: var(--fluent-accent);
     font-weight: 600;
+}
+
+.font-selector {
+    position: relative;
+}
+
+.font-input {
+    font-family: inherit;
+}
+
+.font-scan-hint {
+    font-size: 11px;
+    color: var(--fluent-text-secondary);
+    margin-top: 4px;
 }
 </style>

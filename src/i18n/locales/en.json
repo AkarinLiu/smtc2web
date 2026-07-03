@@ -62,6 +62,16 @@
       "title": "System Settings",
       "autostart": "Start on boot",
       "autostartHint": "Automatically run this app when the system starts"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "fontFamily": {
+        "label": "Theme Font",
+        "placeholder": "Type or select a font...",
+        "hint": "This font will be applied to the \"Now Playing\" theme overlay. Supports any installed system font.",
+        "scanning": "Scanning system fonts...",
+        "scanningHint": "Detecting installed fonts, please wait..."
+      }
     }
   },
   "update": {

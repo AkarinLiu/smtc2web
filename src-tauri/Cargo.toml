@@ -44,6 +44,7 @@ tauri-plugin-fs = "2.4.5"
 tauri-plugin-dialog = "2.6.0"
 clap = { version = "4", features = ["derive"], optional = true }
 reqwest = { version = "0.12", features = ["json"] }
+ttf-parser = "0.25"
 tokio-stream = { version = "0.1", features = ["sync"], optional = true }
 
 [target.'cfg(target_os = "windows")'.dependencies.windows]

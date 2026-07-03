@@ -10,4 +10,6 @@ export interface AppConfig {
   auto_check_update: boolean;
   /** 是否开机自启动 */
   autostart: boolean;
+  /** 主题 overlay 使用的字体 */
+  font_family: string;
 }

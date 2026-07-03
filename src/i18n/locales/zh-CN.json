@@ -62,6 +62,16 @@
       "title": "系统设置",
       "autostart": "开机自启动",
       "autostartHint": "系统启动时自动运行本应用"
+    },
+    "appearance": {
+      "title": "外观",
+      "fontFamily": {
+        "label": "主题字体",
+        "placeholder": "输入或选择字体...",
+        "hint": "此字体将应用在\"正在播放\"主题覆盖层中。支持已安装的系统字体。",
+        "scanning": "正在扫描系统字体...",
+        "scanningHint": "自动检测已安装的字体，请稍候..."
+      }
     }
   },
   "update": {

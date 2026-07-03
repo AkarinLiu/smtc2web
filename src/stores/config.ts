@@ -13,6 +13,8 @@ export const useConfigStore = defineStore("config", () => {
     update_source: "github",
     auto_check_update: true,
     autostart: false,
+    font_family:
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif',
   });
 
   const loading = ref(false);

@@ -23,6 +23,8 @@ pub struct Config {
     pub auto_check_update: bool,
     /// 是否开机自启动
     pub autostart: bool,
+    /// 主题 overlay 使用的字体
+    pub font_family: String,
 }
 
 impl Default for Config {
@@ -36,6 +38,8 @@ impl Default for Config {
             update_source: "github".to_string(),
             auto_check_update: true,
             autostart: false,
+            font_family: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"Microsoft YaHei\", \"PingFang SC\", \"Hiragino Sans GB\", sans-serif"
+                .to_string(),
         }
     }
 }
