@@ -1,10 +1,10 @@
-name: "Release"
+name: "Snapshot"
 
 on:
   workflow_dispatch:
   push:
     tags:
-      - v*.*.*
+      - v*.*.*-snapshot*
 
 permissions:
   contents: write

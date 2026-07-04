@@ -21,9 +21,7 @@ mod theme_manager;
 mod tray;
 mod updater;
 
-#[cfg(feature = "dev")]
 pub mod cli;
-#[cfg(feature = "dev")]
 pub mod dev;
 
 #[derive(Default, Clone, Serialize, PartialEq)]
@@ -166,9 +164,9 @@ impl SingleInstance {
     fn new(name: &str) -> Result<Self, String> {
         use named_lock::NamedLock;
 
-        let lock: &'static NamedLock =
-            Box::leak(Box::new(NamedLock::create(name).map_err(|e| format!("创建互斥锁失败: {}", e))?));
-
+        let lock: &'static NamedLock = Box::leak(Box::new(
+            NamedLock::create(name).map_err(|e| format!("创建互斥锁失败: {}", e))?,
+        ));
         match lock.try_lock() {
             Ok(guard) => Ok(SingleInstance { _guard: guard }),
             Err(_) => {
@@ -272,7 +270,8 @@ fn media_worker(state: Shared) {
                 if info.duration_secs > 0 {
                     current_song.position = Some(format_duration(info.position_secs));
                     current_song.duration = Some(format_duration(info.duration_secs));
-                    let percentage = (info.position_secs as f64 * 100.0) / info.duration_secs as f64;
+                    let percentage =
+                        (info.position_secs as f64 * 100.0) / info.duration_secs as f64;
                     current_song.pct = Some((percentage * 10.0).round() / 10.0);
                 }
             } else {

@@ -1,16 +1,18 @@
+#[cfg(target_os = "linux")]
+use crate::Song;
 use crate::cli::DevArgs;
 use crate::config::Config;
+#[cfg(target_os = "linux")]
+use crate::format_duration;
 use crate::logger;
 #[cfg(target_os = "linux")]
 use crate::media::{
-    generate_song_id, get_cached_album_art, set_cached_album_art, MediaSession, PlatformSession,
+    MediaSession, PlatformSession, generate_song_id, get_cached_album_art, set_cached_album_art,
 };
-#[cfg(target_os = "linux")]
-use crate::format_duration;
-use crate::{log_error, log_info, log_warn, Shared};
-#[cfg(target_os = "linux")]
-use crate::Song;
-use notify::{Config as NotifyConfig, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use crate::{Shared, log_error, log_info, log_warn};
+use notify::{
+    Config as NotifyConfig, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
+};
 use std::net::IpAddr;
 use std::path::Path;
 use std::sync::Arc;
@@ -65,6 +67,7 @@ fn dev_media_worker(state: Shared, process_filter: String) {
     #[cfg(target_os = "windows")]
     {
         if let Err(e) = crate::media::smtc::run_event_driven(state, &process_filter) {
+            eprintln!("错误: Dev media event worker failed: {}", e);
             log_error!("Dev media event worker failed: {}", e);
         }
     }
@@ -74,6 +77,7 @@ fn dev_media_worker(state: Shared, process_filter: String) {
         let session = match PlatformSession::new(&process_filter) {
             Ok(s) => s,
             Err(e) => {
+                eprintln!("错误: 创建媒体会话失败: {}", e);
                 log_error!("创建媒体会话失败: {}", e);
                 return;
             }
@@ -98,8 +102,11 @@ fn dev_media_worker(state: Shared, process_filter: String) {
                 current_song.artist = info.artist;
                 current_song.album = info.album;
 
-                let current_song_id =
-                    generate_song_id(&current_song.title, &current_song.artist, &current_song.album);
+                let current_song_id = generate_song_id(
+                    &current_song.title,
+                    &current_song.artist,
+                    &current_song.album,
+                );
                 let cached_art = get_cached_album_art(&current_song_id);
 
                 let should_fetch_art = cached_art.is_none()
@@ -169,10 +176,8 @@ async fn serve_dev_file(
     let path = if path.is_empty() { "index.html" } else { path };
     let file_path = theme_dir.join(path);
 
-    let canonical_base =
-        std::fs::canonicalize(theme_dir).map_err(|_| warp::reject::not_found())?;
-    let resolved_path =
-        std::fs::canonicalize(&file_path).map_err(|_| warp::reject::not_found())?;
+    let canonical_base = std::fs::canonicalize(theme_dir).map_err(|_| warp::reject::not_found())?;
+    let resolved_path = std::fs::canonicalize(&file_path).map_err(|_| warp::reject::not_found())?;
 
     if !resolved_path.starts_with(&canonical_base) {
         return Err(warp::reject::not_found());
@@ -236,9 +241,10 @@ async fn proxy_to_vite(
         .to_vec();
 
     let mut response = warp::http::Response::new(body);
-    response
-        .headers_mut()
-        .insert("content-type", warp::http::HeaderValue::from_str(&ct).unwrap());
+    response.headers_mut().insert(
+        "content-type",
+        warp::http::HeaderValue::from_str(&ct).unwrap(),
+    );
     Ok(response)
 }
 
@@ -272,10 +278,12 @@ fn start_file_watcher(
         let mut pending = false;
         loop {
             match rx.recv_timeout(Duration::from_millis(100)) {
-                Ok(Ok(event)) if matches!(
-                    event.kind,
-                    EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_)
-                ) => {
+                Ok(Ok(event))
+                    if matches!(
+                        event.kind,
+                        EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_)
+                    ) =>
+                {
                     pending = true;
                     while let Ok(Ok(_)) = rx.try_recv() {}
                     if pending {
@@ -309,20 +317,25 @@ async fn start_vite_process(theme_dir: &Path, vite_port: u16) -> Option<tokio::p
 
     match result {
         Ok(child) => {
+            println!("Vite dev server 启动中 (npx vite) ...");
             log_info!("Vite dev server 启动中 (npx vite) ...");
             wait_for_vite_ready(vite_port).await;
             Some(child)
         }
         Err(e) => {
+            eprintln!("警告: npx 启动失败: {}", e);
             log_warn!("npx 启动失败: {}", e);
-            let bin = theme_dir.join("node_modules").join(".bin").join(
-                if cfg!(target_os = "windows") {
-                    "vite.cmd"
-                } else {
-                    "vite"
-                },
-            );
+            let bin =
+                theme_dir
+                    .join("node_modules")
+                    .join(".bin")
+                    .join(if cfg!(target_os = "windows") {
+                        "vite.cmd"
+                    } else {
+                        "vite"
+                    });
             if !bin.exists() {
+                eprintln!("错误: 未找到 Vite 可执行文件");
                 log_error!("未找到 Vite 可执行文件");
                 return None;
             }
@@ -334,11 +347,13 @@ async fn start_vite_process(theme_dir: &Path, vite_port: u16) -> Option<tokio::p
                 .spawn()
             {
                 Ok(child) => {
+                    println!("Vite dev server 启动中 ...");
                     log_info!("Vite dev server 启动中 ...");
                     wait_for_vite_ready(vite_port).await;
                     Some(child)
                 }
                 Err(e) => {
+                    eprintln!("错误: 启动 Vite 失败: {}", e);
                     log_error!("启动 Vite 失败: {}", e);
                     None
                 }
@@ -352,11 +367,13 @@ async fn wait_for_vite_ready(vite_port: u16) {
     let client = reqwest::Client::new();
     for _ in 0..30 {
         if client.head(&url).send().await.is_ok() {
+            println!("Vite dev server 就绪: {}", url);
             log_info!("Vite dev server 就绪: {}", url);
             return;
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
     }
+    eprintln!("警告: Vite dev server 启动超时, 端口 {}", vite_port);
     log_warn!("Vite dev server 启动超时, 端口 {}", vite_port);
 }
 
@@ -366,11 +383,10 @@ fn sse_reload_route(
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("__dev_reload").and(warp::get()).map(move || {
         let rx = reload_tx.subscribe();
-        let stream =
-            tokio_stream::wrappers::BroadcastStream::new(rx).map(|r| match r {
-                Ok(()) => Ok::<_, warp::Error>(warp::sse::Event::default().data("reload")),
-                Err(_) => Ok(warp::sse::Event::default().data("reload")),
-            });
+        let stream = tokio_stream::wrappers::BroadcastStream::new(rx).map(|r| match r {
+            Ok(()) => Ok::<_, warp::Error>(warp::sse::Event::default().data("reload")),
+            Err(_) => Ok(warp::sse::Event::default().data("reload")),
+        });
         warp::sse::reply(warp::sse::keep_alive().stream(stream))
     })
 }
@@ -380,10 +396,9 @@ async fn monitor_vite_child(vite_child: Arc<tokio::sync::Mutex<Option<tokio::pro
     let child_opt = vite_child.lock().await.take();
     if let Some(mut child) = child_opt {
         let status = child.wait().await;
-        log_warn!(
-            "Vite dev server 已退出 (exit: {:?})",
-            status.map(|s| s.code())
-        );
+        let exit_code = status.as_ref().ok().and_then(|s| s.code());
+        eprintln!("警告: Vite dev server 已退出 (exit: {:?})", exit_code);
+        log_warn!("Vite dev server 已退出 (exit: {:?})", exit_code);
     } else {
         std::future::pending::<()>().await;
     }
@@ -393,17 +408,20 @@ async fn monitor_vite_child(vite_child: Arc<tokio::sync::Mutex<Option<tokio::pro
 
 pub async fn run(args: DevArgs) {
     logger::init();
+    println!("smtc2web dev - 主题开发服务器");
     log_info!("smtc2web dev - 主题开发服务器");
 
     // 1. 验证主题目录
     let theme_dir = match std::fs::canonicalize(&args.path) {
         Ok(d) => d,
         Err(e) => {
+            eprintln!("错误: 无效的主题目录 '{}': {}", args.path.display(), e);
             log_error!("无效的主题目录 '{}': {}", args.path.display(), e);
             std::process::exit(1);
         }
     };
     if !theme_dir.join("theme.toml").exists() {
+        eprintln!("错误: 未找到 theme.toml: {}", theme_dir.display());
         log_error!("未找到 theme.toml: {}", theme_dir.display());
         std::process::exit(1);
     }
@@ -414,10 +432,7 @@ pub async fn run(args: DevArgs) {
     }
 
     // 3. Vite 检测
-    let use_vite = args.vite
-        || VITE_CONFIG_FILES
-            .iter()
-            .any(|f| theme_dir.join(f).exists());
+    let use_vite = args.vite || VITE_CONFIG_FILES.iter().any(|f| theme_dir.join(f).exists());
 
     // 4. 媒体轮询
     let state: Shared = Arc::default();
@@ -444,6 +459,7 @@ pub async fn run(args: DevArgs) {
 
     if use_vite {
         println!();
+        println!("检测到 Vite 项目, 启动 Vite dev server...");
         log_info!("检测到 Vite 项目, 启动 Vite dev server...");
         let child = start_vite_process(&theme_dir, args.vite_port).await;
         let has = child.is_some();
@@ -452,7 +468,10 @@ pub async fn run(args: DevArgs) {
             println!();
             println!("  Vite 模式已启用");
             println!("  请在 vite.config 中添加代理:");
-            println!("    server: {{ proxy: {{ '/api': 'http://localhost:{}' }} }}", args.port);
+            println!(
+                "    server: {{ proxy: {{ '/api': 'http://localhost:{}' }} }}",
+                args.port
+            );
             println!();
         }
     }
@@ -464,10 +483,9 @@ pub async fn run(args: DevArgs) {
         let s = state.clone();
         move || s.clone()
     });
-    let api =
-        warp::path!("api" / "now")
-            .and(state_filter)
-            .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
+    let api = warp::path!("api" / "now")
+        .and(state_filter)
+        .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
 
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
 
@@ -516,11 +534,15 @@ pub async fn run(args: DevArgs) {
 
     // 10. 信息输出 & 打开浏览器
     println!();
+    println!("  Dev server: http://{}:{}", address, args.port);
+    println!("  Theme:      {}", theme_dir.display());
     log_info!("  Dev server: http://{}:{}", address, args.port);
     log_info!("  Theme:      {}", theme_dir.display());
     if use_vite && vite_active {
+        println!("  Vite:       http://127.0.0.1:{}", args.vite_port);
         log_info!("  Vite:       http://127.0.0.1:{}", args.vite_port);
     } else if !use_vite {
+        println!("  文件监控已启用");
         log_info!("  文件监控已启用");
     }
     println!();
@@ -532,6 +554,7 @@ pub async fn run(args: DevArgs) {
             format!("http://{}:{}", address, args.port)
         };
         if let Err(e) = open::that(&url) {
+            eprintln!("警告: 打开浏览器失败: {}", e);
             log_warn!("打开浏览器失败: {}", e);
         }
     }
@@ -543,10 +566,12 @@ pub async fn run(args: DevArgs) {
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {
             println!();
+            println!("收到退出信号, 正在关闭...");
             log_info!("收到退出信号, 正在关闭...");
         }
         _ = &mut monitor => {
             println!();
+            println!("Vite 进程已退出, 正在关闭...");
             log_info!("Vite 进程已退出, 正在关闭...");
         }
     }
@@ -560,5 +585,6 @@ pub async fn run(args: DevArgs) {
     }
     let _ = tx.send(());
     let _ = tokio::time::timeout(Duration::from_secs(3), server_handle).await;
+    println!("开发服务器已关闭");
     log_info!("开发服务器已关闭");
 }
