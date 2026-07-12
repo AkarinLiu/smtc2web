@@ -113,7 +113,7 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           VERSION="${TAG#v}"
 
-          gh release download "$TAG" --pattern "*.sig" -D ./sigs 2>/dev/null || true
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern "*.sig" -D ./sigs 2>/dev/null || true
 
           node -e "
           const fs = require('fs');
@@ -148,4 +148,4 @@ jobs:
           fs.writeFileSync('latest.json', JSON.stringify(manifest, null, 2));
           "
 
-          gh release upload "$TAG" latest.json --clobber
+          gh release upload "$TAG" --repo "${{ github.repository }}" latest.json --clobber
