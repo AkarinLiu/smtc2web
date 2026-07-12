@@ -45,7 +45,6 @@ pub fn format_duration(seconds: u64) -> String {
     format!("{:02}:{:02}", minutes, secs)
 }
 
-const DEFAULT_ALBUM_ART_SVG: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="24" fill="#1a1a2e"/><path d="M18 12v18a4 4 0 1 0 3 3.5V15h12v-3H18z" fill="#8888aa"/><circle cx="18" cy="30" r="3" fill="#8888aa"/></svg>"##;
 
 fn decode_data_uri(data_uri: &str) -> Option<(String, Vec<u8>)> {
     let payload = data_uri.strip_prefix("data:")?;
@@ -357,12 +356,9 @@ async fn start_server(
                 }
                 _ => {}
             }
-            warp::reply::with_header(
-                DEFAULT_ALBUM_ART_SVG.as_bytes().to_vec(),
-                "content-type",
-                "image/svg+xml",
-            )
-            .into_response()
+            let mut res = warp::reply::Response::new(Vec::new().into());
+            *res.status_mut() = warp::http::StatusCode::NOT_FOUND;
+            res
         });
 
     let theme_files = warp::path("theme")
