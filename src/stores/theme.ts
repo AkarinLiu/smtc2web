@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useToastStore } from "./toast";
-import type { Theme } from "@/types/theme";
+import type { Theme, GitThemeInfo } from "@/types/theme";
 import { hasTauri, tauriInvoke } from "@/utils";
 
 export const useThemeStore = defineStore("theme", () => {
@@ -13,6 +13,7 @@ export const useThemeStore = defineStore("theme", () => {
   const currentTheme = ref("");
   const loading = ref(false);
   const uploadLoading = ref(false);
+  const gitThemes = ref<Record<string, GitThemeInfo>>({});
 
   const hasThemes = computed(() => themes.value.length > 0);
 
@@ -156,6 +157,68 @@ export const useThemeStore = defineStore("theme", () => {
     input.click();
   }
 
+  async function loadGitThemes() {
+    try {
+      if (hasTauri()) {
+        gitThemes.value = await tauriInvoke<Record<string, GitThemeInfo>>("get_git_themes");
+      }
+    } catch (e) {
+      console.error("加载 Git 主题信息失败:", e);
+    }
+  }
+
+  async function installFromGit(repoUrl: string, branch: string): Promise<boolean> {
+    if (!repoUrl.trim()) {
+      toast.error(t("messages.theme.gitUrlRequired"));
+      return false;
+    }
+
+    try {
+      if (hasTauri()) {
+        await tauriInvoke<string>("install_theme_from_git", { repoUrl, branch });
+        await Promise.all([loadThemes(), loadGitThemes()]);
+        toast.success(t("messages.theme.gitInstallSuccess"));
+        return true;
+      } else {
+        toast.error("Git 安装功能需要 Tauri 环境");
+        return false;
+      }
+    } catch (e: any) {
+      console.error("从 Git 安装主题失败:", e);
+      const message = e.message || e.toString() || String(e);
+      toast.error(t("messages.theme.gitInstallError", { message }));
+      return false;
+    }
+  }
+
+  async function updateGitTheme(folderName: string) {
+    try {
+      if (hasTauri()) {
+        await tauriInvoke("update_git_theme", { folderName });
+        toast.success(t("messages.theme.gitUpdateSuccess"));
+      }
+    } catch (e: any) {
+      console.error("更新 Git 主题失败:", e);
+      const message = e.message || e.toString() || String(e);
+      toast.error(t("messages.theme.gitUpdateError", { message }));
+    }
+  }
+
+  async function checkGitUpdate(folderName: string): Promise<boolean> {
+    try {
+      if (hasTauri()) {
+        return await tauriInvoke<boolean>("check_git_theme_update", { folderName });
+      }
+    } catch (e) {
+      console.error("检查 Git 主题更新失败:", e);
+    }
+    return false;
+  }
+
+  function isGitTheme(folderName: string): boolean {
+    return folderName in gitThemes.value;
+  }
+
   function getScreenshotUrl(path: string): string | null {
     return path && path.startsWith("data:") ? path : null;
   }
@@ -165,12 +228,18 @@ export const useThemeStore = defineStore("theme", () => {
     currentTheme,
     loading,
     uploadLoading,
+    gitThemes,
     hasThemes,
     loadThemes,
     loadCurrentTheme,
+    loadGitThemes,
     selectTheme,
     deleteTheme,
     uploadTheme,
+    installFromGit,
+    updateGitTheme,
+    checkGitUpdate,
+    isGitTheme,
     getScreenshotUrl,
   };
 });

@@ -7,8 +7,8 @@ use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 /// 全局端口存储，用于重建菜单
-static TRAY_PORT: once_cell::sync::Lazy<Mutex<u16>> =
-    once_cell::sync::Lazy::new(|| Mutex::new(3030));
+static TRAY_PORT: std::sync::LazyLock<Mutex<u16>> =
+    std::sync::LazyLock::new(|| Mutex::new(3030));
 
 /// 创建托盘菜单（根据当前语言）
 pub fn create_tray_menu<R: Runtime>(app: &AppHandle<R>) -> Menu<R> {

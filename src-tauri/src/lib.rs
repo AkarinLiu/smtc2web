@@ -9,7 +9,6 @@ use std::time::Duration;
 use tauri::Manager;
 use tokio::sync::oneshot;
 use warp::Filter;
-use warp::Reply;
 
 mod config;
 mod font;
@@ -46,14 +45,6 @@ pub fn format_duration(seconds: u64) -> String {
 }
 
 
-fn decode_data_uri(data_uri: &str) -> Option<(String, Vec<u8>)> {
-    let payload = data_uri.strip_prefix("data:")?;
-    let (mime, b64) = payload.split_once(";base64,")?;
-    use base64::{Engine, engine::general_purpose::STANDARD};
-    let bytes = STANDARD.decode(b64).ok()?;
-    Some((mime.to_string(), bytes))
-}
-
 pub type Shared = Arc<RwLock<Song>>;
 
 struct AppState {
@@ -63,13 +54,13 @@ struct AppState {
     shared_state: Option<Shared>,
 }
 
-static CURRENT_APP_ID: once_cell::sync::Lazy<Mutex<String>> =
-    once_cell::sync::Lazy::new(|| Mutex::new(String::new()));
+static CURRENT_APP_ID: std::sync::LazyLock<Mutex<String>> =
+    std::sync::LazyLock::new(|| Mutex::new(String::new()));
 
-static CURRENT_APP_DISPLAY_NAME: once_cell::sync::Lazy<Mutex<String>> =
-    once_cell::sync::Lazy::new(|| Mutex::new(String::new()));
+static CURRENT_APP_DISPLAY_NAME: std::sync::LazyLock<Mutex<String>> =
+    std::sync::LazyLock::new(|| Mutex::new(String::new()));
 
-static APP_STATE: once_cell::sync::Lazy<Mutex<AppState>> = once_cell::sync::Lazy::new(|| {
+static APP_STATE: std::sync::LazyLock<Mutex<AppState>> = std::sync::LazyLock::new(|| {
     Mutex::new(AppState {
         config: Arc::new(Mutex::new(config::Config::default())),
         server_tx: None,
@@ -204,7 +195,6 @@ fn media_worker(state: Shared) {
     #[cfg(target_os = "linux")]
     {
         use media::{MediaSession, PlatformSession};
-        use std::time::{SystemTime, UNIX_EPOCH};
 
         let session = match PlatformSession::new(&process_filter) {
             Ok(s) => s,
@@ -214,97 +204,7 @@ fn media_worker(state: Shared) {
             }
         };
 
-        let mut last_song = Song::default();
-        let mut last_position = None::<String>;
-        let mut last_song_id = String::new();
-        let mut last_art_update = 0u64;
-
-        loop {
-            let mut current_song = Song::default();
-            let timestamp = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
-            current_song.last_update = timestamp;
-
-            if let Some(info) = session.poll_current() {
-                {
-                    let mut current_app = CURRENT_APP_ID.lock().unwrap();
-                    *current_app = info.app_id.clone();
-                }
-                {
-                    let mut current_display_name = CURRENT_APP_DISPLAY_NAME.lock().unwrap();
-                    *current_display_name = info.app_name.clone();
-                }
-
-                current_song.is_playing = info.is_playing;
-                current_song.title = info.title;
-                current_song.artist = info.artist;
-                current_song.album = info.album;
-
-                let current_song_id = media::generate_song_id(
-                    &current_song.title,
-                    &current_song.artist,
-                    &current_song.album,
-                );
-
-                let cached_art = media::get_cached_album_art(&current_song_id);
-
-                let should_fetch_art = cached_art.is_none()
-                    || (current_song_id != last_song_id
-                        && timestamp.saturating_sub(last_art_update) > 30);
-
-                if should_fetch_art {
-                    current_song.album_art = session.get_album_art_base64(
-                        &current_song.artist,
-                        &current_song.title,
-                        &current_song.album,
-                    );
-                    last_song_id = current_song_id;
-                    last_art_update = timestamp;
-                } else {
-                    current_song.album_art = cached_art;
-                }
-
-                if info.duration_secs > 0 {
-                    current_song.position = Some(format_duration(info.position_secs));
-                    current_song.duration = Some(format_duration(info.duration_secs));
-                    let percentage =
-                        (info.position_secs as f64 * 100.0) / info.duration_secs as f64;
-                    current_song.pct = Some((percentage * 10.0).round() / 10.0);
-                }
-            } else {
-                let empty_song = Song::default();
-                let mut s = state.write().unwrap();
-                *s = empty_song.clone();
-                last_song = empty_song.clone();
-                last_position = None;
-
-                std::thread::sleep(std::time::Duration::from_millis(500));
-                continue;
-            }
-
-            let should_update = current_song.is_playing != last_song.is_playing
-                || current_song.position != last_position
-                || current_song.title != last_song.title
-                || current_song.artist != last_song.artist
-                || current_song.album != last_song.album
-                || current_song.album_art != last_song.album_art
-                || timestamp.saturating_sub(last_song.last_update) > 10;
-
-            if should_update {
-                let mut s = state.write().unwrap();
-                *s = current_song.clone();
-                last_song = current_song.clone();
-                last_position = current_song.position.clone();
-            }
-
-            let sleep_duration = match current_song.is_playing {
-                true => std::time::Duration::from_millis(200),
-                false => std::time::Duration::from_millis(1000),
-            };
-            std::thread::sleep(sleep_duration);
-        }
+        media::poll_media_loop(&session, &state, &CURRENT_APP_ID, &CURRENT_APP_DISPLAY_NAME);
     }
 }
 
@@ -343,24 +243,6 @@ async fn start_server(
             warp::reply::json(&song)
         });
 
-    let image = warp::path!("api" / "image.jpg")
-        .and(with_state(state))
-        .map(|s: Shared| {
-            let song = s.read().unwrap();
-            match &song.album_art {
-                Some(uri) if uri.starts_with("data:") => {
-                    if let Some((mime, bytes)) = decode_data_uri(uri) {
-                        return warp::reply::with_header(bytes, "content-type", mime)
-                            .into_response();
-                    }
-                }
-                _ => {}
-            }
-            let mut res = warp::reply::Response::new(Vec::new().into());
-            *res.status_mut() = warp::http::StatusCode::NOT_FOUND;
-            res
-        });
-
     let theme_files = warp::path("theme")
         .and(warp::path::tail())
         .and(theme::ThemeManager::with_manager(theme_manager.clone()))
@@ -373,7 +255,7 @@ async fn start_server(
     let (tx, rx) = oneshot::channel::<()>();
 
     let server_handle = tokio::spawn(async move {
-        let (_, server) = warp::serve(api.or(image).or(theme_files).or(static_files))
+        let (_, server) = warp::serve(api.or(theme_files).or(static_files))
             .bind_with_graceful_shutdown((address, port), async {
                 let _ = rx.await;
             });
@@ -474,7 +356,54 @@ async fn delete_theme(theme_folder: String) -> Result<(), String> {
         return Err("不能删除当前正在使用的主题".to_string());
     }
 
+    // 同时清理 git_themes 记录
+    {
+        let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+        let mut config = app_state.config.lock().map_err(|e| e.to_string())?;
+        config.git_themes.remove(&theme_folder);
+        let _ = config.save();
+    }
+
     theme_manager::ThemeManager::delete_theme(&theme_folder).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn install_theme_from_git(repo_url: String, branch: String) -> Result<String, String> {
+    let folder_name = theme_manager::ThemeManager::install_from_git(&repo_url, &branch)
+        .map_err(|e| e.to_string())?;
+
+    // 保存到配置
+    let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+    let mut config = app_state.config.lock().map_err(|e| e.to_string())?;
+    config.git_themes.insert(
+        folder_name.clone(),
+        config::GitThemeInfo {
+            repo_url,
+            branch,
+            folder_name: folder_name.clone(),
+        },
+    );
+    config.save().map_err(|e| e.to_string())?;
+
+    Ok(folder_name)
+}
+
+#[tauri::command]
+async fn update_git_theme(folder_name: String) -> Result<(), String> {
+    theme_manager::ThemeManager::update_git_theme(&folder_name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn check_git_theme_update(folder_name: String) -> Result<bool, String> {
+    theme_manager::ThemeManager::check_git_update(&folder_name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn get_git_themes() -> Result<std::collections::HashMap<String, config::GitThemeInfo>, String>
+{
+    let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
+    let config = app_state.config.lock().map_err(|e| e.to_string())?;
+    Ok(config.git_themes.clone())
 }
 
 #[derive(Serialize, Deserialize)]
@@ -729,11 +658,6 @@ pub fn run() {
 
     let port_clone = port;
     tauri::Builder::default()
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_dialog::init())
-        // tauri-plugin-media removed — unused, broken on Linux
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_themes,
             get_current_theme,
@@ -741,6 +665,10 @@ pub fn run() {
             upload_theme,
             upload_theme_from_bytes,
             delete_theme,
+            install_theme_from_git,
+            update_git_theme,
+            check_git_theme_update,
+            get_git_themes,
             get_config,
             save_config,
             set_locale,

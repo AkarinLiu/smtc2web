@@ -5,7 +5,7 @@
       :key="theme.folder_name"
       :theme="theme"
       :is-active="theme.folder_name === currentTheme"
-      :screenshot-url="getScreenshotUrl(theme.screenshot_path)"
+      :screenshot-url="themeStore.getScreenshotUrl(theme.screenshot_path)"
       @select="$emit('select', theme.folder_name)"
       @delete="$emit('delete', theme)"
     />
@@ -14,6 +14,7 @@
 
 <script setup lang="ts">
 import type { Theme } from '@/types/theme'
+import { useThemeStore } from '@/stores/theme'
 import ThemeCard from './ThemeCard.vue'
 
 interface Props {
@@ -27,9 +28,7 @@ defineEmits<{
   delete: [theme: Theme]
 }>()
 
-function getScreenshotUrl(path: string): string | null {
-  return path && path.startsWith('data:') ? path : null
-}
+const themeStore = useThemeStore()
 </script>
 
 <style scoped>

@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>smtc2web 源码深度解析</title>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Zeyada&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/lucide-static@latest/font/lucide.min.css" rel="stylesheet">
+<style>
+  :root {
+    --paper-bg: #fdf6e3;
+    --paper-dark: #f5ecd3;
+    --paper-line: #e8e0cc;
+    --ink-black: #2c2c2c;
+    --ink-red: #c0392b;
+    --ink-blue: #2980b9;
+    --ink-green: #27ae60;
+    --ink-purple: #8e44ad;
+    --ink-orange: #e67e22;
+    --highlight-yellow: rgba(255, 235, 59, 0.35);
+    --highlight-pink: rgba(255, 105, 180, 0.25);
+    --highlight-green: rgba(46, 204, 113, 0.2);
+    --highlight-orange: rgba(255, 152, 0, 0.2);
+    --tape: rgba(255, 255, 255, 0.45);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #3d3d3d;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+    font-family: 'Kalam', cursive;
+    overflow-x: auto;
+  }
+
+  .desk {
+    position: relative;
+    width: 100%;
+    max-width: 920px;
+  }
+
+  .notebook {
+    position: relative;
+    background: var(--paper-bg);
+    background-image:
+      linear-gradient(90deg, transparent 79px, #e8d5b5 79px, #e8d5b5 81px, transparent 81px),
+      linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 2.4rem;
+    background-position: 0 0, 0 0;
+    border-radius: 4px;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.15),
+      0 4px 8px rgba(0,0,0,0.12),
+      0 8px 16px rgba(0,0,0,0.1),
+      0 16px 32px rgba(0,0,0,0.08),
+      15px 25px 40px rgba(0,0,0,0.15);
+    padding: 3rem 2.5rem 3rem 6rem;
+    line-height: 2.4rem;
+    color: var(--ink-black);
+    transform: rotate(-0.3deg);
+    animation: paperFloat 6s ease-in-out infinite;
+  }
+
+  @keyframes paperFloat {
+    0%, 100% { transform: rotate(-0.3deg) translateY(0); }
+    50% { transform: rotate(-0.1deg) translateY(-3px); }
+  }
+
+  .spiral-holes {
+    position: absolute;
+    left: 20px;
+    top: 0;
+    bottom: 0;
+    width: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    padding: 2rem 0;
+  }
+
+  .hole {
+    width: 14px;
+    height: 14px;
+    background: #3d3d3d;
+    border-radius: 50%;
+    box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5);
+    position: relative;
+  }
+
+  .hole::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 6px;
+    background: linear-gradient(180deg, #888 0%, #bbb 50%, #888 100%);
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  .tape {
+    position: absolute;
+    width: 120px;
+    height: 35px;
+    background: var(--tape);
+    opacity: 0.6;
+    transform: rotate(-3deg);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    backdrop-filter: blur(1px);
+  }
+
+  .tape.top-left { top: -12px; left: 40px; transform: rotate(-4deg); }
+  .tape.top-right { top: -10px; right: 60px; transform: rotate(3deg); width: 100px; }
+
+  .paperclip {
+    position: absolute;
+    top: 40px;
+    right: 30px;
+    width: 30px;
+    height: 70px;
+    border: 3px solid #b0b0b0;
+    border-radius: 0 0 15px 15px;
+    border-top: none;
+    transform: rotate(-5deg);
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.15);
+    z-index: 10;
+  }
+
+  .paperclip::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 6px;
+    width: 12px;
+    height: 25px;
+    border: 3px solid #b0b0b0;
+    border-bottom: none;
+    border-radius: 15px 15px 0 0;
+  }
+
+  .coffee-stain {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid rgba(139, 90, 43, 0.12);
+    box-shadow: 0 0 0 8px rgba(139, 90, 43, 0.06), 0 0 0 16px rgba(139, 90, 43, 0.03);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .coffee-stain.one { bottom: 60px; right: 40px; }
+  .coffee-stain.two { top: 200px; left: 100px; opacity: 0.5; }
+
+  .folded-corner {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, transparent 50%, var(--paper-dark) 50%);
+    border-bottom-right-radius: 4px;
+    box-shadow: -2px -2px 4px rgba(0,0,0,0.08);
+  }
+
+  .title {
+    font-family: 'Zeyada', cursive;
+    font-size: 3.2rem;
+    font-weight: 700;
+    color: var(--ink-black);
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+    position: relative;
+    display: inline-block;
+  }
+
+  .title-underline {
+    position: absolute;
+    bottom: 2px;
+    left: -5px;
+    right: -10px;
+    height: 8px;
+    background: var(--highlight-yellow);
+    z-index: -1;
+    border-radius: 4px;
+    transform: rotate(-1deg);
+  }
+
+  .subtitle {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1.3rem;
+    color: var(--ink-blue);
+    margin-bottom: 1.5rem;
+    transform: rotate(-0.5deg);
+  }
+
+  .section {
+    margin-bottom: 1.6rem;
+    position: relative;
+  }
+
+  .section-title {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--ink-red);
+    margin-bottom: 0.3rem;
+    display: inline-block;
+    position: relative;
+  }
+
+  .section-title .marker-underline {
+    position: absolute;
+    bottom: 0;
+    left: -3px;
+    right: -5px;
+    height: 4px;
+    background: var(--ink-red);
+    opacity: 0.3;
+    border-radius: 2px;
+  }
+
+  .content {
+    font-size: 1.08rem;
+    text-align: justify;
+    position: relative;
+  }
+
+  .highlight { background: var(--highlight-yellow); padding: 0 3px; border-radius: 2px; }
+  .highlight-pink { background: var(--highlight-pink); padding: 0 3px; border-radius: 2px; }
+  .highlight-green { background: var(--highlight-green); padding: 0 3px; border-radius: 2px; }
+  .highlight-orange { background: var(--highlight-orange); padding: 0 3px; border-radius: 2px; }
+
+  .red-text { color: var(--ink-red); font-weight: 700; }
+  .blue-text { color: var(--ink-blue); }
+  .green-text { color: var(--ink-green); }
+  .purple-text { color: var(--ink-purple); }
+  .orange-text { color: var(--ink-orange); font-weight: 700; }
+
+  .code-term {
+    font-family: 'Courier New', monospace;
+    font-size: 0.92em;
+    background: rgba(0,0,0,0.06);
+    padding: 0 4px;
+    border-radius: 3px;
+    border-bottom: 1.5px solid var(--ink-purple);
+  }
+
+  .code-block {
+    display: block;
+    margin: 0.5rem 0;
+    padding: 0.6rem 0.8rem;
+    background: #2d2d2d;
+    color: #f8f8f2;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
+    transform: rotate(0.3deg);
+    position: relative;
+  }
+
+  .code-block::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 15px;
+    width: 50px;
+    height: 12px;
+    background: rgba(255,255,255,0.3);
+    border: 1px solid rgba(0,0,0,0.1);
+    transform: rotate(-2deg);
+  }
+
+  .code-comment { color: #75715e; }
+  .code-keyword { color: #66d9ef; }
+  .code-string { color: #a6e22e; }
+
+  .badge {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    background: var(--ink-red);
+    color: #fff;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-right: 0.2rem;
+  }
+  .badge.blue { background: var(--ink-blue); }
+  .badge.green { background: var(--ink-green); }
+  .badge.purple { background: var(--ink-purple); }
+  .badge.orange { background: var(--ink-orange); }
+
+  .compare-box {
+    margin: 0.6rem 0;
+    padding: 0.6rem 1rem;
+    background: linear-gradient(135deg, rgba(41,128,185,0.08) 0%, rgba(52,152,219,0.05) 100%);
+    border-left: 4px solid var(--ink-blue);
+    border-radius: 0 8px 8px 0;
+    transform: rotate(-0.2deg);
+  }
+
+  .compare-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin-bottom: 0.4rem;
+    font-size: 1rem;
+  }
+  .compare-row:last-child { margin-bottom: 0; }
+
+  .compare-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+    height: 24px;
+    background: var(--ink-blue);
+    color: #fff;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .compare-label.old { background: var(--ink-purple); }
+  .compare-label.new { background: var(--ink-green); }
+
+  .flow-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin: 0.4rem 0;
+    padding: 0.4rem 0.8rem;
+    background: rgba(255,255,255,0.4);
+    border: 2px dashed var(--ink-blue);
+    border-radius: 8px;
+    transform: rotate(0.5deg);
+  }
+
+  .flow-item {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    background: #fff;
+    border: 1.5px solid var(--ink-black);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+  }
+
+  .flow-arrow { font-size: 1.1rem; color: var(--ink-red); }
+
+  .big-warning {
+    margin: 0.8rem 0;
+    padding: 0.8rem 1.2rem;
+    background: repeating-linear-gradient(45deg, rgba(255,235,59,0.15), rgba(255,235,59,0.15) 10px, rgba(255,235,59,0.25) 10px, rgba(255,235,59,0.25) 20px);
+    border: 2px solid var(--ink-red);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ink-red);
+    transform: rotate(0.5deg);
+    position: relative;
+  }
+
+  .summary-box {
+    margin: 1rem 0;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, rgba(41,128,185,0.08) 0%, rgba(52,152,219,0.05) 100%);
+    border: 2px solid var(--ink-blue);
+    border-radius: 8px;
+    transform: rotate(0.3deg);
+  }
+
+  .summary-title {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--ink-blue);
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+
+  .side-note {
+    position: absolute;
+    right: -40px;
+    top: 0;
+    width: 130px;
+    padding: 0.5rem;
+    background: #fff9c4;
+    border: 1px solid #f0e68c;
+    box-shadow: 3px 3px 8px rgba(0,0,0,0.12);
+    font-size: 0.85rem;
+    line-height: 1.3;
+    color: var(--ink-black);
+    transform: rotate(4deg);
+    z-index: 5;
+  }
+
+  .side-note::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 14px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  .side-note.blue {
+    background: #bbdefb;
+    border-color: #90caf9;
+    transform: rotate(2deg);
+  }
+
+  .side-note.purple {
+    background: #e1bee7;
+    border-color: #ce93d8;
+    transform: rotate(3deg);
+  }
+
+  .attack-flow {
+    margin: 0.6rem 0;
+    padding: 0.6rem 1rem;
+    background: linear-gradient(135deg, rgba(192,57,43,0.08) 0%, rgba(231,76,60,0.05) 100%);
+    border-left: 4px solid var(--ink-red);
+    border-radius: 0 8px 8px 0;
+    transform: rotate(-0.3deg);
+  }
+
+  .attack-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+    font-size: 1rem;
+  }
+  .attack-step:last-child { margin-bottom: 0; }
+
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    background: var(--ink-red);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .divider {
+    margin: 1.2rem 0;
+    text-align: center;
+    position: relative;
+  }
+
+  .divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--ink-red), transparent);
+  }
+
+  .divider-text {
+    display: inline-block;
+    padding: 0 1rem;
+    background: var(--paper-bg);
+    position: relative;
+    font-family: 'Zeyada', cursive;
+    font-size: 1.4rem;
+    color: var(--ink-red);
+    font-weight: 700;
+  }
+
+  .write-in {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: writeIn 0.6s ease forwards;
+  }
+
+  @keyframes writeIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 768px) {
+    .notebook {
+      padding: 2rem 1.5rem 2rem 4rem;
+      background-image:
+        linear-gradient(90deg, transparent 59px, #e8d5b5 59px, #e8d5b5 61px, transparent 61px),
+        linear-gradient(var(--paper-line) 1px, transparent 1px);
+    }
+    .title { font-size: 2.2rem; }
+    .content { font-size: 1rem; }
+    .side-note, .side-note.blue, .side-note.purple {
+      position: relative;
+      right: auto;
+      left: auto;
+      width: 100%;
+      margin: 0.5rem 0;
+      transform: rotate(1deg);
+    }
+    .spiral-holes { left: 12px; width: 40px; }
+    .hole { width: 10px; height: 10px; }
+    .hole::after { width: 22px; height: 5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="desk">
+  <div class="notebook">
+    <div class="spiral-holes">
+      <div class="hole"></div><div class="hole"></div><div class="hole"></div>
+      <div class="hole"></div><div class="hole"></div><div class="hole"></div>
+      <div class="hole"></div><div class="hole"></div><div class="hole"></div>
+      <div class="hole"></div><div class="hole"></div><div class="hole"></div>
+      <div class="hole"></div><div class="hole"></div><div class="hole"></div>
+      <div class="hole"></div><div class="hole"></div><div class="hole"></div>
+      <div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    </div>
+
+    <div class="tape top-left"></div>
+    <div class="tape top-right"></div>
+    <div class="paperclip"></div>
+    <div class="coffee-stain one"></div>
+    <div class="coffee-stain two"></div>
+    <div class="folded-corner"></div>
+
+    <div class="doodle" style="top:60px;right:70px;font-size:2rem;transform:rotate(15deg);opacity:0.12;"><i class="lucide-music"></i></div>
+    <div class="doodle" style="top:300px;left:100px;font-size:1.8rem;transform:rotate(-10deg);opacity:0.10;"><i class="lucide-monitor"></i></div>
+    <div class="doodle" style="bottom:200px;right:90px;font-size:1.5rem;transform:rotate(20deg);opacity:0.10;"><i class="lucide-globe"></i></div>
+
+    <!-- ===== 标题 ===== -->
+    <div class="title write-in" style="animation-delay:0.1s">
+      smtc2web 源码深度解析
+      <div class="title-underline"></div>
+    </div>
+
+    <div class="subtitle write-in" style="animation-delay:0.3s">
+      从系统媒体控制器到 OBS 实时显示主题 · 完整技术架构拆解
+    </div>
+
+    <div class="date-badge write-in" style="animation-delay:0.4s">
+      <i class="lucide-calendar"></i> 源码版本 v0.5.2 | Rust + Tauri 2.0 | Vue 3
+    </div>
+
+    <!-- ===== 1. 项目概述 ===== -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:0.5s">
+        <i class="lucide-info"></i> 项目概述
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:0.6s">
+        smtc2web 是一个基于 <span class="highlight">Rust + Tauri 2.0</span> 的桌面应用，核心功能是
+        将系统媒体控制信息实时同步到浏览器主题，主要用于 <span class="highlight">OBS 直播场景</span>。
+        用户在直播时，观众可以直接看到正在播放的歌曲信息。
+      </div>
+      <div class="content write-in" style="animation-delay:0.7s">
+        <span class="badge blue">Windows</span> 使用 <span class="code-term">GlobalSystemMediaTransportControls</span> API（事件驱动）
+        <br>
+        <span class="badge green">Linux</span> 使用 <span class="code-term">MPRIS2</span> D-Bus 协议（轮询）
+      </div>
+    </div>
+
+    <!-- ===== 2. 系统架构 ===== -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:0.7s">
+        <i class="lucide-layers"></i> 系统架构
+        <div class="marker-underline"></div>
+      </div>
+      <div class="flow-box write-in" style="animation-delay:0.8s">
+        <span class="flow-item">SMTC / MPRIS</span>
+        <span class="flow-arrow">&#10142;</span>
+        <span class="flow-item">media_worker</span>
+        <span class="flow-arrow">&#10142;</span>
+        <span class="flow-item">Arc&lt;RwLock&lt;Song&gt;&gt;</span>
+        <span class="flow-arrow">&#10142;</span>
+        <span class="flow-item">Warp HTTP API</span>
+        <span class="flow-arrow">&#10142;</span>
+        <span class="flow-item">OBS / Browser</span>
+      </div>
+      <div class="content write-in" style="animation-delay:0.9s">
+        数据流向单向：<span class="purple-text">媒体监听层</span> → <span class="purple-text">共享状态</span> → <span class="purple-text">HTTP API</span> → <span class="purple-text">前端主题渲染</span>。
+        Tauri 管理 GUI 配置界面，Warp 作为独立 HTTP 服务器为 OBS 浏览器源提供服务。
+      </div>
+    </div>
+
+    <!-- ===== 3. 核心技术栈 ===== -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:0.9s">
+        <i class="lucide-box"></i> 核心技术栈
+        <div class="marker-underline"></div>
+      </div>
+      <div class="compare-box write-in" style="animation-delay:1.0s">
+        <div class="compare-row"><span class="compare-label new">后端</span><span><span class="highlight">Rust</span> + Tauri 2.0 + Warp HTTP + Tokio + Serde + once_cell</span></div>
+        <div class="compare-row"><span class="compare-label new">前端</span><span><span class="highlight">Vue 3</span> (Composition API) + Pinia + vue-i18n + vue-router + FontAwesome</span></div>
+        <div class="compare-row"><span class="compare-label old">媒体</span><span>Windows: <span class="code-term">windows-rs</span> (0.58) SMTC; Linux: <span class="code-term">mpris 2.0</span> D-Bus</span></div>
+        <div class="compare-row"><span class="compare-label new">构建</span><span>Vite + pnpm + Tauri CLI + NSIS/DEB/RPM 打包</span></div>
+      </div>
+    </div>
+
+    <!-- ===== 4. 后端分层 ===== -->
+    <div class="divider write-in" style="animation-delay:1.0s">
+      <span class="divider-text">后端架构详解</span>
+    </div>
+
+    <!-- 4.1 媒体监听 -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:1.1s">
+        <i class="lucide-disc"></i> 媒体监听 — Windows SMTC
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:1.2s">
+        <span class="code-term">src-tauri/src/media/smtc.rs</span> — <span class="red-text">核心文件</span>
+      </div>
+      <div class="content write-in" style="animation-delay:1.3s">
+        基于 <span class="highlight">事件驱动</span> 模型。通过 <span class="code-term">GlobalSystemMediaTransportControlsSessionManager</span>
+        获取当前媒体会话，订阅三个事件：
+      </div>
+      <div class="attack-flow write-in" style="animation-delay:1.4s">
+        <div class="attack-step"><span class="step-num">1</span><span><span class="code-term">CurrentSessionChanged</span> — 切换应用/歌曲（重建会话）</span></div>
+        <div class="attack-step"><span class="step-num">2</span><span><span class="code-term">PlaybackInfoChanged</span> — 播放/暂停状态变化</span></div>
+        <div class="attack-step"><span class="step-num">3</span><span><span class="code-term">MediaPropertiesChanged</span> — 标题/艺术家/专辑变化</span></div>
+        <div class="attack-step"><span class="step-num">4</span><span><span class="code-term">TimelinePropertiesChanged</span> — 进度时间戳变化</span></div>
+      </div>
+      <div class="content write-in" style="animation-delay:1.5s">
+        WinRT 事件处理器被 <span class="orange-text">Box::leak</span> 泄露以绕过生命周期约束（注释标注 ponytail）。
+        专辑封面通过 <span class="code-term">TryGetMediaPropertiesAsync</span> 获取缩略图流 → Buffer → base64 缓存。
+      </div>
+      <div class="side-note blue write-in" style="animation-delay:1.6s">
+        <span class="highlight">AUMID Display Name 缓存</span><br>
+        通过 PackageManager 解析 Store 应用显示名称，缓存到 HashMap 避免重复查询。
+      </div>
+    </div>
+
+    <!-- 4.2 Linux MPRIS2 -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:1.5s">
+        <i class="lucide-terminal"></i> 媒体监听 — Linux MPRIS2
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:1.6s">
+        <span class="code-term">src-tauri/src/media/mpris.rs</span> — 轮询模型
+      </div>
+      <div class="content write-in" style="animation-delay:1.7s">
+        使用 <span class="code-term">mpris crate</span> 通过 D-Bus 查询 MPRIS2 播放器。
+        主动扫描所有播放器，按 <span class="highlight">Playing → Paused → Stopped</span> 优先级排序选择。
+        播放时每 <span class="orange-text">200ms</span> 轮询，暂停时降为 <span class="orange-text">1000ms</span>。
+      </div>
+      <div class="content write-in" style="animation-delay:1.8s">
+        专辑封面从 <span class="code-term">file://</span> 协议读取本地文件，base64 编码后缓存。
+        <span class="highlight">不支持 Snap/Flatpak</span> 沙箱播放器（需要手动连接 D-Bus 接口）。
+      </div>
+      <div class="side-note purple write-in" style="animation-delay:1.9s">
+        <span class="highlight">进程过滤</span><br>
+        配置文件中的 process_filter 可指定只监听特定媒体应用，支持多行匹配。
+      </div>
+    </div>
+
+    <!-- 4.3 专辑封面缓存 -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:1.9s">
+        <i class="lucide-image"></i> 专辑封面缓存系统
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:2.0s">
+        <span class="code-term">media/mod.rs</span> 中维护全局 <span class="code-term">HashMap&lt;String, (art, timestamp)&gt;</span>：
+      </div>
+      <div class="attack-flow write-in" style="animation-delay:2.1s">
+        <div class="attack-step"><span class="step-num">1</span><span>每首歌生成唯一 ID：<span class="code-term">title|artist|album</span></span></div>
+        <div class="attack-step"><span class="step-num">2</span><span>缓存命中直接复用，避免重复编码</span></div>
+        <div class="attack-step"><span class="step-num">3</span><span>切换歌曲后 30s 内不重复抓取缩略图</span></div>
+        <div class="attack-step"><span class="step-num">4</span><span>缓存上限 30 条，自动清理最旧条目</span></div>
+      </div>
+    </div>
+
+    <!-- 4.4 HTTP 服务器 -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:2.2s">
+        <i class="lucide-globe"></i> HTTP API 服务器
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:2.3s">
+        使用 <span class="code-term">warp</span> 框架，默认监听 <span class="orange-text">127.0.0.1:3030</span>：
+      </div>
+      <div class="code-block write-in" style="animation-delay:2.4s">
+        <span class="code-keyword">GET</span> /api/now       → JSON(Song)  当前歌曲信息<br>
+        <span class="code-keyword">GET</span> /api/image.jpg → JPEG         专辑封面<br>
+        <span class="code-keyword">GET</span> /theme/*       → 静态文件      主题资源<br>
+        <span class="code-keyword">GET</span> /*             → 静态文件      默认主题页面<br>
+      </div>
+      <div class="content write-in" style="animation-delay:2.5s">
+        服务器支持 <span class="highlight">无中断热切换主题</span>：切换时优雅关闭旧服务器，
+        用新主题路径启动新实例，通过 <span class="code-term">oneshot</span> channel 控制生命周期。
+      </div>
+    </div>
+
+    <!-- 4.5 主题系统 -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:2.5s">
+        <i class="lucide-palette"></i> 主题系统
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:2.6s">
+        主题目录位于 <span class="code-term">~/.config/smtc2web/theme/</span>，每个子文件夹即一个主题。
+        使用 <span class="code-term">theme.toml</span> 声明元信息：
+      </div>
+      <div class="code-block write-in" style="animation-delay:2.7s">
+        <span class="code-comment"># theme.toml</span><br>
+        [smtc2web.theme]<br>
+        name  = "<span class="code-string">spotify</span>"<br>
+        version = "<span class="code-string">0.1.0</span>"<br>
+        author = "<span class="code-string">AkarinLiu</span>"<br>
+        screenshot = "<span class="code-string">screenshot.png</span>"
+      </div>
+      <div class="content write-in" style="animation-delay:2.8s">
+        内嵌默认主题（<span class="code-term">rust-embed</span> 编译时打包 frontend/ 目录）。
+        自定义主题通过 ZIP 导入，验证 <span class="highlight">根文件夹 + theme.toml + [smtc2web.theme]</span>
+        三级检查，防止目录遍历攻击。
+      </div>
+    </div>
+
+    <!-- 4.6 配置管理 -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:2.8s">
+        <i class="lucide-settings"></i> 配置管理
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:2.9s">
+        <span class="code-term">config.rs</span> — TOML 配置文件，路径<br>
+        <span class="code-term">~/.config/smtc2web/config.toml</span>：
+      </div>
+      <div class="compare-box write-in" style="animation-delay:3.0s">
+        <div class="compare-row"><span class="compare-label">端口</span><span><span class="code-term">server_port</span>: 3030 | <span class="code-term">address</span>: 127.0.0.1</span></div>
+        <div class="compare-row"><span class="compare-label">主题</span><span><span class="code-term">current_theme</span> + ZIP 导入/删除</span></div>
+        <div class="compare-row"><span class="compare-label">语言</span><span><span class="code-term">locale</span>: zh-CN / en（双端同步）</span></div>
+        <div class="compare-row"><span class="compare-label">过滤</span><span><span class="code-term">process_filter</span>: 匹配媒体应用 AUMID</span></div>
+        <div class="compare-row"><span class="compare-label">更新</span><span><span class="code-term">update_source</span>: github / official 双源</span></div>
+      </div>
+      <div class="content write-in" style="animation-delay:3.1s">
+        使用 <span class="code-term">notify crate</span> 文件监控，外部修改配置自动热加载。
+        开机自启通过 Windows 注册表 <span class="code-term">HKCU\Run</span> 实现。
+      </div>
+    </div>
+
+    <!-- 4.7 系统集成 -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:3.1s">
+        <i class="lucide-shield"></i> 系统集成
+        <div class="marker-underline"></div>
+      </div>
+      <div class="attack-flow write-in" style="animation-delay:3.2s">
+        <div class="attack-step"><span class="step-num">1</span><span><span class="purple-text">单实例</span> — Windows: CreateMutexW | Linux: named-lock</span></div>
+        <div class="attack-step"><span class="step-num">2</span><span><span class="purple-text">系统托盘</span> — 显示窗口、打开网页、检查更新、退出（双击恢复窗口）</span></div>
+        <div class="attack-step"><span class="step-num">3</span><span><span class="purple-text">关闭行为</span> — 点击关闭 → hide() 而非退出（后台驻留）</span></div>
+        <div class="attack-step"><span class="step-num">4</span><span><span class="purple-text">Win11 圆角</span> — DWM API (DwmSetWindowAttribute) 让无边框窗口圆角</span></div>
+        <div class="attack-step"><span class="step-num">5</span><span><span class="purple-text">自动更新</span> — 双源回退 + 版本比较 + NSIS 静默安装</span></div>
+      </div>
+      <div class="content write-in" style="animation-delay:3.3s">
+        托盘菜单支持切换语言后实时刷新，无需重启应用。
+        更新系统通过 <span class="code-term">reqwest</span> 并行尝试 GitHub Release 和官网，任意源可用即可。
+      </div>
+    </div>
+
+    <!-- 4.8 日志 + i18n -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:3.3s">
+        <i class="lucide-file-text"></i> 日志与国际化
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:3.4s">
+        <span class="badge">日志</span> 按日期分文件，30 天自动清理。提供 <span class="code-term">log_debug!</span> / <span class="code-term">log_info!</span> / <span class="code-term">log_warn!</span> / <span class="code-term">log_error!</span> 四个宏。
+      </div>
+      <div class="content write-in" style="animation-delay:3.5s">
+        <span class="badge green">i18n</span> Rust 端 TOML 语言包（托盘+CLI），Vue 端 vue-i18n JSON。
+        支持 zh-CN / en，自动检测系统语言。
+      </div>
+    </div>
+
+    <!-- ===== 前端架构 ===== -->
+    <div class="divider write-in" style="animation-delay:3.5s">
+      <span class="divider-text">前端架构详解</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:3.6s">
+        <i class="lucide-wind"></i> 路由与状态管理
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:3.7s">
+        路由：<span class="code-term">/</span> → 重定向 → <span class="code-term">/themes</span>（主题管理）和 <span class="code-term">/settings</span>（设置），
+        均 <span class="highlight">懒加载</span>。使用 <span class="code-term">createWebHistory</span> 模式。
+      </div>
+      <div class="content write-in" style="animation-delay:3.8s">
+        <span class="purple-text">Pinia Stores</span>（Composition API 模式，共 5 个）：
+      </div>
+      <div class="compare-box write-in" style="animation-delay:3.9s">
+        <div class="compare-row"><span class="compare-label">config</span><span>读写 Tauri 配置、同步 autostart</span></div>
+        <div class="compare-row"><span class="compare-label">theme</span><span>主题 CRUD、下载、ZIP 上传</span></div>
+        <div class="compare-row"><span class="compare-label">locale</span><span>双端语言同步（vue-i18n ↔ Tauri）</span></div>
+        <div class="compare-row"><span class="compare-label">toast</span><span>通知 + confirm 弹窗（防重叠）</span></div>
+        <div class="compare-row"><span class="compare-label">update</span><span>检查/下载/安装更新</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:3.9s">
+        <i class="lucide-component"></i> 组件树与设计风格
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:4.0s">
+        组件树结构（10 个扁平 UI 组件，2 个页面视图）：
+      </div>
+      <div class="code-block write-in" style="animation-delay:4.1s">
+        App.vue<br>
+        ├── <span class="code-keyword">TitleBar</span>       — 自定义标题栏 + 导航 + 窗口控制<br>
+        ├── RouterView<br>
+        │   ├── <span class="code-keyword">ThemesView</span>    — 主题网格 / 骨架屏 / 空状态<br>
+        │   │   └── ThemeGrid → ThemeCard<br>
+        │   └── <span class="code-keyword">SettingsView</span>  — 表单 / 骨架屏 / 字体扫描<br>
+        │       └── LanguageSelector<br>
+        ├── <span class="code-keyword">Toast</span>         — Teleport body，6 种位置<br>
+        └── <span class="code-keyword">UpdateDialog</span>  — Teleport body，更新弹窗
+      </div>
+      <div class="content write-in" style="animation-delay:4.2s">
+        <span class="badge blue">纯 CSS</span> 基于 <span class="highlight">Fluent Design</span> CSS 变量系统，无 Tailwind/Bootstrap。
+        <span class="highlight">暗色模式</span> 通过 <span class="code-term">@media (prefers-color-scheme: dark)</span> 自动适配。
+        每个组件 <span class="code-term">scope</span> 样式，三态切换：骨架屏 → 空状态 → 数据视图。
+      </div>
+    </div>
+
+    <!-- ===== 开发模式 ===== -->
+    <div class="divider write-in" style="animation-delay:4.2s">
+      <span class="divider-text">开发模式</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:4.3s">
+        <i class="lucide-flask"></i> 主题开发服务器 (dev)
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:4.4s">
+        <span class="code-term">smtc2web dev [path]</span> 命令启动独立开发服务器：
+      </div>
+      <div class="attack-flow write-in" style="animation-delay:4.5s">
+        <div class="attack-step"><span class="step-num">1</span><span>自动检测 <span class="code-term">vite.config</span>，若存在则启动 Vite 反向代理</span></div>
+        <div class="attack-step"><span class="step-num">2</span><span>文件监控 + SSE 热重载，无需手动刷新浏览器</span></div>
+        <div class="attack-step"><span class="step-num">3</span><span>HTML 自动注入 SSE reload 脚本（__dev_reload）</span></div>
+        <div class="attack-step"><span class="step-num">4</span><span>独立媒体监听 + API 服务器（不启动 GUI）</span></div>
+      </div>
+    </div>
+
+    <!-- ===== 默认主题 ===== -->
+    <div class="section">
+      <div class="section-title write-in" style="animation-delay:4.5s">
+        <i class="lucide-monitor"></i> 默认主题 (OBS Overlay)
+        <div class="marker-underline"></div>
+      </div>
+      <div class="content write-in" style="animation-delay:4.6s">
+        内嵌于 <span class="code-term">src-tauri/frontend/</span>，纯前端 Vue 3 + CSS。
+        每 1s 轮询 <span class="code-term">/api/now</span>，播放时动态缩短到 100ms 间隔。
+        支持 <span class="highlight">自定义字体</span>：通过 <span class="code-term">font_family</span> 配置注入 CSS 变量。
+      </div>
+      <div class="content write-in" style="animation-delay:4.7s">
+        <span class="badge green">Spotify 风格</span> 毛玻璃背景 + 绿色进度条 + 圆角封面。
+        为视频博主直播"正在播放"场景优化设计。
+      </div>
+    </div>
+
+    <!-- ===== 数据流总结 ===== -->
+    <div class="summary-box write-in" style="animation-delay:4.8s">
+      <div class="summary-title"><i class="lucide-arrow-right-circle"></i> 完整数据流</div>
+      <div class="content">
+        <b>[Windows SMTC / Linux MPRIS2]</b>
+        &nbsp;→&nbsp; <span class="code-term">media_worker</span>
+        → <span class="code-term">Shared&lt;Song&gt; (Arc/RwLock)</span>
+        → <span class="code-term">Warp HTTP (/api/now)</span>
+        → <span class="code-term">OBS Browser Source / Web Page</span>
+        <br><br>
+        <b>[Tauri GUI]</b>
+        &nbsp;→&nbsp; Vue 3 组件 → Pinia Store
+        → <span class="code-term">tauriInvoke()</span> → Tauri Rust 命令 → IPC 返回
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = 'running';
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.write-in').forEach(el => {
+      el.style.animationPlayState = 'paused';
+      observer.observe(el);
+    });
+
+    setTimeout(() => {
+      document.querySelectorAll('.write-in').forEach(el => {
+        el.style.animationPlayState = 'running';
+      });
+    }, 100);
+  });
+</script>
+
+</body>
+</html>

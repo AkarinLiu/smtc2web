@@ -16,8 +16,8 @@ use windows::Media::Control::{
 };
 use windows::Storage::Streams::{Buffer, DataReader, InputStreamOptions};
 
-static AUMID_DISPLAY_NAME_CACHE: once_cell::sync::Lazy<Mutex<HashMap<String, String>>> =
-    once_cell::sync::Lazy::new(|| Mutex::new(HashMap::new()));
+static AUMID_DISPLAY_NAME_CACHE: std::sync::LazyLock<Mutex<HashMap<String, String>>> =
+    std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
 
 fn is_store_app(aumid: &str) -> bool {
     aumid.contains('!') && aumid.contains('_')
@@ -95,6 +95,22 @@ fn fetch_thumbnail(session: &SmtcSession) -> Option<Vec<u8>> {
     let mut data = vec![0u8; length];
     reader.ReadBytes(&mut data).ok()?;
     Some(data)
+}
+
+// ponytail: extracted from 3 copy-pasted blocks in update_full_state/playback/timeline
+fn apply_timeline(song: &mut Song, session: &SmtcSession) {
+    if let Ok(timeline) = session.GetTimelineProperties() {
+        let pos = timeline.Position().unwrap().Duration;
+        let dur = timeline.EndTime().unwrap().Duration;
+        let pos_secs = (pos / 10_000_000) as u64;
+        let dur_secs = (dur / 10_000_000) as u64;
+        if dur_secs > 0 {
+            song.position = Some(format_duration(pos_secs));
+            song.duration = Some(format_duration(dur_secs));
+            let pct = (pos_secs as f64 * 100.0) / dur_secs as f64;
+            song.pct = Some((pct * 10.0).round() / 10.0);
+        }
+    }
 }
 
 // ponytail: stores only Send+Sync parts of current session; handlers leaked outside
@@ -250,7 +266,34 @@ impl EventContext {
         *CURRENT_APP_DISPLAY_NAME.lock().unwrap() = String::new();
     }
 
-    fn update_full_state(&self, session: &SmtcSession, timestamp: u64) {
+// ponytail: extracted art caching logic shared by update_full_state and update_media
+fn update_song_art(&self, song: &mut Song, session: &SmtcSession, timestamp: u64) {
+    let song_id = generate_song_id(&song.title, &song.artist, &song.album);
+    let cached_art = get_cached_album_art(&song_id);
+    let mut last_art_update = self.last_art_update.lock().unwrap();
+    let last_song_id = self.last_song_id.lock().unwrap().clone();
+
+    let should_fetch = cached_art.is_none()
+        || (song_id != last_song_id && timestamp.saturating_sub(*last_art_update) > 30);
+
+    if should_fetch {
+        if let Some(data) = fetch_thumbnail(session) {
+            use base64::{engine::general_purpose::STANDARD, Engine};
+            let data_uri = format!("data:image/jpeg;base64,{}", STANDARD.encode(&data));
+            set_cached_album_art(&song_id, data_uri.clone());
+            song.album_art = Some(data_uri);
+            *last_art_update = timestamp;
+        }
+    } else {
+        song.album_art = cached_art;
+    }
+
+    if song_id != last_song_id {
+        *self.last_song_id.lock().unwrap() = song_id;
+    }
+}
+
+fn update_full_state(&self, session: &SmtcSession, timestamp: u64) {
         let mut song = Song { last_update: timestamp, ..Song::default() };
 
         let is_playing = session
@@ -267,42 +310,9 @@ impl EventContext {
             song.album = media_info.AlbumTitle().unwrap_or_default().to_string();
         }
 
-        if let Ok(timeline) = session.GetTimelineProperties() {
-            let pos = timeline.Position().unwrap().Duration;
-            let dur = timeline.EndTime().unwrap().Duration;
-            let pos_secs = (pos / 10_000_000) as u64;
-            let dur_secs = (dur / 10_000_000) as u64;
-            if dur_secs > 0 {
-                song.position = Some(format_duration(pos_secs));
-                song.duration = Some(format_duration(dur_secs));
-                let pct = (pos_secs as f64 * 100.0) / dur_secs as f64;
-                song.pct = Some((pct * 10.0).round() / 10.0);
-            }
-        }
+        apply_timeline(&mut song, session);
 
-        let song_id = generate_song_id(&song.title, &song.artist, &song.album);
-        let cached_art = get_cached_album_art(&song_id);
-        let mut last_art_update = self.last_art_update.lock().unwrap();
-        let last_song_id = self.last_song_id.lock().unwrap().clone();
-
-        let should_fetch = cached_art.is_none()
-            || (song_id != last_song_id && timestamp.saturating_sub(*last_art_update) > 30);
-
-        if should_fetch {
-            if let Some(data) = fetch_thumbnail(session) {
-                use base64::{engine::general_purpose::STANDARD, Engine};
-                let data_uri = format!("data:image/jpeg;base64,{}", STANDARD.encode(&data));
-                set_cached_album_art(&song_id, data_uri.clone());
-                song.album_art = Some(data_uri);
-                *last_art_update = timestamp;
-            }
-        } else {
-            song.album_art = cached_art;
-        }
-
-        if song_id != last_song_id {
-            *self.last_song_id.lock().unwrap() = song_id.clone();
-        }
+        self.update_song_art(&mut song, session, timestamp);
 
         *self.last_song.lock().unwrap() = song.clone();
         *self.last_position.lock().unwrap() = song.position.clone();
@@ -321,18 +331,7 @@ impl EventContext {
         song.is_playing = is_playing;
         song.last_update = timestamp;
 
-        if let Ok(timeline) = session.GetTimelineProperties() {
-            let pos = timeline.Position().unwrap().Duration;
-            let dur = timeline.EndTime().unwrap().Duration;
-            let pos_secs = (pos / 10_000_000) as u64;
-            let dur_secs = (dur / 10_000_000) as u64;
-            if dur_secs > 0 {
-                song.position = Some(format_duration(pos_secs));
-                song.duration = Some(format_duration(dur_secs));
-                let pct = (pos_secs as f64 * 100.0) / dur_secs as f64;
-                song.pct = Some((pct * 10.0).round() / 10.0);
-            }
-        }
+        apply_timeline(&mut song, session);
 
         *self.last_song.lock().unwrap() = song.clone();
         *self.last_position.lock().unwrap() = song.position.clone();
@@ -349,29 +348,7 @@ impl EventContext {
             song.album = media_info.AlbumTitle().unwrap_or_default().to_string();
         }
 
-        let song_id = generate_song_id(&song.title, &song.artist, &song.album);
-        let cached_art = get_cached_album_art(&song_id);
-        let mut last_art_update = self.last_art_update.lock().unwrap();
-        let last_song_id = self.last_song_id.lock().unwrap().clone();
-
-        let should_fetch = cached_art.is_none()
-            || (song_id != last_song_id && timestamp.saturating_sub(*last_art_update) > 30);
-
-        if should_fetch {
-            if let Some(data) = fetch_thumbnail(session) {
-                use base64::{engine::general_purpose::STANDARD, Engine};
-                let data_uri = format!("data:image/jpeg;base64,{}", STANDARD.encode(&data));
-                set_cached_album_art(&song_id, data_uri.clone());
-                song.album_art = Some(data_uri);
-                *last_art_update = timestamp;
-            }
-        } else {
-            song.album_art = cached_art;
-        }
-
-        if song_id != last_song_id {
-            *self.last_song_id.lock().unwrap() = song_id.clone();
-        }
+        self.update_song_art(&mut song, session, timestamp);
 
         *self.last_song.lock().unwrap() = song.clone();
         *self.state.write().unwrap() = song;
@@ -379,20 +356,7 @@ impl EventContext {
 
     fn update_timeline(&self, session: &SmtcSession) {
         let mut song = self.last_song.lock().unwrap().clone();
-
-        if let Ok(timeline) = session.GetTimelineProperties() {
-            let pos = timeline.Position().unwrap().Duration;
-            let dur = timeline.EndTime().unwrap().Duration;
-            let pos_secs = (pos / 10_000_000) as u64;
-            let dur_secs = (dur / 10_000_000) as u64;
-            if dur_secs > 0 {
-                song.position = Some(format_duration(pos_secs));
-                song.duration = Some(format_duration(dur_secs));
-                let pct = (pos_secs as f64 * 100.0) / dur_secs as f64;
-                song.pct = Some((pct * 10.0).round() / 10.0);
-            }
-        }
-
+        apply_timeline(&mut song, session);
         *self.last_song.lock().unwrap() = song.clone();
         *self.last_position.lock().unwrap() = song.position.clone();
         *self.state.write().unwrap() = song;

@@ -5,7 +5,19 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use zip::ZipArchive;
+
+/// 创建隐藏控制台窗口的 git 命令
+fn git_command() -> Command {
+    let mut cmd = Command::new("git");
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    cmd
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThemeInfo {
@@ -15,7 +27,6 @@ pub struct ThemeInfo {
     pub version: String,
     pub screenshot_path: String,
     pub is_default: bool,
-    pub is_builtin: bool,
 }
 
 pub struct ThemeManager;
@@ -119,7 +130,6 @@ screenshot = "screenshot.png"
             version,
             screenshot_path,
             is_default: true,
-            is_builtin: true,
         }
     }
 
@@ -230,7 +240,6 @@ screenshot = "screenshot.png"
             version,
             screenshot_path,
             is_default: false,
-            is_builtin: false,
         })
     }
 
@@ -475,5 +484,199 @@ screenshot = "screenshot.png"
             return PathBuf::new();
         }
         Self::get_themes_dir().join(theme_folder)
+    }
+
+    /// 从 Git 仓库安装主题
+    pub fn install_from_git(repo_url: &str, branch: &str) -> io::Result<String> {
+        Self::ensure_themes_dir()?;
+
+        // 从 URL 推导文件夹名：取最后一段，去掉 .git 后缀
+        let folder_name = repo_url
+            .trim_end_matches('/')
+            .rsplit('/')
+            .next()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "无效的仓库地址"))?
+            .strip_suffix(".git")
+            .unwrap_or_else(|| {
+                repo_url
+                    .trim_end_matches('/')
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or("theme")
+            })
+            .to_string();
+
+        if folder_name.is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "无法从仓库地址推导主题名称",
+            ));
+        }
+
+        // 禁止覆盖默认主题
+        if folder_name == "default" {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "不能覆盖默认主题",
+            ));
+        }
+
+        let themes_dir = Self::get_themes_dir();
+        let theme_dir = themes_dir.join(&folder_name);
+
+        // 如果目录已存在，先删除
+        if theme_dir.exists() {
+            fs::remove_dir_all(&theme_dir)?;
+        }
+
+        // 构建 git clone 命令
+        let mut cmd = git_command();
+        cmd.arg("clone")
+            .arg("--single-branch")
+            .arg("--depth")
+            .arg("1");
+
+        if !branch.is_empty() {
+            cmd.arg("--branch").arg(branch);
+        }
+
+        cmd.arg(repo_url).arg(&theme_dir);
+
+        log_info!(
+            "正在从 Git 克隆主题: {} (分支: {}) -> {:?}",
+            repo_url,
+            if branch.is_empty() { "默认" } else { branch },
+            theme_dir
+        );
+
+        let output = cmd.output().map_err(|e| {
+            io::Error::other(format!("执行 git clone 失败，请确保已安装 Git: {}", e))
+        })?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            // 克隆失败时清理可能创建的目录
+            let _ = fs::remove_dir_all(&theme_dir);
+            return Err(io::Error::other(format!(
+                "git clone 失败: {}",
+                stderr.trim()
+            )));
+        }
+
+        // 验证 theme.toml 存在
+        let config_path = theme_dir.join("theme.toml");
+        if !config_path.exists() {
+            let _ = fs::remove_dir_all(&theme_dir);
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "此主题无效：仓库根目录缺少 theme.toml 文件！",
+            ));
+        }
+
+        // 验证 theme.toml 包含 [smtc2web.theme]
+        let content = fs::read_to_string(&config_path)?;
+        if !content.contains("[smtc2web.theme]") {
+            let _ = fs::remove_dir_all(&theme_dir);
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "此主题无效：theme.toml 缺少 [smtc2web.theme] 配置节！",
+            ));
+        }
+
+        log_info!("Git 主题安装成功: {}", folder_name);
+        Ok(folder_name)
+    }
+
+    /// 更新 Git 主题（git pull）
+    pub fn update_git_theme(folder_name: &str) -> io::Result<()> {
+        let themes_dir = Self::get_themes_dir();
+        let theme_dir = themes_dir.join(folder_name);
+
+        if !theme_dir.exists() {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("主题目录不存在: {}", folder_name),
+            ));
+        }
+
+        log_info!("正在更新 Git 主题: {}", folder_name);
+
+        let output = git_command()
+            .arg("-C")
+            .arg(&theme_dir)
+            .arg("pull")
+            .arg("--ff-only")
+            .output()
+            .map_err(|e| io::Error::other(format!("执行 git pull 失败: {}", e)))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(io::Error::other(format!(
+                "git pull 失败: {}",
+                stderr.trim()
+            )));
+        }
+
+        log_info!("Git 主题更新成功: {}", folder_name);
+        Ok(())
+    }
+
+    /// 检查 Git 主题是否有远程更新
+    pub fn check_git_update(folder_name: &str) -> io::Result<bool> {
+        let themes_dir = Self::get_themes_dir();
+        let theme_dir = themes_dir.join(folder_name);
+
+        if !theme_dir.exists() {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("主题目录不存在: {}", folder_name),
+            ));
+        }
+
+        // git fetch origin
+        let fetch_output = git_command()
+            .arg("-C")
+            .arg(&theme_dir)
+            .arg("fetch")
+            .arg("origin")
+            .output()
+            .map_err(|e| io::Error::other(format!("执行 git fetch 失败: {}", e)))?;
+
+        if !fetch_output.status.success() {
+            let stderr = String::from_utf8_lossy(&fetch_output.stderr);
+            return Err(io::Error::other(format!(
+                "git fetch 失败: {}",
+                stderr.trim()
+            )));
+        }
+
+        // 获取本地 HEAD
+        let local_output = git_command()
+            .arg("-C")
+            .arg(&theme_dir)
+            .arg("rev-parse")
+            .arg("HEAD")
+            .output()
+            .map_err(|e| io::Error::other(e.to_string()))?;
+
+        // 获取远程 HEAD
+        let remote_output = git_command()
+            .arg("-C")
+            .arg(&theme_dir)
+            .arg("rev-parse")
+            .arg("@{u}")
+            .output()
+            .map_err(|e| io::Error::other(e.to_string()))?;
+
+        if !local_output.status.success() || !remote_output.status.success() {
+            return Ok(false);
+        }
+
+        let local_hash = String::from_utf8_lossy(&local_output.stdout).trim().to_string();
+        let remote_hash = String::from_utf8_lossy(&remote_output.stdout)
+            .trim()
+            .to_string();
+
+        Ok(local_hash != remote_hash)
     }
 }

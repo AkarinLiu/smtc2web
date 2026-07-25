@@ -1,3 +1,6 @@
 [submodule "src-tauri/frontend"]
 	path = src-tauri/frontend
 	url = https://github.com/AkarinLiu/smtc2web-theme-spotify.git
+[submodule ".agents/skills/note-skill"]
+	path = .agents/skills/note-skill
+	url = https://github.com/Unclecheng-li/note-skill.git

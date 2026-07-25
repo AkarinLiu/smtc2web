@@ -2,12 +2,20 @@ use crate::{log_error, log_info};
 use dirs::config_dir;
 use notify::{Config as NotifyConfig, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GitThemeInfo {
+    pub repo_url: String,
+    pub branch: String,
+    pub folder_name: String,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
@@ -25,6 +33,8 @@ pub struct Config {
     pub autostart: bool,
     /// 主题 overlay 使用的字体
     pub font_family: String,
+    /// 通过 Git 安装的主题信息（key = folder_name）
+    pub git_themes: HashMap<String, GitThemeInfo>,
 }
 
 impl Default for Config {
@@ -40,6 +50,7 @@ impl Default for Config {
             autostart: false,
             font_family: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"Microsoft YaHei\", \"PingFang SC\", \"Hiragino Sans GB\", sans-serif"
                 .to_string(),
+            git_themes: HashMap::new(),
         }
     }
 }

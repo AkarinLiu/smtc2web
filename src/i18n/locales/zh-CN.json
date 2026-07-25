@@ -17,7 +17,23 @@
       "noPreview": "无预览图",
       "active": "当前使用中",
       "default": "默认",
-      "delete": "删除主题"
+      "delete": "删除主题",
+      "gitBadge": "Git",
+      "update": "更新主题",
+      "checkingUpdate": "检查更新中…",
+      "upToDate": "已是最新"
+    },
+    "git": {
+      "install": "从 Git 安装",
+      "dialog": {
+        "title": "从 Git 仓库安装主题",
+        "url": "仓库地址",
+        "urlPlaceholder": "https://github.com/user/theme.git",
+        "branch": "分支名称（可选）",
+        "branchPlaceholder": "留空则使用默认分支",
+        "installBtn": "安装",
+        "installing": "安装中……"
+      }
     }
   },
   "settings": {
@@ -36,10 +52,6 @@
       "label": "进程过滤",
       "hint": "每行输入一个应用程序名称，使用 * 来监听所有应用程序。不区分大小写。",
       "currentApp": "当前应用： "
-    },
-    "showConsole": {
-      "label": "显示控制台",
-      "hint": "重启应用后生效"
     },
     "save": "保存",
     "saving": "保存中……",
@@ -114,7 +126,14 @@
       "switchError": "导入主题失败：{message}",
       "deleteConfirm": "是否删除主题 “{name}” ？",
       "deleteError": "导入主题失败：{message}",
-      "loadError": "主题加载失败"
+      "loadError": "主题加载失败",
+      "gitInstallSuccess": "主题从 Git 安装成功！",
+      "gitInstallError": "从 Git 安装主题失败：{message}",
+      "gitUpdateSuccess": "主题更新成功！",
+      "gitUpdateError": "主题更新失败：{message}",
+      "gitUpdateAvailable": "有可用更新",
+      "gitNoUpdate": "主题已是最新",
+      "gitUrlRequired": "请输入仓库地址"
     }
   }
 }

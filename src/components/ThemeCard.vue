@@ -13,6 +13,10 @@
       <div v-if="theme.is_default" class="default-badge">
         <span>{{ t('themes.card.default') }}</span>
       </div>
+      <div v-if="isGit" class="git-badge">
+        <font-awesome-icon icon="code-branch" />
+        <span>{{ t('themes.card.gitBadge') }}</span>
+      </div>
     </div>
     <div class="theme-info">
       <h3 class="theme-name">{{ theme.name }}</h3>
@@ -21,19 +25,33 @@
         <span class="theme-version">{{ theme.version }}</span>
       </div>
     </div>
-    <button 
-      v-if="!isActive && !theme.is_default"
-      class="delete-btn" 
-      @click.stop="$emit('delete')"
-      :title="t('themes.card.delete')"
-    >
-      <font-awesome-icon icon="trash" />
-    </button>
+    <div class="card-actions">
+      <button
+        v-if="isGit && hasUpdate"
+        class="update-btn"
+        @click.stop="handleUpdate"
+        :title="t('themes.card.update')"
+        :disabled="updating"
+      >
+        <font-awesome-icon v-if="updating" icon="spinner" spin />
+        <font-awesome-icon v-else icon="rotate" />
+      </button>
+      <button
+        v-if="!isActive && !theme.is_default"
+        class="delete-btn"
+        @click.stop="$emit('delete')"
+        :title="t('themes.card.delete')"
+      >
+        <font-awesome-icon icon="trash" />
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useThemeStore } from '@/stores/theme'
 import type { Theme } from '@/types/theme'
 
 interface Props {
@@ -43,12 +61,34 @@ interface Props {
 }
 
 const { t } = useI18n()
+const themeStore = useThemeStore()
 
-defineProps<Props>()
+const props = defineProps<Props>()
 defineEmits<{
   select: []
   delete: []
 }>()
+
+const isGit = computed(() => themeStore.isGitTheme(props.theme.folder_name))
+const hasUpdate = ref(false)
+const updating = ref(false)
+
+onMounted(async () => {
+  if (isGit.value) {
+    hasUpdate.value = await themeStore.checkGitUpdate(props.theme.folder_name)
+  }
+})
+
+async function handleUpdate() {
+  if (updating.value) return
+  updating.value = true
+  try {
+    await themeStore.updateGitTheme(props.theme.folder_name)
+    hasUpdate.value = false
+  } finally {
+    updating.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -143,6 +183,59 @@ defineEmits<{
   font-weight: 500;
 }
 
+.git-badge {
+  position: absolute;
+  top: var(--fluent-space-sm);
+  right: var(--fluent-space-sm);
+  background-color: var(--fluent-accent);
+  color: var(--fluent-text-on-accent);
+  padding: var(--fluent-space-xs) var(--fluent-space-sm);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-actions {
+  position: absolute;
+  top: var(--fluent-space-sm);
+  left: var(--fluent-space-sm);
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--fluent-transition-fast);
+}
+
+.theme-card:hover .card-actions {
+  opacity: 1;
+}
+
+.update-btn {
+  width: 32px;
+  height: 32px;
+  background-color: var(--fluent-success);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--fluent-transition-fast);
+}
+
+.update-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+}
+
+.update-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .theme-info {
   padding: var(--fluent-space-md);
 }
@@ -181,9 +274,6 @@ defineEmits<{
 }
 
 .delete-btn {
-  position: absolute;
-  top: var(--fluent-space-sm);
-  right: var(--fluent-space-sm);
   width: 32px;
   height: 32px;
   background-color: var(--fluent-error);
@@ -192,15 +282,10 @@ defineEmits<{
   border-radius: 50%;
   font-size: 16px;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--fluent-transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.theme-card:hover .delete-btn {
-  opacity: 1;
+  transition: transform var(--fluent-transition-fast);
 }
 
 .delete-btn:hover {

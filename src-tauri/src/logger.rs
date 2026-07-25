@@ -35,8 +35,8 @@ pub struct Logger {
 impl Logger {
     /// 获取单例实例
     pub fn instance() -> &'static Mutex<Logger> {
-        static INSTANCE: once_cell::sync::Lazy<Mutex<Logger>> =
-            once_cell::sync::Lazy::new(|| Mutex::new(Logger::new()));
+        static INSTANCE: std::sync::LazyLock<Mutex<Logger>> =
+            std::sync::LazyLock::new(|| Mutex::new(Logger::new()));
         &INSTANCE
     }
 

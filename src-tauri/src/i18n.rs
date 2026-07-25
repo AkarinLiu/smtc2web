@@ -20,12 +20,12 @@ pub struct Locale {
 }
 
 /// 当前语言状态
-pub static CURRENT_LOCALE: once_cell::sync::Lazy<Mutex<String>> =
-    once_cell::sync::Lazy::new(|| Mutex::new("zh-CN".to_string()));
+pub static CURRENT_LOCALE: std::sync::LazyLock<Mutex<String>> =
+    std::sync::LazyLock::new(|| Mutex::new("zh-CN".to_string()));
 
 /// 缓存的语言包
-pub static LOCALE_CACHE: once_cell::sync::Lazy<Mutex<HashMap<String, Locale>>> =
-    once_cell::sync::Lazy::new(|| Mutex::new(HashMap::new()));
+pub static LOCALE_CACHE: std::sync::LazyLock<Mutex<HashMap<String, Locale>>> =
+    std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// 加载指定语言的翻译文件
 pub fn load_locale(locale: &str) -> Option<Locale> {
