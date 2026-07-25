@@ -185,7 +185,9 @@ const checkingUpdate = ref(false);
 const updateStatus = ref<UpdateCheckResult | null>(null);
 const systemFonts = ref<string[]>([]);
 const scanningFonts = ref(false);
-const uid = Math.random().toString(36).slice(2);
+const uid = Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 
 const updateStatusText = computed(() => {
     if (!updateStatus.value) return "";
