@@ -431,7 +431,11 @@ screenshot = "screenshot.png"
                     .strip_prefix(&root_folder)
                     .unwrap_or(&normalized_file_path)
                     .strip_prefix('/')
-                    .unwrap_or(normalized_file_path.strip_prefix(&root_folder).unwrap_or(&normalized_file_path))
+                    .unwrap_or(
+                        normalized_file_path
+                            .strip_prefix(&root_folder)
+                            .unwrap_or(&normalized_file_path),
+                    )
             } else {
                 continue; // 跳过不在根文件夹内的文件
             };
@@ -672,7 +676,9 @@ screenshot = "screenshot.png"
             return Ok(false);
         }
 
-        let local_hash = String::from_utf8_lossy(&local_output.stdout).trim().to_string();
+        let local_hash = String::from_utf8_lossy(&local_output.stdout)
+            .trim()
+            .to_string();
         let remote_hash = String::from_utf8_lossy(&remote_output.stdout)
             .trim()
             .to_string();

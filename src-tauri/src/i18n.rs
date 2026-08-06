@@ -110,5 +110,3 @@ pub fn get_current_locale_data() -> Option<Locale> {
 pub fn is_locale_supported(locale: &str) -> bool {
     matches!(locale, "zh-CN" | "en")
 }
-
-

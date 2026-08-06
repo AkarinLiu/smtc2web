@@ -1,4 +1,7 @@
-use super::{generate_song_id, get_cached_album_art, matches_process_filter, set_cached_album_art, MediaSession, SessionInfo};
+use super::{
+    MediaSession, SessionInfo, generate_song_id, get_cached_album_art, matches_process_filter,
+    set_cached_album_art,
+};
 use mpris::PlaybackStatus;
 use std::sync::Mutex;
 
@@ -28,7 +31,7 @@ impl MprisSession {
         sorted_players.sort_by(|a, b| {
             let a_status = a.get_playback_status().unwrap_or(PlaybackStatus::Stopped);
             let b_status = b.get_playback_status().unwrap_or(PlaybackStatus::Stopped);
-            
+
             match (a_status, b_status) {
                 (PlaybackStatus::Playing, PlaybackStatus::Playing) => std::cmp::Ordering::Equal,
                 (PlaybackStatus::Playing, _) => std::cmp::Ordering::Less,
@@ -41,7 +44,8 @@ impl MprisSession {
         });
 
         for player in sorted_players {
-            if matches_process_filter(&self.process_filter, &player.bus_name(), &player.identity()) {
+            if matches_process_filter(&self.process_filter, &player.bus_name(), &player.identity())
+            {
                 crate::log_debug!("MPRIS2: Selected player: {}", player.bus_name());
                 return Ok(player);
             }
@@ -91,13 +95,19 @@ impl MediaSession for MprisSession {
         let artists = metadata.artists().unwrap_or_default();
         let artist = Self::format_artist_list(&artists);
         let album = metadata.album_name().unwrap_or_default().to_string();
-        let art_url = metadata.art_url().map(|u| u.to_string()).unwrap_or_default();
+        let art_url = metadata
+            .art_url()
+            .map(|u| u.to_string())
+            .unwrap_or_default();
         let length_us = metadata.length().map(|d| d.as_micros() as i64).unwrap_or(0);
 
-        let status = player.get_playback_status().unwrap_or(PlaybackStatus::Stopped);
+        let status = player
+            .get_playback_status()
+            .unwrap_or(PlaybackStatus::Stopped);
         let is_playing = status == PlaybackStatus::Playing;
 
-        let position_us = player.get_position()
+        let position_us = player
+            .get_position()
             .map(|d| d.as_micros() as i64)
             .unwrap_or(0);
 
@@ -143,7 +153,7 @@ impl MediaSession for MprisSession {
 
         let data = std::fs::read(file_path).ok()?;
 
-        use base64::{engine::general_purpose::STANDARD, Engine};
+        use base64::{Engine, engine::general_purpose::STANDARD};
         let mime = mime_guess::from_path(file_path)
             .first_or_octet_stream()
             .to_string();

@@ -1,17 +1,15 @@
 use super::{generate_song_id, get_cached_album_art, matches_process_filter, set_cached_album_art};
-use crate::{format_duration, Shared, Song, CURRENT_APP_DISPLAY_NAME, CURRENT_APP_ID};
+use crate::{CURRENT_APP_DISPLAY_NAME, CURRENT_APP_ID, Shared, Song, format_duration};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use windows::Foundation::{EventRegistrationToken, TypedEventHandler};
 use windows::Management::Deployment::PackageManager;
 use windows::Media::Control::{
-    CurrentSessionChangedEventArgs,
-    GlobalSystemMediaTransportControlsSession as SmtcSession,
+    CurrentSessionChangedEventArgs, GlobalSystemMediaTransportControlsSession as SmtcSession,
     GlobalSystemMediaTransportControlsSessionManager as SmtcManager,
     GlobalSystemMediaTransportControlsSessionPlaybackStatus as PlaybackStatus,
-    MediaPropertiesChangedEventArgs,
-    PlaybackInfoChangedEventArgs,
+    MediaPropertiesChangedEventArgs, PlaybackInfoChangedEventArgs,
     TimelinePropertiesChangedEventArgs,
 };
 use windows::Storage::Streams::{Buffer, DataReader, InputStreamOptions};
@@ -161,7 +159,9 @@ impl EventContext {
             if let Some(old) = current.take() {
                 let _ = old.session.RemovePlaybackInfoChanged(old.playback_token);
                 let _ = old.session.RemoveMediaPropertiesChanged(old.media_token);
-                let _ = old.session.RemoveTimelinePropertiesChanged(old.timeline_token);
+                let _ = old
+                    .session
+                    .RemoveTimelinePropertiesChanged(old.timeline_token);
             }
         }
 
@@ -198,7 +198,10 @@ impl EventContext {
             let weak = weak.clone();
             TypedEventHandler::new(move |sender, _args| {
                 if let (Some(ctx), Some(session)) = (weak.upgrade(), sender) {
-                    let ts = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+                    let ts = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs();
                     ctx.update_playback(&session, ts);
                 }
                 Ok(())
@@ -209,7 +212,10 @@ impl EventContext {
             let weak = weak.clone();
             TypedEventHandler::new(move |sender, _args| {
                 if let (Some(ctx), Some(session)) = (weak.upgrade(), sender) {
-                    let ts = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+                    let ts = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs();
                     ctx.update_media(&session, ts);
                 }
                 Ok(())
@@ -266,35 +272,38 @@ impl EventContext {
         *CURRENT_APP_DISPLAY_NAME.lock().unwrap() = String::new();
     }
 
-// ponytail: extracted art caching logic shared by update_full_state and update_media
-fn update_song_art(&self, song: &mut Song, session: &SmtcSession, timestamp: u64) {
-    let song_id = generate_song_id(&song.title, &song.artist, &song.album);
-    let cached_art = get_cached_album_art(&song_id);
-    let mut last_art_update = self.last_art_update.lock().unwrap();
-    let last_song_id = self.last_song_id.lock().unwrap().clone();
+    // ponytail: extracted art caching logic shared by update_full_state and update_media
+    fn update_song_art(&self, song: &mut Song, session: &SmtcSession, timestamp: u64) {
+        let song_id = generate_song_id(&song.title, &song.artist, &song.album);
+        let cached_art = get_cached_album_art(&song_id);
+        let mut last_art_update = self.last_art_update.lock().unwrap();
+        let last_song_id = self.last_song_id.lock().unwrap().clone();
 
-    let should_fetch = cached_art.is_none()
-        || (song_id != last_song_id && timestamp.saturating_sub(*last_art_update) > 30);
+        let should_fetch = cached_art.is_none()
+            || (song_id != last_song_id && timestamp.saturating_sub(*last_art_update) > 30);
 
-    if should_fetch {
-        if let Some(data) = fetch_thumbnail(session) {
-            use base64::{engine::general_purpose::STANDARD, Engine};
-            let data_uri = format!("data:image/jpeg;base64,{}", STANDARD.encode(&data));
-            set_cached_album_art(&song_id, data_uri.clone());
-            song.album_art = Some(data_uri);
-            *last_art_update = timestamp;
+        if should_fetch {
+            if let Some(data) = fetch_thumbnail(session) {
+                use base64::{Engine, engine::general_purpose::STANDARD};
+                let data_uri = format!("data:image/jpeg;base64,{}", STANDARD.encode(&data));
+                set_cached_album_art(&song_id, data_uri.clone());
+                song.album_art = Some(data_uri);
+                *last_art_update = timestamp;
+            }
+        } else {
+            song.album_art = cached_art;
         }
-    } else {
-        song.album_art = cached_art;
+
+        if song_id != last_song_id {
+            *self.last_song_id.lock().unwrap() = song_id;
+        }
     }
 
-    if song_id != last_song_id {
-        *self.last_song_id.lock().unwrap() = song_id;
-    }
-}
-
-fn update_full_state(&self, session: &SmtcSession, timestamp: u64) {
-        let mut song = Song { last_update: timestamp, ..Song::default() };
+    fn update_full_state(&self, session: &SmtcSession, timestamp: u64) {
+        let mut song = Song {
+            last_update: timestamp,
+            ..Song::default()
+        };
 
         let is_playing = session
             .GetPlaybackInfo()

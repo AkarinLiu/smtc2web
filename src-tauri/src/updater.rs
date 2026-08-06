@@ -1,4 +1,4 @@
-use crate::{log_error, log_info, APP_STATE};
+use crate::{APP_STATE, log_error, log_info};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
@@ -57,8 +57,14 @@ fn get_update_urls() -> Vec<String> {
     };
 
     match source.as_str() {
-        "official" => vec![OFFICIAL_LATEST_JSON.to_string(), GITHUB_LATEST_JSON.to_string()],
-        _ => vec![GITHUB_LATEST_JSON.to_string(), OFFICIAL_LATEST_JSON.to_string()],
+        "official" => vec![
+            OFFICIAL_LATEST_JSON.to_string(),
+            GITHUB_LATEST_JSON.to_string(),
+        ],
+        _ => vec![
+            GITHUB_LATEST_JSON.to_string(),
+            OFFICIAL_LATEST_JSON.to_string(),
+        ],
     }
 }
 
@@ -254,8 +260,7 @@ pub async fn start_update(app: AppHandle, download_url: String) -> Result<(), St
         .map_err(|e| format!("读取下载数据失败: {}", e))?;
 
     let temp_dir = std::env::temp_dir().join("smtc2web-update");
-    std::fs::create_dir_all(&temp_dir)
-        .map_err(|e| format!("创建临时目录失败: {}", e))?;
+    std::fs::create_dir_all(&temp_dir).map_err(|e| format!("创建临时目录失败: {}", e))?;
 
     let ext = if download_url.ends_with(".msi") {
         ".msi"
@@ -263,8 +268,7 @@ pub async fn start_update(app: AppHandle, download_url: String) -> Result<(), St
         ".exe"
     };
     let installer_path = temp_dir.join(format!("update{}", ext));
-    std::fs::write(&installer_path, &bytes)
-        .map_err(|e| format!("写入安装包失败: {}", e))?;
+    std::fs::write(&installer_path, &bytes).map_err(|e| format!("写入安装包失败: {}", e))?;
 
     log_info!("更新包已下载到: {:?}", installer_path);
 
@@ -301,10 +305,7 @@ pub async fn start_update(app: AppHandle, download_url: String) -> Result<(), St
                 // AppImage: 标记为可执行并运行
                 #[allow(unused_imports)]
                 use std::os::unix::fs::PermissionsExt;
-                let _ = std::fs::set_permissions(
-                    &path_str,
-                    std::fs::Permissions::from_mode(0o755),
-                );
+                let _ = std::fs::set_permissions(&path_str, std::fs::Permissions::from_mode(0o755));
                 let _ = std::process::Command::new(&path_str)
                     .arg("--updated")
                     .spawn();
