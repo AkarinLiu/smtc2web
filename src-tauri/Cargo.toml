@@ -3,7 +3,7 @@ authors = ["AkarinLiu"]
 description = "A Tauri App"
 edition = "2024"
 name = "smtc2web"
-version = "0.5.4"
+version = "0.6.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -32,9 +32,9 @@ serde = {version = "1", features = ["derive"] }
 serde_json = "1"
 tauri = {version = "2", features = ["tray-icon", "image-png"] }
 
-tokio = {version = "1", features = ["rt-multi-thread", "macros", "signal", "process"] }
+tokio = {version = "1", features = ["rt-multi-thread", "macros", "signal", "process", "net"] }
 toml = "0.8"
-warp = "0.3"
+axum = "0.8"
 chrono = "0.4"
 named-lock = "0.1"
 
