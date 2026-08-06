@@ -1,5 +1,9 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
+use axum::Router;
+use axum::extract::State;
+use axum::response::Json;
+use axum::routing::{any, get};
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -7,8 +11,8 @@ use std::sync::{Arc, Mutex, RwLock};
 #[cfg(target_os = "linux")]
 use std::time::Duration;
 use tauri::Manager;
+use tokio::net::TcpListener;
 use tokio::sync::oneshot;
-use warp::Filter;
 
 mod config;
 mod font;
@@ -44,7 +48,6 @@ pub fn format_duration(seconds: u64) -> String {
     format!("{:02}:{:02}", minutes, secs)
 }
 
-
 pub type Shared = Arc<RwLock<Song>>;
 
 struct AppState {
@@ -71,10 +74,14 @@ static APP_STATE: std::sync::LazyLock<Mutex<AppState>> = std::sync::LazyLock::ne
 
 /* ---------- 主题文件托管由 theme.rs 提供 ---------- */
 
-fn with_state(
-    s: Shared,
-) -> impl Filter<Extract = (Shared,), Error = std::convert::Infallible> + Clone {
-    warp::any().map(move || s.clone())
+async fn api_now(State(state): State<Shared>) -> Json<Song> {
+    let mut song = state.read().unwrap().clone();
+    song.font_family = APP_STATE
+        .lock()
+        .ok()
+        .and_then(|app| app.config.lock().ok().map(|c| c.font_family.clone()))
+        .unwrap_or_default();
+    Json(song)
 }
 
 // 单进程检测 - 跨平台实现
@@ -231,35 +238,24 @@ async fn start_server(
 
     let theme_manager = theme::ThemeManager::new(&theme_path.to_string_lossy());
 
-    let api = warp::path!("api" / "now")
-        .and(with_state(state.clone()))
-        .map(|s: Shared| {
-            let mut song = s.read().unwrap().clone();
-            song.font_family = APP_STATE
-                .lock()
-                .ok()
-                .and_then(|app| app.config.lock().ok().map(|c| c.font_family.clone()))
-                .unwrap_or_default();
-            warp::reply::json(&song)
-        });
-
-    let theme_files = warp::path("theme")
-        .and(warp::path::tail())
-        .and(theme::ThemeManager::with_manager(theme_manager.clone()))
-        .and_then(|tail, manager: theme::ThemeManager| manager.serve_theme_file(tail));
-
-    let static_files = warp::path::tail()
-        .and(theme::ThemeManager::with_manager(theme_manager))
-        .and_then(|tail, manager: theme::ThemeManager| manager.serve_theme_file(tail));
+    let api = Router::new()
+        .route("/api/now", get(api_now))
+        .with_state(state);
+    let static_files = Router::new()
+        .fallback(any(theme::serve_theme_file))
+        .with_state(theme_manager);
 
     let (tx, rx) = oneshot::channel::<()>();
 
     let server_handle = tokio::spawn(async move {
-        let (_, server) = warp::serve(api.or(theme_files).or(static_files))
-            .bind_with_graceful_shutdown((address, port), async {
+        let listener = TcpListener::bind((address, port))
+            .await
+            .expect("failed to bind server");
+        let _ = axum::serve(listener, api.merge(static_files))
+            .with_graceful_shutdown(async {
                 let _ = rx.await;
-            });
-        server.await;
+            })
+            .await;
     });
 
     log_info!("Server running at http://{}:{}", address, port);

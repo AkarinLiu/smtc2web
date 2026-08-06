@@ -3,17 +3,24 @@ use crate::config::Config;
 use crate::logger;
 #[cfg(target_os = "linux")]
 use crate::media::{MediaSession, PlatformSession};
-use crate::{Shared, log_error, log_info, log_warn};
+use crate::{Shared, Song, log_error, log_info, log_warn};
+use axum::Router;
+use axum::extract::{Request, State};
+use axum::http::StatusCode;
+use axum::response::Json;
+use axum::response::sse::{Event as SseEvent, KeepAlive, Sse};
+use axum::routing::{any, get};
 use notify::{
     Config as NotifyConfig, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
 };
 use std::net::IpAddr;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::net::TcpListener;
 use tokio::sync::broadcast;
-use tokio_stream::StreamExt;
-use warp::Filter;
+use tokio_stream::wrappers::BroadcastStream;
+use tokio_stream::{Stream, StreamExt};
 
 /* ---------- SSE 热重载脚本 ---------- */
 const SSE_RELOAD_SCRIPT: &str = r#"<script>
@@ -86,24 +93,25 @@ fn dev_media_worker(state: Shared, process_filter: String) {
 
 /* ---------- 静态模式：文件服务 ---------- */
 async fn serve_dev_file(
-    path: &str,
-    theme_dir: &Path,
-) -> Result<warp::http::Response<Vec<u8>>, warp::Rejection> {
-    let path = if path.is_empty() { "index.html" } else { path };
+    State(theme_dir): State<PathBuf>,
+    req: Request,
+) -> Result<axum::response::Response, StatusCode> {
+    let path = req.uri().path().trim_start_matches('/').to_string();
+    let path = if path.is_empty() { "index.html" } else { &path };
     let file_path = theme_dir.join(path);
 
-    let canonical_base = std::fs::canonicalize(theme_dir).map_err(|_| warp::reject::not_found())?;
-    let resolved_path = std::fs::canonicalize(&file_path).map_err(|_| warp::reject::not_found())?;
+    let canonical_base = std::fs::canonicalize(&theme_dir).map_err(|_| StatusCode::NOT_FOUND)?;
+    let resolved_path = std::fs::canonicalize(&file_path).map_err(|_| StatusCode::NOT_FOUND)?;
 
     if !resolved_path.starts_with(&canonical_base) {
-        return Err(warp::reject::not_found());
+        return Err(StatusCode::NOT_FOUND);
     }
 
     let mime = mime_guess::from_path(path)
         .first_or_octet_stream()
         .to_string();
 
-    let data = std::fs::read(&resolved_path).map_err(|_| warp::reject::not_found())?;
+    let data = std::fs::read(&resolved_path).map_err(|_| StatusCode::NOT_FOUND)?;
 
     let body = if mime.starts_with("text/html") {
         let html = String::from_utf8_lossy(&data);
@@ -112,12 +120,7 @@ async fn serve_dev_file(
         data
     };
 
-    let mut response = warp::http::Response::new(body);
-    response.headers_mut().insert(
-        "content-type",
-        warp::http::HeaderValue::from_str(&mime).unwrap(),
-    );
-    Ok(response)
+    Ok(crate::theme::response_with_content_type(body, &mime))
 }
 
 fn inject_sse(html: &str) -> String {
@@ -131,17 +134,23 @@ fn inject_sse(html: &str) -> String {
 }
 
 /* ---------- Vite 反向代理 ---------- */
-async fn proxy_to_vite(
-    path: &str,
+struct ProxyCtx {
+    client: reqwest::Client,
     vite_port: u16,
-    client: &reqwest::Client,
-) -> Result<warp::http::Response<Vec<u8>>, warp::Rejection> {
-    let url = format!("http://127.0.0.1:{}/{}", vite_port, path);
-    let resp = client
+}
+
+async fn proxy_to_vite(
+    State(ctx): State<Arc<ProxyCtx>>,
+    req: Request,
+) -> Result<axum::response::Response, StatusCode> {
+    let path = req.uri().path().trim_start_matches('/').to_string();
+    let url = format!("http://127.0.0.1:{}/{}", ctx.vite_port, path);
+    let resp = ctx
+        .client
         .get(&url)
         .send()
         .await
-        .map_err(|_| warp::reject::not_found())?;
+        .map_err(|_| StatusCode::NOT_FOUND)?;
 
     let ct = resp
         .headers()
@@ -153,15 +162,10 @@ async fn proxy_to_vite(
     let body = resp
         .bytes()
         .await
-        .map_err(|_| warp::reject::not_found())?
+        .map_err(|_| StatusCode::NOT_FOUND)?
         .to_vec();
 
-    let mut response = warp::http::Response::new(body);
-    response.headers_mut().insert(
-        "content-type",
-        warp::http::HeaderValue::from_str(&ct).unwrap(),
-    );
-    Ok(response)
+    Ok(crate::theme::response_with_content_type(body, &ct))
 }
 
 /* ---------- 文件监控 ---------- */
@@ -293,18 +297,19 @@ async fn wait_for_vite_ready(vite_port: u16) {
     log_warn!("Vite dev server 启动超时, 端口 {}", vite_port);
 }
 
+async fn dev_api_now(State(state): State<Shared>) -> Json<Song> {
+    Json(state.read().unwrap().clone())
+}
+
 /* ---------- SSE 重载路由 ---------- */
-fn sse_reload_route(
-    reload_tx: broadcast::Sender<()>,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("__dev_reload").and(warp::get()).map(move || {
-        let rx = reload_tx.subscribe();
-        let stream = tokio_stream::wrappers::BroadcastStream::new(rx).map(|r| match r {
-            Ok(()) => Ok::<_, warp::Error>(warp::sse::Event::default().data("reload")),
-            Err(_) => Ok(warp::sse::Event::default().data("reload")),
-        });
-        warp::sse::reply(warp::sse::keep_alive().stream(stream))
-    })
+async fn sse_reload_route(
+    State(reload_tx): State<broadcast::Sender<()>>,
+) -> Sse<impl Stream<Item = Result<SseEvent, std::convert::Infallible>>> {
+    let stream = BroadcastStream::new(reload_tx.subscribe()).map(|r| match r {
+        Ok(()) => Ok(SseEvent::default().data("reload")),
+        Err(_) => Ok(SseEvent::default().data("reload")),
+    });
+    Sse::new(stream).keep_alive(KeepAlive::new().interval(Duration::from_secs(15)))
 }
 
 /* ---------- Vite 子进程退出监控 ---------- */
@@ -395,48 +400,43 @@ pub async fn run(args: DevArgs) {
     let vite_active = { use_vite && vite_child.lock().await.is_some() };
 
     // 8. 路由 + 服务器
-    let state_filter = warp::any().map({
-        let s = state.clone();
-        move || s.clone()
-    });
-    let api = warp::path!("api" / "now")
-        .and(state_filter.clone())
-        .map(|s: Shared| warp::reply::json(&*s.read().unwrap()));
+    let api = Router::new()
+        .route("/api/now", get(dev_api_now))
+        .with_state(state.clone());
+    let sse = Router::new()
+        .route("/__dev_reload", get(sse_reload_route))
+        .with_state(reload_tx.clone());
 
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
 
     let server_handle: tokio::task::JoinHandle<()> = if use_vite && vite_active {
-        let vp = args.vite_port;
-        let client = reqwest::Client::new();
-        let proxy = warp::path::tail().and_then(move |t: warp::path::Tail| {
-            let c = client.clone();
-            let p = t.as_str().to_string();
-            async move { proxy_to_vite(&p, vp, &c).await }
+        let ctx = Arc::new(ProxyCtx {
+            client: reqwest::Client::new(),
+            vite_port: args.vite_port,
         });
-        let routes = api.or(proxy).boxed();
+        let proxy = Router::new().fallback(any(proxy_to_vite)).with_state(ctx);
         tokio::spawn(async move {
-            warp::serve(routes)
-                .bind_with_graceful_shutdown((address, args.port), async {
+            let listener = TcpListener::bind((address, args.port))
+                .await
+                .expect("failed to bind dev server");
+            let _ = axum::serve(listener, api.merge(sse).merge(proxy))
+                .with_graceful_shutdown(async {
                     let _ = rx.await;
                 })
-                .1
                 .await;
         })
     } else {
-        let td = theme_dir.clone();
-        let serve = warp::path::tail().and_then(move |t: warp::path::Tail| {
-            let d = td.clone();
-            let p = t.as_str().to_string();
-            async move { serve_dev_file(&p, &d).await }
-        });
-        let sse = sse_reload_route(reload_tx.clone());
-        let routes = api.or(sse).or(serve).boxed();
+        let serve = Router::new()
+            .fallback(any(serve_dev_file))
+            .with_state(theme_dir.clone());
         tokio::spawn(async move {
-            warp::serve(routes)
-                .bind_with_graceful_shutdown((address, args.port), async {
+            let listener = TcpListener::bind((address, args.port))
+                .await
+                .expect("failed to bind dev server");
+            let _ = axum::serve(listener, api.merge(sse).merge(serve))
+                .with_graceful_shutdown(async {
                     let _ = rx.await;
                 })
-                .1
                 .await;
         })
     };
