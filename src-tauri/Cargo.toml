@@ -36,7 +36,7 @@ tokio = {version = "1", features = ["rt-multi-thread", "macros", "signal", "proc
 toml = "0.8"
 warp = "0.3"
 chrono = "0.4"
-named-lock = "0.1"
+named-lock = "0.4"
 
 zip = "0.6"
 
