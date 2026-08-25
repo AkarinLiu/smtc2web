@@ -13,6 +13,13 @@ jobs:
   check:
     name: cargo check
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,6 +52,7 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+          key: "${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.target }}"
 
       - name: install frontend dependencies
         run: pnpm install
@@ -52,25 +60,20 @@ jobs:
       - name: build frontend
         run: pnpm build
 
-      - name: cargo check (linux x86_64)
-        run: cargo check --target x86_64-unknown-linux-gnu
-        working-directory: ./src-tauri
-
-      - name: cargo check (linux aarch64)
-        run: cargo check --target aarch64-unknown-linux-gnu
-        working-directory: ./src-tauri
-
-      - name: cargo check (windows x86_64)
-        run: cargo check --target x86_64-pc-windows-msvc
-        working-directory: ./src-tauri
-
-      - name: cargo check (windows aarch64)
-        run: cargo check --target aarch64-pc-windows-msvc
+      - name: cargo check (${{ matrix.target }})
+        run: cargo check --target ${{ matrix.target }}
         working-directory: ./src-tauri
 
   clippy:
     name: clippy
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
         with:
@@ -105,6 +108,7 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+          key: "${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.target }}"
 
       - name: install frontend dependencies
         run: pnpm install
@@ -112,20 +116,8 @@ jobs:
       - name: build frontend
         run: pnpm build
 
-      - name: clippy (linux x86_64)
-        run: cargo clippy --target x86_64-unknown-linux-gnu -- -D warnings
-        working-directory: ./src-tauri
-
-      - name: clippy (linux aarch64)
-        run: cargo clippy --target aarch64-unknown-linux-gnu -- -D warnings
-        working-directory: ./src-tauri
-
-      - name: clippy (windows x86_64)
-        run: cargo clippy --target x86_64-pc-windows-msvc -- -D warnings
-        working-directory: ./src-tauri
-
-      - name: clippy (windows aarch64)
-        run: cargo clippy --target aarch64-pc-windows-msvc -- -D warnings
+      - name: clippy (${{ matrix.target }})
+        run: cargo clippy --target ${{ matrix.target }} -- -D warnings
         working-directory: ./src-tauri
 
   typecheck:
