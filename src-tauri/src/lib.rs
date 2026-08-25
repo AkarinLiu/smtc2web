@@ -146,7 +146,7 @@ impl Drop for SingleInstance {
 
 #[cfg(target_os = "linux")]
 pub struct SingleInstance {
-    _guard: named_lock::NamedLockGuard<'static>,
+    _guard: named_lock::NamedLockGuard,
 }
 
 #[cfg(target_os = "linux")]

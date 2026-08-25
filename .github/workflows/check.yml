@@ -1,0 +1,151 @@
+name: "Check"
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: cargo check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      - name: install dependencies (ubuntu only)
+        run: |
+          sudo apt update
+          sudo apt install libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: setup volta
+        uses: volta-cli/action@v5.0.0
+        with:
+          node-version: 24
+
+      - uses: pnpm/action-setup@v6
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: install frontend dependencies
+        run: pnpm install
+
+      - name: build frontend
+        run: pnpm build
+
+      - name: cargo check (linux x86_64)
+        run: cargo check --target x86_64-unknown-linux-gnu
+        working-directory: ./src-tauri
+
+      - name: cargo check (linux aarch64)
+        run: cargo check --target aarch64-unknown-linux-gnu
+        working-directory: ./src-tauri
+
+      - name: cargo check (windows x86_64)
+        run: cargo check --target x86_64-pc-windows-msvc
+        working-directory: ./src-tauri
+
+      - name: cargo check (windows aarch64)
+        run: cargo check --target aarch64-pc-windows-msvc
+        working-directory: ./src-tauri
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      - name: install dependencies (ubuntu only)
+        run: |
+          sudo apt update
+          sudo apt install libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: setup volta
+        uses: volta-cli/action@v5.0.0
+        with:
+          node-version: 24
+
+      - uses: pnpm/action-setup@v6
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: install frontend dependencies
+        run: pnpm install
+
+      - name: build frontend
+        run: pnpm build
+
+      - name: clippy (linux x86_64)
+        run: cargo clippy --target x86_64-unknown-linux-gnu -- -D warnings
+        working-directory: ./src-tauri
+
+      - name: clippy (linux aarch64)
+        run: cargo clippy --target aarch64-unknown-linux-gnu -- -D warnings
+        working-directory: ./src-tauri
+
+      - name: clippy (windows x86_64)
+        run: cargo clippy --target x86_64-pc-windows-msvc -- -D warnings
+        working-directory: ./src-tauri
+
+      - name: clippy (windows aarch64)
+        run: cargo clippy --target aarch64-pc-windows-msvc -- -D warnings
+        working-directory: ./src-tauri
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      - name: setup volta
+        uses: volta-cli/action@v5.0.0
+        with:
+          node-version: 24
+
+      - uses: pnpm/action-setup@v6
+
+      - name: install frontend dependencies
+        run: pnpm install
+
+      - name: typecheck
+        run: pnpm typecheck
+        working-directory: ./src-tauri/frontend

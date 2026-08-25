@@ -2,6 +2,7 @@
 
 [![Version](https://img.shields.io/github/v/release/AkarinLiu/smtc2web?color=blue&label=Version)](https://github.com/AkarinLiu/smtc2web/releases)
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
+![Downloads](https://img.shields.io/github/downloads/AkarinLiu/smtc2web/total)
 [![Stars](https://img.shields.io/github/stars/AkarinLiu/smtc2web?style=social&label=Stars)](https://github.com/AkarinLiu/smtc2web)
 
 [![Rust](https://img.shields.io/badge/Rust-2024--edition-E5732E?logo=rust&logoColor=white)](https://www.rust-lang.org/)
@@ -11,7 +12,7 @@
 [![localized](https://img.shields.io/badge/localized-8%2B%20languages-2B7AB9)]()
 [![Windows](https://img.shields.io/badge/Windows-%2311d0f5?logo=windows&logoColor=white)]()
 [![Linux](https://img.shields.io/badge/Linux-%23ccc?logo=linux&logoColor=black)]()
-[![macOS](https://img.shields.io/badge/macOS-%23000?logo=apple&logoColor=white)]()
+
 
  A base of Rust's smtc2web achieve, Using in Live Stream Software show Playing Music.
 
