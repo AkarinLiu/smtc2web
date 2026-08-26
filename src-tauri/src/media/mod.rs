@@ -61,7 +61,7 @@ pub(crate) fn set_cached_album_art(song_id: &str, art: String) {
 
     if cache.len() > 30 {
         let mut entries: Vec<_> = cache.iter().collect();
-        entries.sort_by(|a, b| b.1 .1.cmp(&a.1 .1));
+        entries.sort_by_key(|e| std::cmp::Reverse(e.1.1));
         let to_remove: Vec<String> = entries.iter().skip(30).map(|(k, _)| (*k).clone()).collect();
         for key in to_remove {
             cache.remove(key.as_str());

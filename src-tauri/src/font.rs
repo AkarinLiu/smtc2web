@@ -20,10 +20,10 @@ pub fn list_system_fonts() -> Vec<String> {
                     if let Some(name) = parse_font_family(&data) {
                         names.insert(name);
                     }
-                    if ext == "ttc" {
-                        if let Some(collect) = parse_ttc_families(&data) {
-                            names.extend(collect);
-                        }
+                    if ext == "ttc"
+                        && let Some(collect) = parse_ttc_families(&data)
+                    {
+                        names.extend(collect);
                     }
                 }
             }
@@ -36,10 +36,10 @@ pub fn list_system_fonts() -> Vec<String> {
 fn parse_font_family(data: &[u8]) -> Option<String> {
     let face = ttf_parser::Face::parse(data, 0).ok()?;
     for name in face.names() {
-        if name.name_id == 1 {
-            if let Some(s) = name.to_string() {
-                return Some(s);
-            }
+        if name.name_id == 1
+            && let Some(s) = name.to_string()
+        {
+            return Some(s);
         }
     }
     None
@@ -51,20 +51,16 @@ fn parse_ttc_families(data: &[u8]) -> Option<Vec<String>> {
     for i in 0..count {
         if let Ok(face) = ttf_parser::Face::parse(data, i) {
             for name in face.names() {
-                if name.name_id == 1 {
-                    if let Some(s) = name.to_string() {
-                        names.push(s);
-                        break;
-                    }
+                if name.name_id == 1
+                    && let Some(s) = name.to_string()
+                {
+                    names.push(s);
+                    break;
                 }
             }
         }
     }
-    if names.is_empty() {
-        None
-    } else {
-        Some(names)
-    }
+    if names.is_empty() { None } else { Some(names) }
 }
 
 fn system_font_dirs() -> Vec<PathBuf> {
@@ -77,7 +73,10 @@ fn system_font_dirs() -> Vec<PathBuf> {
         }
         if let Ok(local) = std::env::var("LOCALAPPDATA") {
             dirs.push(
-                PathBuf::from(local).join("Microsoft").join("Windows").join("Fonts"),
+                PathBuf::from(local)
+                    .join("Microsoft")
+                    .join("Windows")
+                    .join("Fonts"),
             );
         }
     }
@@ -97,7 +96,12 @@ fn system_font_dirs() -> Vec<PathBuf> {
         dirs.push(PathBuf::from("/usr/local/share/fonts"));
         if let Ok(home) = std::env::var("HOME") {
             dirs.push(PathBuf::from(&home).join(".fonts"));
-            dirs.push(PathBuf::from(&home).join(".local").join("share").join("fonts"));
+            dirs.push(
+                PathBuf::from(&home)
+                    .join(".local")
+                    .join("share")
+                    .join("fonts"),
+            );
         }
     }
 

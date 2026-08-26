@@ -10,13 +10,17 @@ use zip::ZipArchive;
 
 /// 创建隐藏控制台窗口的 git 命令
 fn git_command() -> Command {
-    let mut cmd = Command::new("git");
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
+        let mut cmd = Command::new("git");
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        cmd
     }
-    cmd
+    #[cfg(not(target_os = "windows"))]
+    {
+        Command::new("git")
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -431,7 +435,11 @@ screenshot = "screenshot.png"
                     .strip_prefix(&root_folder)
                     .unwrap_or(&normalized_file_path)
                     .strip_prefix('/')
-                    .unwrap_or(normalized_file_path.strip_prefix(&root_folder).unwrap_or(&normalized_file_path))
+                    .unwrap_or(
+                        normalized_file_path
+                            .strip_prefix(&root_folder)
+                            .unwrap_or(&normalized_file_path),
+                    )
             } else {
                 continue; // 跳过不在根文件夹内的文件
             };
@@ -672,7 +680,9 @@ screenshot = "screenshot.png"
             return Ok(false);
         }
 
-        let local_hash = String::from_utf8_lossy(&local_output.stdout).trim().to_string();
+        let local_hash = String::from_utf8_lossy(&local_output.stdout)
+            .trim()
+            .to_string();
         let remote_hash = String::from_utf8_lossy(&remote_output.stdout)
             .trim()
             .to_string();

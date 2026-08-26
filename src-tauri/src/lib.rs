@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
-#[cfg(target_os = "linux")]
-use std::time::Duration;
 use tauri::Manager;
 use tokio::sync::oneshot;
 use warp::Filter;
@@ -43,7 +41,6 @@ pub fn format_duration(seconds: u64) -> String {
     let secs = seconds % 60;
     format!("{:02}:{:02}", minutes, secs)
 }
-
 
 pub type Shared = Arc<RwLock<Song>>;
 
@@ -522,6 +519,7 @@ fn sync_autostart(enable: bool) -> Result<(), String> {
         return Err("Auto-start is only supported on Windows".to_string());
     }
 
+    #[cfg(target_os = "windows")]
     Ok(())
 }
 
