@@ -516,7 +516,7 @@ fn sync_autostart(enable: bool) -> Result<(), String> {
     #[cfg(not(target_os = "windows"))]
     {
         let _ = enable;
-        return Err("Auto-start is only supported on Windows".to_string());
+        Err("Auto-start is only supported on Windows".to_string())
     }
 
     #[cfg(target_os = "windows")]
