@@ -412,7 +412,7 @@ struct ConfigDto {
     process_filter: String,
     update_source: String,
     auto_check_update: bool,
-    autostart: bool,
+    minimize_to_tray: bool,
     font_family: String,
 }
 
@@ -428,7 +428,7 @@ async fn get_config() -> Result<ConfigDto, String> {
         process_filter: config.process_filter.clone(),
         update_source: config.update_source.clone(),
         auto_check_update: config.auto_check_update,
-        autostart: config.autostart,
+        minimize_to_tray: config.minimize_to_tray,
         font_family: config.font_family.clone(),
     })
 }
@@ -445,7 +445,7 @@ async fn save_config(config_dto: ConfigDto) -> Result<(), String> {
     config.process_filter = config_dto.process_filter;
     config.update_source = config_dto.update_source;
     config.auto_check_update = config_dto.auto_check_update;
-    config.autostart = config_dto.autostart;
+    config.minimize_to_tray = config_dto.minimize_to_tray;
     config.font_family = config_dto.font_family;
 
     config.save().map_err(|e| e.to_string())
@@ -463,13 +463,13 @@ async fn get_current_app_id() -> Result<String, String> {
     Ok(display_name.clone())
 }
 
-/// 同步开机自启动注册表项（不修改配置）
-fn sync_autostart(enable: bool) -> Result<(), String> {
+/// 清理历史遗留的开机自启动注册表项（开机自启动功能已移除）
+fn cleanup_autostart_registry() {
     #[cfg(target_os = "windows")]
     {
         use windows::Win32::System::Registry::{
-            HKEY_CURRENT_USER, KEY_WRITE, REG_OPTION_NON_VOLATILE, REG_SZ, RegCloseKey,
-            RegCreateKeyExW, RegDeleteValueW, RegSetValueExW,
+            HKEY_CURRENT_USER, KEY_WRITE, REG_OPTION_NON_VOLATILE, RegCloseKey, RegCreateKeyExW,
+            RegDeleteValueW,
         };
         use windows::core::PCWSTR;
 
@@ -490,47 +490,13 @@ fn sync_autostart(enable: bool) -> Result<(), String> {
                 None,
             );
             if result.is_err() {
-                return Err(format!("Failed to open registry key: {:?}", result));
+                return;
             }
-
-            if enable {
-                let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-                let exe_str = exe_path.to_string_lossy();
-                let exe_wide: Vec<u16> = exe_str.encode_utf16().chain(std::iter::once(0)).collect();
-                let data_bytes =
-                    std::slice::from_raw_parts(exe_wide.as_ptr() as *const u8, exe_wide.len() * 2);
-
-                let result = RegSetValueExW(hkey, value_name, 0u32, REG_SZ, Some(data_bytes));
-                if result.is_err() {
-                    let _ = RegCloseKey(hkey);
-                    return Err(format!("Failed to set registry value: {:?}", result));
-                }
-            } else {
-                let _ = RegDeleteValueW(hkey, value_name);
-            }
-
+            // 删除历史遗留的 smtc2web 自启动值
+            let _ = RegDeleteValueW(hkey, value_name);
             let _ = RegCloseKey(hkey);
         }
     }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        let _ = enable;
-        Err("Auto-start is only supported on Windows".to_string())
-    }
-
-    #[cfg(target_os = "windows")]
-    Ok(())
-}
-
-#[tauri::command]
-async fn set_autostart(enable: bool) -> Result<(), String> {
-    sync_autostart(enable)?;
-
-    let app_state = APP_STATE.lock().map_err(|e| e.to_string())?;
-    let mut config = app_state.config.lock().map_err(|e| e.to_string())?;
-    config.autostart = enable;
-    config.save().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -647,12 +613,8 @@ pub fn run() {
         app_state.shared_state = Some(state);
     }
 
-    // 同步开机自启动设置到注册表
-    {
-        let app_state = APP_STATE.lock().unwrap();
-        let config = app_state.config.lock().unwrap();
-        let _ = sync_autostart(config.autostart);
-    }
+    // 清理历史遗留的开机自启动注册表项（该功能已移除）
+    cleanup_autostart_registry();
 
     let port_clone = port;
     tauri::Builder::default()
@@ -673,7 +635,6 @@ pub fn run() {
             get_current_app_id,
             updater::check_update,
             updater::start_update,
-            set_autostart,
             window_minimize,
             window_toggle_maximize,
             window_close,
@@ -694,8 +655,8 @@ pub fn run() {
 
             let window = app.get_webview_window("main").unwrap();
 
-            // 确保无边框窗口生效（在 Windows 上有时 config 的 decorations: false 不够）
-            let _ = window.set_decorations(false);
+            // 标题栏：所有平台统一使用系统原生标题栏（tauri.conf.json 已配置
+            // decorations: true），此处不再做任何运行时装饰调整。
 
             // Windows 11 圆角适配
             #[cfg(target_os = "windows")]
@@ -708,6 +669,17 @@ pub fn run() {
                     let _ = window_clone.hide();
                 }
             });
+
+            // 启动时最小化至托盘（由配置 minimize_to_tray 控制）
+            let minimize_to_tray = {
+                let app_state = APP_STATE.lock().unwrap();
+                let config_guard = app_state.config.lock().unwrap();
+                config_guard.minimize_to_tray
+            };
+            if minimize_to_tray {
+                log_info!("启动时最小化至系统托盘");
+                let _ = window.hide();
+            }
 
             Ok(())
         })

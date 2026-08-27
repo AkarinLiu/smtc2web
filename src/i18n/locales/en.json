@@ -72,8 +72,8 @@
     },
     "system": {
       "title": "System Settings",
-      "autostart": "Start on boot",
-      "autostartHint": "Automatically run this app when the system starts"
+      "minimizeToTray": "Minimize to tray on startup",
+      "minimizeToTrayHint": "Start the app minimized to the system tray without showing the main window"
     },
     "appearance": {
       "title": "Appearance",

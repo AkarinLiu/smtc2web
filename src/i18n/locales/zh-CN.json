@@ -72,8 +72,8 @@
     },
     "system": {
       "title": "系统设置",
-      "autostart": "开机自启动",
-      "autostartHint": "系统启动时自动运行本应用"
+      "minimizeToTray": "启动时最小化至托盘",
+      "minimizeToTrayHint": "应用启动后直接最小化到系统托盘，不显示主窗口"
     },
     "appearance": {
       "title": "外观",

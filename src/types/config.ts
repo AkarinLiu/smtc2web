@@ -8,8 +8,8 @@ export interface AppConfig {
   update_source: string;
   /** 是否启用自动检查更新 */
   auto_check_update: boolean;
-  /** 是否开机自启动 */
-  autostart: boolean;
+  /** 启动时最小化至系统托盘 */
+  minimize_to_tray: boolean;
   /** 主题 overlay 使用的字体 */
   font_family: string;
 }

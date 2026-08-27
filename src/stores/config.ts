@@ -12,7 +12,7 @@ export const useConfigStore = defineStore("config", () => {
     process_filter: "*",
     update_source: "github",
     auto_check_update: true,
-    autostart: false,
+    minimize_to_tray: false,
     font_family:
       '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif',
   });
@@ -39,7 +39,6 @@ export const useConfigStore = defineStore("config", () => {
     try {
       if (hasTauri()) {
         await tauriInvoke("save_config", { configDto: config });
-        await tauriInvoke("set_autostart", { enable: config.autostart });
       }
       saved.value = true;
       setTimeout(() => (saved.value = false), 2000);

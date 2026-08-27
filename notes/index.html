@@ -756,7 +756,7 @@
       </div>
       <div class="content write-in" style="animation-delay:3.1s">
         使用 <span class="code-term">notify crate</span> 文件监控，外部修改配置自动热加载。
-        开机自启通过 Windows 注册表 <span class="code-term">HKCU\Run</span> 实现。
+        启动时最小化至托盘：<span class="code-term">minimize_to_tray</span> 配置项控制，启动后直接隐藏主窗口。
       </div>
     </div>
 
@@ -812,7 +812,7 @@
         <span class="purple-text">Pinia Stores</span>（Composition API 模式，共 5 个）：
       </div>
       <div class="compare-box write-in" style="animation-delay:3.9s">
-        <div class="compare-row"><span class="compare-label">config</span><span>读写 Tauri 配置、同步 autostart</span></div>
+        <div class="compare-row"><span class="compare-label">config</span><span>读写 Tauri 配置、启动时最小化至托盘</span></div>
         <div class="compare-row"><span class="compare-label">theme</span><span>主题 CRUD、下载、ZIP 上传</span></div>
         <div class="compare-row"><span class="compare-label">locale</span><span>双端语言同步（vue-i18n ↔ Tauri）</span></div>
         <div class="compare-row"><span class="compare-label">toast</span><span>通知 + confirm 弹窗（防重叠）</span></div>

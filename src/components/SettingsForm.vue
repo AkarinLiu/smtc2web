@@ -102,10 +102,10 @@
 
             <div class="form-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" v-model="localConfig.autostart" />
-                    {{ t("settings.system.autostart") }}
+                    <input type="checkbox" v-model="localConfig.minimize_to_tray" />
+                    {{ t("settings.system.minimizeToTray") }}
                 </label>
-                <p class="hint">{{ t("settings.system.autostartHint") }}</p>
+                <p class="hint">{{ t("settings.system.minimizeToTrayHint") }}</p>
             </div>
         </div>
 

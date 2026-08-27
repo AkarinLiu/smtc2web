@@ -1,6 +1,9 @@
 packages:
   - '.'
 
+allowBuilds:
+  vue-demi: true
+
 overrides:
   nanoid@3: ^3.3.18
   picomatch@2: ^2.3.2

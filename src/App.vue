@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <TitleBar />
+        <NavBar />
         <main class="page">
             <RouterView />
         </main>
@@ -14,7 +14,7 @@ import { onMounted } from "vue";
 import { useConfigStore } from "@/stores/config";
 import { useLocaleStore } from "@/stores/locale";
 import { useUpdateStore } from "@/stores/update";
-import TitleBar from "@/components/TitleBar.vue";
+import NavBar from "@/components/NavBar.vue";
 import Toast from "@/components/Toast.vue";
 import UpdateDialog from "@/components/UpdateDialog.vue";
 import { hasTauri } from "@/utils";
