@@ -1,5 +1,18 @@
 [tray]
-show_window = "Show Window"
-open_web = "Open Web"
-check_update = "Check for Updates"
-quit = "Quit"
+show_window = "Afficher la fenêtre"
+open_web = "Ouvrir le web"
+check_update = "Rechercher les mises à jour"
+quit = "Quitter"
+
+[cli]
+about = "SMTC to Web — Synchroniser les informations de contrôle média du système avec les thèmes du navigateur"
+
+[cli.dev]
+about = "Démarrer le serveur de développement de thèmes (sans GUI, avec rechargement à chaud)"
+
+[cli.dev.args]
+port = "Port du serveur HTTP"
+no-open = "Ne pas ouvrir automatiquement le navigateur"
+vite = "Activer le mode Vite (détecté automatiquement si vite.config est présent)"
+vite-port = "Port du serveur de développement Vite"
+path = "Chemin du dossier de thèmes (par défaut : dossier actuel)"

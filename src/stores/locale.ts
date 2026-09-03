@@ -11,7 +11,16 @@ export const useLocaleStore = defineStore('locale', () => {
   // 支持的语言列表
   const availableLocales = [
     { code: 'zh-CN', name: '简体中文' },
-    { code: 'en', name: 'English' }
+    { code: 'zh-TW', name: '繁體中文' },
+    { code: 'en', name: 'English' },
+    { code: 'de-DE', name: 'Deutsch' },
+    { code: 'fr-FR', name: 'Français' },
+    { code: 'it-IT', name: 'Italiano' },
+    { code: 'ja-JP', name: '日本語' },
+    { code: 'ko-KR', name: '한국어' },
+    { code: 'ko-KP', name: '조선어' },
+    { code: 'nl-NL', name: 'Nederlands' },
+    { code: 'ru-RU', name: 'Русский' }
   ]
   
   // 当前语言（从配置 store 同步）

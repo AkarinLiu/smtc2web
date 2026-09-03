@@ -101,6 +101,13 @@ fn detect_system_lang() -> &'static str {
         match lang_id {
             0x0804 | 0x0c04 | 0x1004 | 0x1404 => return "zh-CN",
             0x0404 => return "zh-TW",
+            0x0407 | 0x0807 | 0x0c07 | 0x1007 | 0x1407 => return "de-DE",
+            0x040c | 0x080c | 0x0c0c | 0x100c => return "fr-FR",
+            0x0410 | 0x0810 => return "it-IT",
+            0x0411 => return "ja-JP",
+            0x0412 => return "ko-KR",
+            0x0413 | 0x0813 => return "nl-NL",
+            0x0419 => return "ru-RU",
             _ => {}
         }
     }
@@ -118,6 +125,30 @@ fn detect_system_lang() -> &'static str {
                 }
                 if lo.starts_with("zh") {
                     return "zh-CN";
+                }
+                if lo.starts_with("de_") || lo.starts_with("de-") {
+                    return "de-DE";
+                }
+                if lo.starts_with("fr_") || lo.starts_with("fr-") {
+                    return "fr-FR";
+                }
+                if lo.starts_with("it_") || lo.starts_with("it-") {
+                    return "it-IT";
+                }
+                if lo.starts_with("ja_") || lo.starts_with("ja-") {
+                    return "ja-JP";
+                }
+                if lo.starts_with("ko_kp") || lo.starts_with("ko-kp") {
+                    return "ko-KP";
+                }
+                if lo.starts_with("ko_") || lo.starts_with("ko-") {
+                    return "ko-KR";
+                }
+                if lo.starts_with("nl_") || lo.starts_with("nl-") {
+                    return "nl-NL";
+                }
+                if lo.starts_with("ru_") || lo.starts_with("ru-") {
+                    return "ru-RU";
                 }
             }
         }

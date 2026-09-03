@@ -1,5 +1,18 @@
 [tray]
-show_window = "Show Window"
-open_web = "Open Web"
-check_update = "Check for Updates"
-quit = "Quit"
+show_window = "Mostra finestra"
+open_web = "Apri web"
+check_update = "Controlla aggiornamenti"
+quit = "Esci"
+
+[cli]
+about = "SMTC to Web — Sincronizza le informazioni di controllo dei media di sistema con i temi del browser"
+
+[cli.dev]
+about = "Avvia il server di sviluppo dei temi (senza GUI, con hot reload)"
+
+[cli.dev.args]
+port = "Porta del server HTTP"
+no-open = "Non aprire automaticamente il browser"
+vite = "Abilita la modalità Vite (rilevata automaticamente se vite.config è presente)"
+vite-port = "Porta del server di sviluppo Vite"
+path = "Percorso della cartella dei temi (predefinito: cartella corrente)"

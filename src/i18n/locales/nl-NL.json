@@ -1,0 +1,139 @@
+{
+  "nav": {
+    "themes": "Thema's",
+    "settings": "Instellingen"
+  },
+  "themes": {
+    "title": "Themalijst",
+    "upload": "Thema importeren",
+    "uploading": "Importeren...",
+    "download": "Thema downloaden",
+    "empty": {
+      "title": "Geen thema's",
+      "description": "Klik op de knop \"Thema importeren\" om een nieuw thema toe te voegen"
+    },
+    "loading": "Laden...",
+    "card": {
+      "noPreview": "Geen voorbeeld",
+      "active": "Momenteel actief",
+      "default": "Standaard",
+      "delete": "Thema verwijderen",
+      "gitBadge": "Git",
+      "update": "Thema bijwerken",
+      "checkingUpdate": "Controleren...",
+      "upToDate": "Bijgewerkt"
+    },
+    "git": {
+      "install": "Installeren vanaf Git",
+      "dialog": {
+        "title": "Thema installeren vanuit Git-opslagplaats",
+        "url": "Opslagplaats-URL",
+        "urlPlaceholder": "https://github.com/user/theme.git",
+        "branch": "Branch (optioneel)",
+        "branchPlaceholder": "Laat leeg voor standaardbranch",
+        "installBtn": "Installeren",
+        "installing": "Installeren..."
+      }
+    }
+  },
+  "settings": {
+    "title": "Instellingen",
+    "language": {
+      "label": "Taal",
+      "placeholder": "Taal selecteren"
+    },
+    "serverPort": {
+      "label": "Serverpoort"
+    },
+    "serverAddress": {
+      "label": "Serveradres"
+    },
+    "processFilter": {
+      "label": "Procesfilter",
+      "hint": "Voer één appnaam per regel in. Gebruik * om alle apps te bewaken. Hoofdlettergevoeligheid wordt genegeerd.",
+      "currentApp": "Huidige app: "
+    },
+    "save": "Opslaan",
+    "saving": "Opslaan...",
+    "saved": "Opgeslagen",
+    "update": {
+      "title": "Instellingen bijwerken",
+      "source": {
+        "label": "Updatebron",
+        "official": "Officieel (Cloudflare)",
+        "hint": "Kies of u updates van GitHub of de officiële website wilt ophalen. De officiële bron is sneller in China."
+      },
+      "autoCheck": "Automatisch controleren op updates bij start",
+      "autoCheckHint": "Automatisch controleren op nieuwe versies wanneer de app start",
+      "checkNow": "Controleren op updates",
+      "checking": "Controleren...",
+      "newVersionAvailable": "Nieuwe versie {version} beschikbaar!",
+      "alreadyLatest": "Al bijgewerkt ({version})"
+    },
+    "system": {
+      "title": "Systeeminstellingen",
+      "minimizeToTray": "Minimaliseren naar systeemvak bij start",
+      "minimizeToTrayHint": "Start de app geminimaliseerd in het systeemvak zonder het hoofdvenster te tonen"
+    },
+    "appearance": {
+      "title": "Weergave",
+      "fontFamily": {
+        "label": "Thema-lettertype",
+        "placeholder": "Typ of selecteer een lettertype...",
+        "hint": "Dit lettertype wordt toegepast op de \"Nu afspelen\" thema-overlay. Ondersteunt alle geïnstalleerde systeemlettertypen.",
+        "scanning": "Systeemlettertypen scannen...",
+        "scanningHint": "Geïnstalleerde lettertypen detecteren, even geduld..."
+      }
+    }
+  },
+  "update": {
+    "title": "Nieuwe versie beschikbaar",
+    "currentVersion": "Huidige versie",
+    "latestVersion": "Laatste versie",
+    "download": "Update downloaden",
+    "downloading": "Downloaden...",
+    "later": "Later herinneren",
+    "checkError": "Updatecontrole mislukt",
+    "noUpdate": "Al bijgewerkt",
+    "installPrompt": "Update gedownload. Nu opnieuw starten om te installeren?",
+    "downloadError": "Download mislukt",
+    "releaseNotes": "Releaseopmerkingen"
+  },
+  "common": {
+    "loading": "Laden...",
+    "error": "Fout",
+    "success": "Succes",
+    "cancel": "Annuleren",
+    "confirm": "Bevestigen",
+    "delete": "Verwijderen"
+  },
+  "titlebar": {
+    "minimize": "Minimaliseren",
+    "maximize": "Maximaliseren",
+    "restore": "Herstellen",
+    "close": "Sluiten"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "Thema \"{name}\" succesvol geïmporteerd!",
+      "uploadError": "Thema importeren mislukt: {message}",
+      "invalidFormat": "Selecteer een themabestand in ZIP-formaat",
+      "invalidTheme": "Dit thema is ongeldig!",
+      "missingRootFolder": "Dit thema is ongeldig: het archief moet precies één hoofdmap bevatten!",
+      "missingThemeToml": "Dit thema is ongeldig: bestand theme.toml ontbreekt in de hoofdmap!",
+      "missingConfigSection": "Dit thema is ongeldig: theme.toml mist de sectie [smtc2web.theme]!",
+      "switchSuccess": "Thema succesvol gewisseld!",
+      "switchError": "Thema wisselen mislukt: {message}",
+      "deleteConfirm": "Weet u zeker dat u het thema \"{name}\" wilt verwijderen?",
+      "deleteError": "Thema verwijderen mislukt: {message}",
+      "loadError": "Thema's laden mislukt",
+      "gitInstallSuccess": "Thema succesvol geïnstalleerd vanaf Git!",
+      "gitInstallError": "Thema installeren vanaf Git mislukt: {message}",
+      "gitUpdateSuccess": "Thema succesvol bijgewerkt!",
+      "gitUpdateError": "Thema bijwerken mislukt: {message}",
+      "gitUpdateAvailable": "Update beschikbaar",
+      "gitNoUpdate": "Thema is bijgewerkt",
+      "gitUrlRequired": "Voer een opslagplaats-URL in"
+    }
+  }
+}

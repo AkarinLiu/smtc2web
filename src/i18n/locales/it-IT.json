@@ -1,0 +1,139 @@
+{
+  "nav": {
+    "themes": "Temi",
+    "settings": "Impostazioni"
+  },
+  "themes": {
+    "title": "Elenco temi",
+    "upload": "Importa tema",
+    "uploading": "Importazione...",
+    "download": "Scarica tema",
+    "empty": {
+      "title": "Nessun tema",
+      "description": "Fai clic sul pulsante \"Importa tema\" per aggiungere un nuovo tema"
+    },
+    "loading": "Caricamento...",
+    "card": {
+      "noPreview": "Nessuna anteprima",
+      "active": "Attualmente attivo",
+      "default": "Predefinito",
+      "delete": "Elimina tema",
+      "gitBadge": "Git",
+      "update": "Aggiorna tema",
+      "checkingUpdate": "Verifica...",
+      "upToDate": "Aggiornato"
+    },
+    "git": {
+      "install": "Installa da Git",
+      "dialog": {
+        "title": "Installa tema dal repository Git",
+        "url": "URL del repository",
+        "urlPlaceholder": "https://github.com/user/theme.git",
+        "branch": "Branch (opzionale)",
+        "branchPlaceholder": "Lascia vuoto per il branch predefinito",
+        "installBtn": "Installa",
+        "installing": "Installazione..."
+      }
+    }
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "language": {
+      "label": "Lingua",
+      "placeholder": "Seleziona lingua"
+    },
+    "serverPort": {
+      "label": "Porta del server"
+    },
+    "serverAddress": {
+      "label": "Indirizzo del server"
+    },
+    "processFilter": {
+      "label": "Filtro processi",
+      "hint": "Inserisci un nome applicazione per riga, usa * per monitorare tutte le applicazioni. Non distingue maiuscole/minuscole.",
+      "currentApp": "App corrente: "
+    },
+    "save": "Salva",
+    "saving": "Salvataggio...",
+    "saved": "Salvato",
+    "update": {
+      "title": "Aggiorna impostazioni",
+      "source": {
+        "label": "Sorgente di aggiornamento",
+        "official": "Ufficiale (Cloudflare)",
+        "hint": "Scegli se ricevere aggiornamenti da GitHub o dal sito ufficiale. La sorgente ufficiale è più veloce nella Cina continentale."
+      },
+      "autoCheck": "Controlla automaticamente gli aggiornamenti all'avvio",
+      "autoCheckHint": "Controlla automaticamente la disponibilità di nuove versioni all'avvio dell'app",
+      "checkNow": "Controlla aggiornamenti",
+      "checking": "Verifica...",
+      "newVersionAvailable": "Nuova versione {version} disponibile!",
+      "alreadyLatest": "Già aggiornato ({version})"
+    },
+    "system": {
+      "title": "Impostazioni di sistema",
+      "minimizeToTray": "Riduci a icona nella barra di sistema all'avvio",
+      "minimizeToTrayHint": "Avvia l'app ridotta a icona nella barra di sistema senza mostrare la finestra principale"
+    },
+    "appearance": {
+      "title": "Aspetto",
+      "fontFamily": {
+        "label": "Font del tema",
+        "placeholder": "Digita o seleziona un font...",
+        "hint": "Questo font verrà applicato all'overlay del tema \"In riproduzione\". Supporta qualsiasi font di sistema installato.",
+        "scanning": "Scansione dei font di sistema...",
+        "scanningHint": "Rilevamento dei font installati, attendere..."
+      }
+    }
+  },
+  "update": {
+    "title": "Nuova versione disponibile",
+    "currentVersion": "Versione corrente",
+    "latestVersion": "Ultima versione",
+    "download": "Scarica aggiornamento",
+    "downloading": "Download...",
+    "later": "Ricordamelo più tardi",
+    "checkError": "Controllo aggiornamenti non riuscito",
+    "noUpdate": "Già aggiornato",
+    "installPrompt": "Aggiornamento scaricato. Riavviare ora per installare?",
+    "downloadError": "Download non riuscito",
+    "releaseNotes": "Note di rilascio"
+  },
+  "common": {
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "success": "Successo",
+    "cancel": "Annulla",
+    "confirm": "Conferma",
+    "delete": "Elimina"
+  },
+  "titlebar": {
+    "minimize": "Riduci",
+    "maximize": "Massimizza",
+    "restore": "Ripristina",
+    "close": "Chiudi"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "Tema \"{name}\" importato con successo!",
+      "uploadError": "Importazione del tema non riuscita: {message}",
+      "invalidFormat": "Seleziona un file tema in formato ZIP",
+      "invalidTheme": "Questo tema non è valido!",
+      "missingRootFolder": "Questo tema non è valido: l'archivio deve contenere esattamente una cartella radice!",
+      "missingThemeToml": "Questo tema non è valido: manca il file theme.toml nella cartella radice!",
+      "missingConfigSection": "Questo tema non è valido: theme.toml non contiene la sezione [smtc2web.theme]!",
+      "switchSuccess": "Tema cambiato con successo!",
+      "switchError": "Cambio tema non riuscito: {message}",
+      "deleteConfirm": "Vuoi davvero eliminare il tema \"{name}\"?",
+      "deleteError": "Eliminazione del tema non riuscita: {message}",
+      "loadError": "Caricamento dei temi non riuscito",
+      "gitInstallSuccess": "Tema installato da Git con successo!",
+      "gitInstallError": "Installazione del tema da Git non riuscita: {message}",
+      "gitUpdateSuccess": "Tema aggiornato con successo!",
+      "gitUpdateError": "Aggiornamento del tema non riuscito: {message}",
+      "gitUpdateAvailable": "Aggiornamento disponibile",
+      "gitNoUpdate": "Il tema è aggiornato",
+      "gitUrlRequired": "Inserisci un URL del repository"
+    }
+  }
+}

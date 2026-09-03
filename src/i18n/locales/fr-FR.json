@@ -1,0 +1,139 @@
+{
+  "nav": {
+    "themes": "Thèmes",
+    "settings": "Paramètres"
+  },
+  "themes": {
+    "title": "Liste des thèmes",
+    "upload": "Importer un thème",
+    "uploading": "Importation...",
+    "download": "Télécharger le thème",
+    "empty": {
+      "title": "Aucun thème",
+      "description": "Cliquez sur le bouton « Importer un thème » pour ajouter un nouveau thème"
+    },
+    "loading": "Chargement...",
+    "card": {
+      "noPreview": "Aucun aperçu",
+      "active": "Actuellement actif",
+      "default": "Par défaut",
+      "delete": "Supprimer le thème",
+      "gitBadge": "Git",
+      "update": "Mettre à jour le thème",
+      "checkingUpdate": "Vérification...",
+      "upToDate": "À jour"
+    },
+    "git": {
+      "install": "Installer depuis Git",
+      "dialog": {
+        "title": "Installer un thème depuis un dépôt Git",
+        "url": "URL du dépôt",
+        "urlPlaceholder": "https://github.com/user/theme.git",
+        "branch": "Branche (facultatif)",
+        "branchPlaceholder": "Laisser vide pour la branche par défaut",
+        "installBtn": "Installer",
+        "installing": "Installation..."
+      }
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": {
+      "label": "Langue",
+      "placeholder": "Sélectionner la langue"
+    },
+    "serverPort": {
+      "label": "Port du serveur"
+    },
+    "serverAddress": {
+      "label": "Adresse du serveur"
+    },
+    "processFilter": {
+      "label": "Filtre de processus",
+      "hint": "Entrez un nom d'application par ligne, utilisez * pour écouter toutes les applications. Insensible à la casse.",
+      "currentApp": "Application actuelle : "
+    },
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "saved": "Enregistré",
+    "update": {
+      "title": "Mettre à jour les paramètres",
+      "source": {
+        "label": "Source de mise à jour",
+        "official": "Officiel (Cloudflare)",
+        "hint": "Choisissez de récupérer les mises à jour depuis GitHub ou le site officiel. La source officielle est plus rapide en Chine continentale."
+      },
+      "autoCheck": "Vérifier automatiquement les mises à jour au démarrage",
+      "autoCheckHint": "Rechercher automatiquement les nouvelles versions au démarrage de l'application",
+      "checkNow": "Rechercher les mises à jour",
+      "checking": "Vérification...",
+      "newVersionAvailable": "Nouvelle version {version} disponible !",
+      "alreadyLatest": "Déjà à jour ({version})"
+    },
+    "system": {
+      "title": "Paramètres système",
+      "minimizeToTray": "Réduire dans la barre d'état système au démarrage",
+      "minimizeToTrayHint": "Démarrer l'application réduite dans la barre d'état système sans afficher la fenêtre principale"
+    },
+    "appearance": {
+      "title": "Apparence",
+      "fontFamily": {
+        "label": "Police du thème",
+        "placeholder": "Saisir ou sélectionner une police...",
+        "hint": "Cette police sera appliquée à l'overlay du thème « En lecture ». Toutes les polices système installées sont prises en charge.",
+        "scanning": "Analyse des polices système...",
+        "scanningHint": "Détection des polices installées, veuillez patienter..."
+      }
+    }
+  },
+  "update": {
+    "title": "Nouvelle version disponible",
+    "currentVersion": "Version actuelle",
+    "latestVersion": "Dernière version",
+    "download": "Télécharger la mise à jour",
+    "downloading": "Téléchargement...",
+    "later": "Me le rappeler plus tard",
+    "checkError": "Échec de la vérification des mises à jour",
+    "noUpdate": "Déjà à jour",
+    "installPrompt": "Mise à jour téléchargée. Redémarrer maintenant pour installer ?",
+    "downloadError": "Échec du téléchargement",
+    "releaseNotes": "Notes de version"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "delete": "Supprimer"
+  },
+  "titlebar": {
+    "minimize": "Réduire",
+    "maximize": "Agrandir",
+    "restore": "Restaurer",
+    "close": "Fermer"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "Thème « {name} » importé avec succès !",
+      "uploadError": "Échec de l'import du thème : {message}",
+      "invalidFormat": "Veuillez sélectionner un fichier de thème au format ZIP",
+      "invalidTheme": "Ce thème est invalide !",
+      "missingRootFolder": "Ce thème est invalide : l'archive doit contenir exactement un dossier racine !",
+      "missingThemeToml": "Ce thème est invalide : fichier theme.toml manquant dans le dossier racine !",
+      "missingConfigSection": "Ce thème est invalide : theme.toml ne contient pas la section [smtc2web.theme] !",
+      "switchSuccess": "Thème changé avec succès !",
+      "switchError": "Échec du changement de thème : {message}",
+      "deleteConfirm": "Voulez-vous vraiment supprimer le thème « {name} » ?",
+      "deleteError": "Échec de la suppression du thème : {message}",
+      "loadError": "Échec du chargement des thèmes",
+      "gitInstallSuccess": "Thème installé depuis Git avec succès !",
+      "gitInstallError": "Échec de l'installation du thème depuis Git : {message}",
+      "gitUpdateSuccess": "Thème mis à jour avec succès !",
+      "gitUpdateError": "Échec de la mise à jour du thème : {message}",
+      "gitUpdateAvailable": "Mise à jour disponible",
+      "gitNoUpdate": "Le thème est à jour",
+      "gitUrlRequired": "Veuillez saisir une URL de dépôt"
+    }
+  }
+}

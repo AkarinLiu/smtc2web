@@ -1,0 +1,139 @@
+{
+  "nav": {
+    "themes": "テーマ",
+    "settings": "設定"
+  },
+  "themes": {
+    "title": "テーマ一覧",
+    "upload": "テーマをインポート",
+    "uploading": "インポート中...",
+    "download": "テーマをダウンロード",
+    "empty": {
+      "title": "テーマがありません",
+      "description": "「テーマをインポート」ボタンをクリックして新しいテーマを追加してください"
+    },
+    "loading": "読み込み中...",
+    "card": {
+      "noPreview": "プレビューなし",
+      "active": "現在使用中",
+      "default": "デフォルト",
+      "delete": "テーマを削除",
+      "gitBadge": "Git",
+      "update": "テーマを更新",
+      "checkingUpdate": "確認中...",
+      "upToDate": "最新です"
+    },
+    "git": {
+      "install": "Git からインストール",
+      "dialog": {
+        "title": "Git リポジトリからテーマをインストール",
+        "url": "リポジトリ URL",
+        "urlPlaceholder": "https://github.com/user/theme.git",
+        "branch": "ブランチ（任意）",
+        "branchPlaceholder": "空欄の場合はデフォルトブランチを使用",
+        "installBtn": "インストール",
+        "installing": "インストール中..."
+      }
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "language": {
+      "label": "言語",
+      "placeholder": "言語を選択"
+    },
+    "serverPort": {
+      "label": "サーバーポート"
+    },
+    "serverAddress": {
+      "label": "サーバーアドレス"
+    },
+    "processFilter": {
+      "label": "プロセスフィルター",
+      "hint": "1行に1つのアプリケーション名を入力してください。* を使用するとすべてのアプリケーションを監視します。大文字と小文字は区別されません。",
+      "currentApp": "現在のアプリ： "
+    },
+    "save": "保存",
+    "saving": "保存中...",
+    "saved": "保存しました",
+    "update": {
+      "title": "設定を更新",
+      "source": {
+        "label": "更新ソース",
+        "official": "公式（Cloudflare）",
+        "hint": "GitHub または公式サイトから更新を取得するかを選択してください。中国本土では公式ソースの方が速いです。"
+      },
+      "autoCheck": "起動時に更新を自動確認",
+      "autoCheckHint": "アプリ起動時に新しいバージョンがないか自動的に確認します",
+      "checkNow": "更新を確認",
+      "checking": "確認中...",
+      "newVersionAvailable": "新しいバージョン {version} が利用可能です！",
+      "alreadyLatest": "すでに最新です ({version})"
+    },
+    "system": {
+      "title": "システム設定",
+      "minimizeToTray": "起動時にトレイに最小化",
+      "minimizeToTrayHint": "アプリ起動後、メインウィンドウを表示せずにシステムトレイに最小化します"
+    },
+    "appearance": {
+      "title": "外観",
+      "fontFamily": {
+        "label": "テーマフォント",
+        "placeholder": "フォントを入力または選択...",
+        "hint": "このフォントは「再生中」テーマのオーバーレイに適用されます。インストール済みのシステムフォントに対応しています。",
+        "scanning": "システムフォントをスキャン中...",
+        "scanningHint": "インストール済みフォントを検出しています。お待ちください..."
+      }
+    }
+  },
+  "update": {
+    "title": "新しいバージョンが利用可能",
+    "currentVersion": "現在のバージョン",
+    "latestVersion": "最新バージョン",
+    "download": "更新をダウンロード",
+    "downloading": "ダウンロード中...",
+    "later": "後で通知",
+    "checkError": "更新の確認に失敗しました",
+    "noUpdate": "すでに最新です",
+    "installPrompt": "更新がダウンロードされました。今すぐ再起動してインストールしますか？",
+    "downloadError": "ダウンロードに失敗しました",
+    "releaseNotes": "更新内容"
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "delete": "削除"
+  },
+  "titlebar": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "元に戻す",
+    "close": "閉じる"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "テーマ「{name}」をインポートしました！",
+      "uploadError": "テーマのインポートに失敗しました：{message}",
+      "invalidFormat": "ZIP形式のテーマファイルを選択してください",
+      "invalidTheme": "このテーマは無効です！",
+      "missingRootFolder": "このテーマは無効です：アーカイブにはルートフォルダーが1つだけ含まれている必要があります！",
+      "missingThemeToml": "このテーマは無効です：ルートフォルダーに theme.toml ファイルがありません！",
+      "missingConfigSection": "このテーマは無効です：theme.toml に [smtc2web.theme] 設定セクションがありません！",
+      "switchSuccess": "テーマを切り替えました！",
+      "switchError": "テーマの切り替えに失敗しました：{message}",
+      "deleteConfirm": "テーマ「{name}」を削除してもよろしいですか？",
+      "deleteError": "テーマの削除に失敗しました：{message}",
+      "loadError": "テーマの読み込みに失敗しました",
+      "gitInstallSuccess": "Git からテーマをインストールしました！",
+      "gitInstallError": "Git からのテーマのインストールに失敗しました：{message}",
+      "gitUpdateSuccess": "テーマを更新しました！",
+      "gitUpdateError": "テーマの更新に失敗しました：{message}",
+      "gitUpdateAvailable": "更新があります",
+      "gitNoUpdate": "テーマは最新です",
+      "gitUrlRequired": "リポジトリ URL を入力してください"
+    }
+  }
+}

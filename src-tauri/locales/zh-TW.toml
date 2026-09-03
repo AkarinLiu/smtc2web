@@ -1,8 +1,8 @@
 [tray]
-show_window = "Show Window"
-open_web = "Open Web"
+show_window = "顯示視窗"
+open_web = "開啟網頁"
 check_update = "檢查更新"
-quit = "Quit"
+quit = "結束"
 
 [cli]
 about = "SMTC to Web — 將系統媒體控制資訊同步到瀏覽器主題"

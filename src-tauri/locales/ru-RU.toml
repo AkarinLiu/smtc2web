@@ -1,5 +1,18 @@
 [tray]
-show_window = "Show Window"
-open_web = "Open Web"
-check_update = "Check for Updates"
-quit = "Quit"
+show_window = "Показать окно"
+open_web = "Открыть веб"
+check_update = "Проверить обновления"
+quit = "Выход"
+
+[cli]
+about = "SMTC to Web — Синхронизация информации об управлении системным мультимедиа с темами браузера"
+
+[cli.dev]
+about = "Запустить сервер разработки темы (без GUI, с горячей перезагрузкой)"
+
+[cli.dev.args]
+port = "Порт HTTP-сервера"
+no-open = "Не открывать браузер автоматически"
+vite = "Включить режим Vite (автоматически, если есть vite.config)"
+vite-port = "Порт Vite dev-сервера"
+path = "Путь к каталогу темы (по умолчанию текущий каталог)"

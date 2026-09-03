@@ -108,5 +108,18 @@ pub fn get_current_locale_data() -> Option<Locale> {
 
 /// 检查语言是否支持
 pub fn is_locale_supported(locale: &str) -> bool {
-    matches!(locale, "zh-CN" | "en")
+    matches!(
+        locale,
+        "zh-CN"
+            | "zh-TW"
+            | "en"
+            | "de-DE"
+            | "fr-FR"
+            | "it-IT"
+            | "ja-JP"
+            | "ko-KR"
+            | "ko-KP"
+            | "nl-NL"
+            | "ru-RU"
+    )
 }

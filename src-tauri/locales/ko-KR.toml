@@ -1,5 +1,18 @@
 [tray]
-show_window = "Show Window"
-open_web = "Open Web"
-check_update = "Check for Updates"
-quit = "Quit"
+show_window = "창 표시"
+open_web = "웹 열기"
+check_update = "업데이트 확인"
+quit = "종료"
+
+[cli]
+about = "SMTC to Web — 시스템 미디어 제어 정보를 브라우저 테마와 동기화"
+
+[cli.dev]
+about = "테마 개발 서버 시작 (GUI 없음, 핫 리로드 지원)"
+
+[cli.dev.args]
+port = "HTTP 서버 포트"
+no-open = "브라우저를 자동으로 열지 않음"
+vite = "Vite 모드 활성화 (vite.config가 있으면 자동 감지)"
+vite-port = "Vite 개발 서버 포트"
+path = "테마 디렉터리 경로 (기본값: 현재 디렉터리)"

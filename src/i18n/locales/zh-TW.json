@@ -1,0 +1,139 @@
+{
+  "nav": {
+    "themes": "主題",
+    "settings": "設定"
+  },
+  "themes": {
+    "title": "主題列表",
+    "upload": "匯入主題",
+    "uploading": "匯入中……",
+    "download": "下載主題",
+    "empty": {
+      "title": "沒有主題",
+      "description": "點擊「匯入主題」按鈕以新增主題"
+    },
+    "loading": "載入中……",
+    "card": {
+      "noPreview": "無預覽圖",
+      "active": "目前使用中",
+      "default": "預設",
+      "delete": "刪除主題",
+      "gitBadge": "Git",
+      "update": "更新主題",
+      "checkingUpdate": "檢查更新中…",
+      "upToDate": "已是最新"
+    },
+    "git": {
+      "install": "從 Git 安裝",
+      "dialog": {
+        "title": "從 Git 存放庫安裝主題",
+        "url": "存放庫網址",
+        "urlPlaceholder": "https://github.com/user/theme.git",
+        "branch": "分支名稱（選填）",
+        "branchPlaceholder": "留空則使用預設分支",
+        "installBtn": "安裝",
+        "installing": "安裝中……"
+      }
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "language": {
+      "label": "語言",
+      "placeholder": "選擇語言"
+    },
+    "serverPort": {
+      "label": "伺服器連接埠"
+    },
+    "serverAddress": {
+      "label": "伺服器位址"
+    },
+    "processFilter": {
+      "label": "程序過濾",
+      "hint": "每行輸入一個應用程式名稱，使用 * 來監聽所有應用程式。不區分大小寫。",
+      "currentApp": "目前應用： "
+    },
+    "save": "儲存",
+    "saving": "儲存中……",
+    "saved": "已儲存",
+    "update": {
+      "title": "更新設定",
+      "source": {
+        "label": "更新來源",
+        "official": "官網 (Cloudflare)",
+        "hint": "選擇從 GitHub 或官網取得更新。官網來源在中國大陸存取更快。"
+      },
+      "autoCheck": "啟動時自動檢查更新",
+      "autoCheckHint": "應用程式啟動時自動檢查是否有新版本可用",
+      "checkNow": "檢查更新",
+      "checking": "檢查中……",
+      "newVersionAvailable": "發現新版本 {version}！",
+      "alreadyLatest": "已是最新版本 ({version})"
+    },
+    "system": {
+      "title": "系統設定",
+      "minimizeToTray": "啟動時最小化至系統匣",
+      "minimizeToTrayHint": "應用程式啟動後直接最小化到系統匣，不顯示主視窗"
+    },
+    "appearance": {
+      "title": "外觀",
+      "fontFamily": {
+        "label": "主題字型",
+        "placeholder": "輸入或選擇字型...",
+        "hint": "此字型將套用在「正在播放」主題覆蓋層中。支援已安裝的系統字型。",
+        "scanning": "正在掃描系統字型...",
+        "scanningHint": "自動偵測已安裝的字型，請稍候..."
+      }
+    }
+  },
+  "update": {
+    "title": "發現新版本",
+    "currentVersion": "目前版本",
+    "latestVersion": "最新版本",
+    "download": "下載更新",
+    "downloading": "下載中……",
+    "later": "稍後提醒",
+    "checkError": "檢查更新失敗",
+    "noUpdate": "已是最新版本",
+    "installPrompt": "更新已下載，是否立即重新啟動安裝？",
+    "downloadError": "下載失敗",
+    "releaseNotes": "更新內容"
+  },
+  "common": {
+    "loading": "載入中……",
+    "error": "錯誤",
+    "success": "成功",
+    "cancel": "取消",
+    "confirm": "確認",
+    "delete": "刪除"
+  },
+  "titlebar": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "向下還原",
+    "close": "關閉"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "主題「{name}」匯入成功！",
+      "uploadError": "匯入主題失敗：{message}",
+      "invalidFormat": "請選擇一個ZIP格式主題檔案",
+      "invalidTheme": "此主題無效！",
+      "missingRootFolder": "此主題無效：壓縮檔必須包含一個根目錄！",
+      "missingThemeToml": "此主題無效：根目錄中缺少 theme.toml 檔案！",
+      "missingConfigSection": "此主題無效：theme.toml 缺少 [smtc2web.theme] 設定部分！",
+      "switchSuccess": "主題切換成功！",
+      "switchError": "匯入主題失敗：{message}",
+      "deleteConfirm": "是否刪除主題「{name}」？",
+      "deleteError": "匯入主題失敗：{message}",
+      "loadError": "主題載入失敗",
+      "gitInstallSuccess": "主題從 Git 安裝成功！",
+      "gitInstallError": "從 Git 安裝主題失敗：{message}",
+      "gitUpdateSuccess": "主題更新成功！",
+      "gitUpdateError": "主題更新失敗：{message}",
+      "gitUpdateAvailable": "有可用更新",
+      "gitNoUpdate": "主題已是最新",
+      "gitUrlRequired": "請輸入存放庫網址"
+    }
+  }
+}

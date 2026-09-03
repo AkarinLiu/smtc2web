@@ -1,0 +1,139 @@
+{
+  "nav": {
+    "themes": "Themen",
+    "settings": "Einstellungen"
+  },
+  "themes": {
+    "title": "Themenliste",
+    "upload": "Thema importieren",
+    "uploading": "Wird importiert...",
+    "download": "Thema herunterladen",
+    "empty": {
+      "title": "Keine Themen",
+      "description": "Klicken Sie auf die Schaltfläche „Thema importieren“, um ein neues Thema hinzuzufügen"
+    },
+    "loading": "Wird geladen...",
+    "card": {
+      "noPreview": "Keine Vorschau",
+      "active": "Derzeit aktiv",
+      "default": "Standard",
+      "delete": "Thema löschen",
+      "gitBadge": "Git",
+      "update": "Thema aktualisieren",
+      "checkingUpdate": "Wird geprüft...",
+      "upToDate": "Auf dem neuesten Stand"
+    },
+    "git": {
+      "install": "Aus Git installieren",
+      "dialog": {
+        "title": "Thema aus Git-Repository installieren",
+        "url": "Repository-URL",
+        "urlPlaceholder": "https://github.com/user/theme.git",
+        "branch": "Branch (optional)",
+        "branchPlaceholder": "Leer lassen für den Standard-Branch",
+        "installBtn": "Installieren",
+        "installing": "Wird installiert..."
+      }
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "language": {
+      "label": "Sprache",
+      "placeholder": "Sprache auswählen"
+    },
+    "serverPort": {
+      "label": "Server-Port"
+    },
+    "serverAddress": {
+      "label": "Server-Adresse"
+    },
+    "processFilter": {
+      "label": "Prozessfilter",
+      "hint": "Geben Sie pro Zeile einen Anwendungsnamen ein. Verwenden Sie *, um alle Anwendungen zu überwachen. Groß-/Kleinschreibung wird nicht beachtet.",
+      "currentApp": "Aktuelle App: "
+    },
+    "save": "Speichern",
+    "saving": "Wird gespeichert...",
+    "saved": "Gespeichert",
+    "update": {
+      "title": "Einstellungen aktualisieren",
+      "source": {
+        "label": "Update-Quelle",
+        "official": "Offiziell (Cloudflare)",
+        "hint": "Wählen Sie, ob Updates von GitHub oder der offiziellen Website geladen werden. Die offizielle Quelle ist in Festlandchina schneller."
+      },
+      "autoCheck": "Beim Start automatisch nach Updates suchen",
+      "autoCheckHint": "Beim Start der App automatisch nach neuen Versionen suchen",
+      "checkNow": "Nach Updates suchen",
+      "checking": "Wird geprüft...",
+      "newVersionAvailable": "Neue Version {version} verfügbar!",
+      "alreadyLatest": "Bereits auf dem neuesten Stand ({version})"
+    },
+    "system": {
+      "title": "Systemeinstellungen",
+      "minimizeToTray": "Beim Start in die Taskleiste minimieren",
+      "minimizeToTrayHint": "Beim Start direkt in die System-Taskleiste minimieren, ohne das Hauptfenster anzuzeigen"
+    },
+    "appearance": {
+      "title": "Erscheinungsbild",
+      "fontFamily": {
+        "label": "Theme-Schriftart",
+        "placeholder": "Schriftart eingeben oder auswählen...",
+        "hint": "Diese Schriftart wird im Overlay des Themas „Wird wiedergegeben“ verwendet. Installierte Systemschriftarten werden unterstützt.",
+        "scanning": "Systemschriftarten werden gescannt...",
+        "scanningHint": "Installierte Schriftarten werden erkannt, bitte warten..."
+      }
+    }
+  },
+  "update": {
+    "title": "Neue Version verfügbar",
+    "currentVersion": "Aktuelle Version",
+    "latestVersion": "Neueste Version",
+    "download": "Update herunterladen",
+    "downloading": "Wird heruntergeladen...",
+    "later": "Später erinnern",
+    "checkError": "Update-Prüfung fehlgeschlagen",
+    "noUpdate": "Bereits auf dem neuesten Stand",
+    "installPrompt": "Update heruntergeladen. Jetzt neu starten und installieren?",
+    "downloadError": "Download fehlgeschlagen",
+    "releaseNotes": "Versionshinweise"
+  },
+  "common": {
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "delete": "Löschen"
+  },
+  "titlebar": {
+    "minimize": "Minimieren",
+    "maximize": "Maximieren",
+    "restore": "Wiederherstellen",
+    "close": "Schließen"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "Thema „{name}“ erfolgreich importiert!",
+      "uploadError": "Thema konnte nicht importiert werden: {message}",
+      "invalidFormat": "Bitte wählen Sie eine ZIP-Datei mit einem Thema aus",
+      "invalidTheme": "Dieses Thema ist ungültig!",
+      "missingRootFolder": "Dieses Thema ist ungültig: Das Archiv muss genau einen Root-Ordner enthalten!",
+      "missingThemeToml": "Dieses Thema ist ungültig: Die Datei theme.toml fehlt im Root-Ordner!",
+      "missingConfigSection": "Dieses Thema ist ungültig: In theme.toml fehlt der Abschnitt [smtc2web.theme]!",
+      "switchSuccess": "Thema erfolgreich gewechselt!",
+      "switchError": "Thema konnte nicht gewechselt werden: {message}",
+      "deleteConfirm": "Möchten Sie das Thema „{name}“ wirklich löschen?",
+      "deleteError": "Thema konnte nicht gelöscht werden: {message}",
+      "loadError": "Themen konnten nicht geladen werden",
+      "gitInstallSuccess": "Thema wurde erfolgreich aus Git installiert!",
+      "gitInstallError": "Thema konnte nicht aus Git installiert werden: {message}",
+      "gitUpdateSuccess": "Thema erfolgreich aktualisiert!",
+      "gitUpdateError": "Thema konnte nicht aktualisiert werden: {message}",
+      "gitUpdateAvailable": "Update verfügbar",
+      "gitNoUpdate": "Thema ist auf dem neuesten Stand",
+      "gitUrlRequired": "Bitte geben Sie eine Repository-URL ein"
+    }
+  }
+}

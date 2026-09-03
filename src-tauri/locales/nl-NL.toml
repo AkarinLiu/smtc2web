@@ -1,5 +1,18 @@
 [tray]
-show_window = "Show Window"
-open_web = "Open Web"
-check_update = "Check for Updates"
-quit = "Quit"
+show_window = "Venster tonen"
+open_web = "Web openen"
+check_update = "Controleren op updates"
+quit = "Afsluiten"
+
+[cli]
+about = "SMTC to Web — Systeemmediabesturingsinfo synchroniseren met browserthema's"
+
+[cli.dev]
+about = "Thema-ontwikkelserver starten (geen GUI, met hot reload)"
+
+[cli.dev.args]
+port = "HTTP-serverpoort"
+no-open = "Browser niet automatisch openen"
+vite = "Vite-modus inschakelen (automatisch gedetecteerd als vite.config aanwezig is)"
+vite-port = "Vite dev-serverpoort"
+path = "Themamappad (standaard: huidige map)"

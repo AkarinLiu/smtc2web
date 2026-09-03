@@ -1,0 +1,18 @@
+[tray]
+show_window = "창 보이기"
+open_web = "누리망 열기"
+check_update = "갱신 확인"
+quit = "종료"
+
+[cli]
+about = "SMTC to Web — 체계 매체 조종 정보를 누리망 주제에 동기화"
+
+[cli.dev]
+about = "주제 개발 봉사기 시작 (GUI 없음, 즉시 다시 읽기 지원)"
+
+[cli.dev.args]
+port = "HTTP 봉사기 접속 구멍"
+no-open = "누리망 유람기를 자동으로 열지 않음"
+vite = "Vite 방식 사용 (vite.config가 있으면 자동으로 사용)"
+vite-port = "Vite 개발 봉사기 접속 구멍"
+path = "주제 문건철 경로 (기본: 현재 문건철)"

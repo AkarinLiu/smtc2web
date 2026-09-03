@@ -1,5 +1,18 @@
 [tray]
-show_window = "Show Window"
-open_web = "Open Web"
-check_update = "Check for Updates"
-quit = "Quit"
+show_window = "ウィンドウを表示"
+open_web = "Web を開く"
+check_update = "更新を確認"
+quit = "終了"
+
+[cli]
+about = "SMTC to Web — システムのメディアコントロール情報をブラウザーテーマに同期"
+
+[cli.dev]
+about = "テーマ開発サーバーを起動（GUI なし、ホットリロード対応）"
+
+[cli.dev.args]
+port = "HTTP サーバーポート"
+no-open = "ブラウザーを自動的に開かない"
+vite = "Vite モードを有効にする（vite.config がある場合は自動的に有効）"
+vite-port = "Vite dev サーバーポート"
+path = "テーマディレクトリのパス（デフォルトは現在のディレクトリ）"

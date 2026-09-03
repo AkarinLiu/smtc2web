@@ -1,0 +1,139 @@
+{
+  "nav": {
+    "themes": "주제",
+    "settings": "설정"
+  },
+  "themes": {
+    "title": "주제 목록",
+    "upload": "주제 올려넣기",
+    "uploading": "올려넣는 중...",
+    "download": "주제 내리적재",
+    "empty": {
+      "title": "주제가 없습니다",
+      "description": "“주제 올려넣기” 단추를 눌러 새 주제를 추가하십시오"
+    },
+    "loading": "읽는 중...",
+    "card": {
+      "noPreview": "미리보기 없음",
+      "active": "현재 사용 중",
+      "default": "기본",
+      "delete": "주제 삭제",
+      "gitBadge": "Git",
+      "update": "주제 갱신",
+      "checkingUpdate": "갱신 확인 중...",
+      "upToDate": "최신 상태"
+    },
+    "git": {
+      "install": "Git에서 설치",
+      "dialog": {
+        "title": "Git 저장소에서 주제 설치",
+        "url": "저장소 주소",
+        "urlPlaceholder": "https://github.com/user/theme.git",
+        "branch": "갈래 (선택)",
+        "branchPlaceholder": "비워 두면 기본 갈래를 사용합니다",
+        "installBtn": "설치",
+        "installing": "설치 중..."
+      }
+    }
+  },
+  "settings": {
+    "title": "설정",
+    "language": {
+      "label": "언어",
+      "placeholder": "언어 선택"
+    },
+    "serverPort": {
+      "label": "봉사기 접속 구멍"
+    },
+    "serverAddress": {
+      "label": "봉사기 주소"
+    },
+    "processFilter": {
+      "label": "과정 거르개",
+      "hint": "한 줄에 하나의 프로그람 이름을 넣으십시오. *를 쓰면 모든 프로그람을 살펴봅니다. 대소문자 구분 없음.",
+      "currentApp": "현재 프로그람: "
+    },
+    "save": "보존",
+    "saving": "보존 중...",
+    "saved": "보존됨",
+    "update": {
+      "title": "설정 갱신",
+      "source": {
+        "label": "갱신 원천",
+        "official": "공식 (Cloudflare)",
+        "hint": "GitHub 또는 공식 누리집에서 갱신을 가져올지 선택하십시오. 중국 본토에서는 공식 원천이 더 빠릅니다."
+      },
+      "autoCheck": "시작할 때 자동으로 갱신 확인",
+      "autoCheckHint": "프로그람이 시작될 때 새 판이 있는지 자동으로 확인합니다",
+      "checkNow": "지금 갱신 확인",
+      "checking": "확인 중...",
+      "newVersionAvailable": "새 판 {version}이 사용 가능합니다!",
+      "alreadyLatest": "이미 최신 판입니다 ({version})"
+    },
+    "system": {
+      "title": "체계 설정",
+      "minimizeToTray": "시작할 때 알림 영역으로 최소화",
+      "minimizeToTrayHint": "프로그람 시작 후 기본 창을 보이지 않고 알림 영역으로 최소화합니다"
+    },
+    "appearance": {
+      "title": "모양",
+      "fontFamily": {
+        "label": "주제 글꼴",
+        "placeholder": "글꼴을 입력하거나 선택하십시오...",
+        "hint": "이 글꼴은 “재생 중” 주제 덮개판에 적용됩니다. 설치된 체계 글꼴을 지원합니다.",
+        "scanning": "체계 글꼴을 검사하는 중...",
+        "scanningHint": "설치된 글꼴을 감지하는 중입니다. 잠시 기다리십시오..."
+      }
+    }
+  },
+  "update": {
+    "title": "새 판 사용 가능",
+    "currentVersion": "현재 판본",
+    "latestVersion": "최신 판본",
+    "download": "갱신 내리적재",
+    "downloading": "내리적재 중...",
+    "later": "나중에 알림",
+    "checkError": "갱신 확인 실패",
+    "noUpdate": "이미 최신 판입니다",
+    "installPrompt": "갱신이 내리적재되었습니다. 지금 다시 시작하여 설치하시겠습니까?",
+    "downloadError": "내리적재 실패",
+    "releaseNotes": "갱신 내용"
+  },
+  "common": {
+    "loading": "읽는 중...",
+    "error": "오류",
+    "success": "성공",
+    "cancel": "취소",
+    "confirm": "확인",
+    "delete": "삭제"
+  },
+  "titlebar": {
+    "minimize": "최소화",
+    "maximize": "최대화",
+    "restore": "복원",
+    "close": "닫기"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "주제 “{name}” 올려넣기 성공!",
+      "uploadError": "주제 올려넣기 실패: {message}",
+      "invalidFormat": "ZIP 형식의 주제 문건을 선택하십시오",
+      "invalidTheme": "이 주제는 무효입니다!",
+      "missingRootFolder": "이 주제는 무효입니다: 압축 문건에는 뿌리 문건철이 꼭 하나 있어야 합니다!",
+      "missingThemeToml": "이 주제는 무효입니다: 뿌리 문건철에 theme.toml 문건이 없습니다!",
+      "missingConfigSection": "이 주제는 무효입니다: theme.toml에 [smtc2web.theme] 설정 부분이 없습니다!",
+      "switchSuccess": "주제 전환 성공!",
+      "switchError": "주제 전환 실패: {message}",
+      "deleteConfirm": "주제 “{name}”을(를) 삭제하시겠습니까?",
+      "deleteError": "주제 삭제 실패: {message}",
+      "loadError": "주제 읽기 실패",
+      "gitInstallSuccess": "Git에서 주제 설치 성공!",
+      "gitInstallError": "Git에서 주제 설치 실패: {message}",
+      "gitUpdateSuccess": "주제 갱신 성공!",
+      "gitUpdateError": "주제 갱신 실패: {message}",
+      "gitUpdateAvailable": "갱신 가능",
+      "gitNoUpdate": "주제가 이미 최신입니다",
+      "gitUrlRequired": "저장소 주소를 입력하십시오"
+    }
+  }
+}

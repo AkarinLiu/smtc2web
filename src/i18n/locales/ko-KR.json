@@ -1,0 +1,139 @@
+{
+  "nav": {
+    "themes": "테마",
+    "settings": "설정"
+  },
+  "themes": {
+    "title": "테마 목록",
+    "upload": "테마 가져오기",
+    "uploading": "가져오는 중...",
+    "download": "테마 다운로드",
+    "empty": {
+      "title": "테마 없음",
+      "description": "\"테마 가져오기\" 버튼을 클릭하여 새 테마를 추가하세요"
+    },
+    "loading": "불러오는 중...",
+    "card": {
+      "noPreview": "미리보기 없음",
+      "active": "현재 사용 중",
+      "default": "기본",
+      "delete": "테마 삭제",
+      "gitBadge": "Git",
+      "update": "테마 업데이트",
+      "checkingUpdate": "확인 중...",
+      "upToDate": "최신 상태"
+    },
+    "git": {
+      "install": "Git에서 설치",
+      "dialog": {
+        "title": "Git 저장소에서 테마 설치",
+        "url": "저장소 URL",
+        "urlPlaceholder": "https://github.com/user/theme.git",
+        "branch": "브랜치 (선택 사항)",
+        "branchPlaceholder": "비워 두면 기본 브랜치 사용",
+        "installBtn": "설치",
+        "installing": "설치 중..."
+      }
+    }
+  },
+  "settings": {
+    "title": "설정",
+    "language": {
+      "label": "언어",
+      "placeholder": "언어 선택"
+    },
+    "serverPort": {
+      "label": "서버 포트"
+    },
+    "serverAddress": {
+      "label": "서버 주소"
+    },
+    "processFilter": {
+      "label": "프로세스 필터",
+      "hint": "한 줄에 하나의 앱 이름을 입력하세요. *를 사용하면 모든 앱을 감시합니다. 대소문자 구분 안 함.",
+      "currentApp": "현재 앱: "
+    },
+    "save": "저장",
+    "saving": "저장 중...",
+    "saved": "저장됨",
+    "update": {
+      "title": "설정 업데이트",
+      "source": {
+        "label": "업데이트 소스",
+        "official": "공식 (Cloudflare)",
+        "hint": "GitHub 또는 공식 사이트에서 업데이트를 받을지 선택하세요. 중국 본토에서는 공식 소스가 더 빠릅니다."
+      },
+      "autoCheck": "시작 시 업데이트 자동 확인",
+      "autoCheckHint": "앱 시작 시 새 버전이 있는지 자동으로 확인합니다",
+      "checkNow": "업데이트 확인",
+      "checking": "확인 중...",
+      "newVersionAvailable": "새 버전 {version}을 사용할 수 있습니다!",
+      "alreadyLatest": "이미 최신 버전입니다 ({version})"
+    },
+    "system": {
+      "title": "시스템 설정",
+      "minimizeToTray": "시작 시 트레이로 최소화",
+      "minimizeToTrayHint": "앱 시작 후 메인 창을 표시하지 않고 시스템 트레이로 최소화합니다"
+    },
+    "appearance": {
+      "title": "모양",
+      "fontFamily": {
+        "label": "테마 글꼴",
+        "placeholder": "글꼴을 입력하거나 선택하세요...",
+        "hint": "이 글꼴은 \"재생 중\" 테마 오버레이에 적용됩니다. 설치된 시스템 글꼴을 지원합니다.",
+        "scanning": "시스템 글꼴 스캔 중...",
+        "scanningHint": "설치된 글꼴을 감지하는 중입니다. 잠시 기다려 주세요..."
+      }
+    }
+  },
+  "update": {
+    "title": "새 버전 사용 가능",
+    "currentVersion": "현재 버전",
+    "latestVersion": "최신 버전",
+    "download": "업데이트 다운로드",
+    "downloading": "다운로드 중...",
+    "later": "나중에 알림",
+    "checkError": "업데이트 확인 실패",
+    "noUpdate": "이미 최신 버전",
+    "installPrompt": "업데이트가 다운로드되었습니다. 지금 다시 시작하여 설치하시겠습니까?",
+    "downloadError": "다운로드 실패",
+    "releaseNotes": "업데이트 내용"
+  },
+  "common": {
+    "loading": "불러오는 중...",
+    "error": "오류",
+    "success": "성공",
+    "cancel": "취소",
+    "confirm": "확인",
+    "delete": "삭제"
+  },
+  "titlebar": {
+    "minimize": "최소화",
+    "maximize": "최대화",
+    "restore": "복원",
+    "close": "닫기"
+  },
+  "messages": {
+    "theme": {
+      "uploadSuccess": "테마 \"{name}\"을(를) 가져왔습니다!",
+      "uploadError": "테마 가져오기 실패: {message}",
+      "invalidFormat": "ZIP 형식의 테마 파일을 선택하세요",
+      "invalidTheme": "이 테마는 유효하지 않습니다!",
+      "missingRootFolder": "이 테마는 유효하지 않습니다: 압축 파일에는 루트 폴더가 정확히 하나 있어야 합니다!",
+      "missingThemeToml": "이 테마는 유효하지 않습니다: 루트 폴더에 theme.toml 파일이 없습니다!",
+      "missingConfigSection": "이 테마는 유효하지 않습니다: theme.toml에 [smtc2web.theme] 구성 섹션이 없습니다!",
+      "switchSuccess": "테마를 전환했습니다!",
+      "switchError": "테마 전환 실패: {message}",
+      "deleteConfirm": "테마 \"{name}\"을(를) 삭제하시겠습니까?",
+      "deleteError": "테마 삭제 실패: {message}",
+      "loadError": "테마 불러오기 실패",
+      "gitInstallSuccess": "Git에서 테마를 설치했습니다!",
+      "gitInstallError": "Git에서 테마 설치 실패: {message}",
+      "gitUpdateSuccess": "테마를 업데이트했습니다!",
+      "gitUpdateError": "테마 업데이트 실패: {message}",
+      "gitUpdateAvailable": "업데이트 사용 가능",
+      "gitNoUpdate": "테마가 최신 상태입니다",
+      "gitUrlRequired": "저장소 URL을 입력하세요"
+    }
+  }
+}
