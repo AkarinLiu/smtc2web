@@ -71,8 +71,8 @@ static APP_STATE: std::sync::LazyLock<Mutex<AppState>> = std::sync::LazyLock::ne
 // every request. The fingerprint deliberately excludes `last_update` and only
 // uses the album-art *length* (O(1)), so a position tick within a second reuses
 // the cached response instead of re-rendering the whole cover each poll.
-static NOW_CACHE: std::sync::LazyLock<Mutex<Option<(String, Vec<u8>)>>> =
-    std::sync::LazyLock::new(|| Mutex::new(None));
+type NowCache = std::sync::LazyLock<std::sync::Mutex<Option<(String, Vec<u8>)>>>;
+static NOW_CACHE: NowCache = std::sync::LazyLock::new(|| Mutex::new(None));
 
 /* ---------- 主题文件托管由 theme.rs 提供 ---------- */
 
