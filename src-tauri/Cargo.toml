@@ -8,8 +8,9 @@ version = "0.6.3"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = []
+default = ["custom-protocol"]
 dev = []
+custom-protocol = ["tauri/custom-protocol"]
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
@@ -71,3 +72,10 @@ version = "0.58"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 mpris = "2.0"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "core"
+harness = false

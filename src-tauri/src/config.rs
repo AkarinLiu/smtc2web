@@ -103,6 +103,10 @@ impl Config {
 
         // 在单独的线程中处理文件变化事件
         thread::spawn(move || {
+            // 保持 watcher 存活；否则 notify 停止且 sender 被 drop，
+            // 下方 recv_timeout 会立即返回 Disconnected，导致忙循环吃满一核。
+            let _watcher = watcher;
+
             let mut last_modified = fs::metadata(&config_path)
                 .ok()
                 .and_then(|meta| meta.modified().ok());
@@ -138,8 +142,12 @@ impl Config {
                     Ok(Err(e)) => {
                         log_error!("Watch error: {}", e);
                     }
-                    Err(_) => {
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         // 超时，继续监听
+                    }
+                    Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                        // sender 被 drop（watcher 停止）时退出，避免忙循环
+                        break;
                     }
                 }
             }

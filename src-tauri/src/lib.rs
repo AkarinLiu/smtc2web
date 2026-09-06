@@ -66,12 +66,92 @@ static APP_STATE: std::sync::LazyLock<Mutex<AppState>> = std::sync::LazyLock::ne
     })
 });
 
+// Cached serialized /api/now payload so browser polls don't re-clone the Song
+// (deep-copying a large base64 album-art String) nor re-serialize the JSON on
+// every request. The fingerprint deliberately excludes `last_update` and only
+// uses the album-art *length* (O(1)), so a position tick within a second reuses
+// the cached response instead of re-rendering the whole cover each poll.
+static NOW_CACHE: std::sync::LazyLock<Mutex<Option<(String, Vec<u8>)>>> =
+    std::sync::LazyLock::new(|| Mutex::new(None));
+
 /* ---------- 主题文件托管由 theme.rs 提供 ---------- */
 
 fn with_state(
     s: Shared,
 ) -> impl Filter<Extract = (Shared,), Error = std::convert::Infallible> + Clone {
     warp::any().map(move || s.clone())
+}
+
+// Cheap content fingerprint — small strings plus the album-art *length*, never
+// touching (or copying) the big base64 payload itself.
+fn now_fingerprint(song: &Song, font_family: &str) -> String {
+    let mut fp = String::new();
+    fp.push_str(&song.title);
+    fp.push('\u{1}');
+    fp.push_str(&song.artist);
+    fp.push('\u{1}');
+    fp.push_str(&song.album);
+    fp.push('\u{1}');
+    fp.push_str(if song.is_playing { "1" } else { "0" });
+    fp.push('\u{1}');
+    if let Some(p) = &song.position {
+        fp.push_str(p);
+    }
+    fp.push('\u{1}');
+    if let Some(d) = &song.duration {
+        fp.push_str(d);
+    }
+    fp.push('\u{1}');
+    if let Some(pct) = song.pct {
+        fp.push_str(&format!("{}", pct));
+    }
+    fp.push('\u{1}');
+    fp.push_str(font_family);
+    fp.push('\u{1}');
+    if let Some(art) = &song.album_art {
+        fp.push_str("art-len:");
+        fp.push_str(&art.len().to_string());
+    }
+    fp
+}
+
+// Serve /api/now from a cached serialized payload. On a cache hit we only memcpy
+// the already-serialized bytes and wrap them into a response; the full Song
+// clone + JSON (re)serialization happens at most once per content change, not
+// once per browser poll (the default theme polls every 100–200 ms).
+fn handle_now(s: &Shared) -> warp::reply::Response {
+    let mut cache = NOW_CACHE.lock().unwrap();
+    let song_guard = s.read().unwrap();
+
+    let font_family = APP_STATE
+        .lock()
+        .ok()
+        .and_then(|app| app.config.lock().ok().map(|c| c.font_family.clone()))
+        .unwrap_or_default();
+
+    let fp = now_fingerprint(&song_guard, &font_family);
+    let hit = match &*cache {
+        Some((cached_fp, bytes)) if cached_fp == &fp => Some(bytes.clone()),
+        _ => None,
+    };
+
+    let body: Vec<u8> = match hit {
+        Some(bytes) => bytes,
+        None => {
+            let mut song = song_guard.clone();
+            song.font_family = font_family;
+            let bytes = serde_json::to_vec(&song).unwrap_or_default();
+            *cache = Some((fp, bytes.clone()));
+            bytes
+        }
+    };
+
+    let mut resp = warp::reply::Response::new(warp::hyper::Body::from(body));
+    resp.headers_mut().insert(
+        "content-type",
+        "application/json".parse().expect("content-type header"),
+    );
+    resp
 }
 
 // 单进程检测 - 跨平台实现
@@ -230,15 +310,7 @@ async fn start_server(
 
     let api = warp::path!("api" / "now")
         .and(with_state(state.clone()))
-        .map(|s: Shared| {
-            let mut song = s.read().unwrap().clone();
-            song.font_family = APP_STATE
-                .lock()
-                .ok()
-                .and_then(|app| app.config.lock().ok().map(|c| c.font_family.clone()))
-                .unwrap_or_default();
-            warp::reply::json(&song)
-        });
+        .map(|s: Shared| handle_now(&s));
 
     let theme_files = warp::path("theme")
         .and(warp::path::tail())
