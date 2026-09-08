@@ -19,7 +19,7 @@
 
 **LinuxDO 原帖子链接:** https://linux.do/t/topic/937994
 
-**[参与翻译](https://zh.crowdin.com/project/smtc2web)** **[English](./README.en.md)**
+**[English](./README.en.md)**
 
 ![OBS 接入 smtc2web 截图](./screenshot.png)
 
