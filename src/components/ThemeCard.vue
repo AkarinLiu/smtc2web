@@ -93,11 +93,11 @@ async function handleUpdate() {
 
 <style scoped>
 .theme-card {
-  background-color: var(--fluent-bg-card);
-  border-radius: var(--fluent-radius-lg);
+  background-color: var(--ui-bg-card);
+  border-radius: var(--ui-radius-lg);
   overflow: hidden;
-  box-shadow: var(--fluent-shadow-md);
-  transition: all var(--fluent-transition-normal);
+  box-shadow: var(--ui-shadow-md);
+  transition: all var(--ui-transition-normal);
   cursor: pointer;
   position: relative;
   border: 2px solid transparent;
@@ -105,18 +105,18 @@ async function handleUpdate() {
 
 .theme-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--fluent-shadow-lg);
+  box-shadow: var(--ui-shadow-lg);
 }
 
 .theme-card.active {
-  border-color: var(--fluent-accent);
+  border-color: var(--ui-accent);
 }
 
 .theme-preview {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: linear-gradient(135deg, var(--fluent-bg-secondary) 0%, var(--fluent-bg-tertiary) 100%);
+  background: linear-gradient(135deg, var(--ui-bg-secondary) 0%, var(--ui-bg-tertiary) 100%);
   overflow: hidden;
 }
 
@@ -133,9 +133,9 @@ async function handleUpdate() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--fluent-text-secondary);
+  color: var(--ui-text-secondary);
   font-size: 14px;
-  gap: var(--fluent-space-sm);
+  gap: var(--ui-space-sm);
 }
 
 .placeholder-icon {
@@ -145,11 +145,11 @@ async function handleUpdate() {
 
 .active-badge {
   position: absolute;
-  bottom: var(--fluent-space-sm);
-  left: var(--fluent-space-sm);
-  background-color: var(--fluent-success);
-  color: var(--fluent-text-on-accent);
-  padding: var(--fluent-space-xs) var(--fluent-space-sm);
+  bottom: var(--ui-space-sm);
+  left: var(--ui-space-sm);
+  background-color: var(--ui-success);
+  color: var(--ui-text-on-accent);
+  padding: var(--ui-space-xs) var(--ui-space-sm);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
@@ -173,11 +173,11 @@ async function handleUpdate() {
 
 .default-badge {
   position: absolute;
-  top: var(--fluent-space-sm);
-  left: var(--fluent-space-sm);
-  background-color: var(--fluent-accent);
-  color: var(--fluent-text-on-accent);
-  padding: var(--fluent-space-xs) var(--fluent-space-sm);
+  top: var(--ui-space-sm);
+  left: var(--ui-space-sm);
+  background-color: var(--ui-accent);
+  color: var(--ui-text-on-accent);
+  padding: var(--ui-space-xs) var(--ui-space-sm);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
@@ -185,11 +185,11 @@ async function handleUpdate() {
 
 .git-badge {
   position: absolute;
-  top: var(--fluent-space-sm);
-  right: var(--fluent-space-sm);
-  background-color: var(--fluent-accent);
-  color: var(--fluent-text-on-accent);
-  padding: var(--fluent-space-xs) var(--fluent-space-sm);
+  top: var(--ui-space-sm);
+  right: var(--ui-space-sm);
+  background-color: var(--ui-accent);
+  color: var(--ui-text-on-accent);
+  padding: var(--ui-space-xs) var(--ui-space-sm);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
@@ -200,12 +200,12 @@ async function handleUpdate() {
 
 .card-actions {
   position: absolute;
-  top: var(--fluent-space-sm);
-  left: var(--fluent-space-sm);
+  top: var(--ui-space-sm);
+  left: var(--ui-space-sm);
   display: flex;
   gap: 4px;
   opacity: 0;
-  transition: opacity var(--fluent-transition-fast);
+  transition: opacity var(--ui-transition-fast);
 }
 
 .theme-card:hover .card-actions {
@@ -215,7 +215,7 @@ async function handleUpdate() {
 .update-btn {
   width: 32px;
   height: 32px;
-  background-color: var(--fluent-success);
+  background-color: var(--ui-success);
   color: white;
   border: none;
   border-radius: 50%;
@@ -224,7 +224,7 @@ async function handleUpdate() {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform var(--fluent-transition-fast);
+  transition: transform var(--ui-transition-fast);
 }
 
 .update-btn:hover:not(:disabled) {
@@ -237,14 +237,14 @@ async function handleUpdate() {
 }
 
 .theme-info {
-  padding: var(--fluent-space-md);
+  padding: var(--ui-space-md);
 }
 
 .theme-name {
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: var(--fluent-space-xs);
-  color: var(--fluent-text-primary);
+  margin-bottom: var(--ui-space-xs);
+  color: var(--ui-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -255,7 +255,7 @@ async function handleUpdate() {
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
-  color: var(--fluent-text-secondary);
+  color: var(--ui-text-secondary);
 }
 
 .theme-author {
@@ -266,9 +266,9 @@ async function handleUpdate() {
 }
 
 .theme-version {
-  background-color: var(--fluent-bg-secondary);
+  background-color: var(--ui-bg-secondary);
   padding: 2px 8px;
-  border-radius: var(--fluent-radius-sm);
+  border-radius: var(--ui-radius-sm);
   font-size: 12px;
   font-weight: 500;
 }
@@ -276,7 +276,7 @@ async function handleUpdate() {
 .delete-btn {
   width: 32px;
   height: 32px;
-  background-color: var(--fluent-error);
+  background-color: var(--ui-error);
   color: white;
   border: none;
   border-radius: 50%;
@@ -285,7 +285,7 @@ async function handleUpdate() {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform var(--fluent-transition-fast);
+  transition: transform var(--ui-transition-fast);
 }
 
 .delete-btn:hover {

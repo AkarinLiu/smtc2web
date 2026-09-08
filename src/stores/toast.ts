@@ -26,8 +26,6 @@ export const useToastStore = defineStore('toast', () => {
   const defaultDuration = ref(5000)
 
   let toastIdCounter = 0
-  const timers = new Map<string, number>()
-
 
 
   function generateId(): string {
@@ -58,23 +56,13 @@ export const useToastStore = defineStore('toast', () => {
 
     toasts.value.push(toast)
 
-    if (duration > 0) {
-      startTimer(id, duration)
-    }
-
     return id
   }
 
   function removeToast(id: string) {
     const index = toasts.value.findIndex(t => t.id === id)
     if (index > -1) {
-      const toast = toasts.value[index]
-      // 如果是确认类型的 toast，取消时执行 onCancel 回调
-      if (toast.type === 'confirm' && toast.actions?.onCancel) {
-        toast.actions.onCancel()
-      }
       toasts.value.splice(index, 1)
-      clearTimer(id)
     }
   }
 
@@ -86,24 +74,6 @@ export const useToastStore = defineStore('toast', () => {
       }
     })
     toasts.value = []
-    timers.forEach((_, id) => clearTimer(id))
-    timers.clear()
-  }
-
-  function startTimer(id: string, duration: number) {
-    clearTimer(id)
-    const timerId = window.setTimeout(() => {
-      removeToast(id)
-    }, duration)
-    timers.set(id, timerId)
-  }
-
-  function clearTimer(id: string) {
-    const timerId = timers.get(id)
-    if (timerId) {
-      window.clearTimeout(timerId)
-      timers.delete(id)
-    }
   }
 
   function confirmToast(id: string, confirmed: boolean) {
@@ -118,7 +88,6 @@ export const useToastStore = defineStore('toast', () => {
         }
       }
       toasts.value.splice(index, 1)
-      clearTimer(id)
     }
   }
 
@@ -169,6 +138,7 @@ export const useToastStore = defineStore('toast', () => {
   return {
     toasts,
     position,
+    defaultDuration,
     addToast,
     removeToast,
     clearAll,

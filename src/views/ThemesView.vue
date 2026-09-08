@@ -118,29 +118,29 @@ async function handleGitInstall(repoUrl: string, branch: string) {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: var(--fluent-space-sm);
+    gap: var(--ui-space-sm);
 }
 
 .btn {
     padding: 10px 20px;
     border: none;
-    border-radius: var(--fluent-radius-md);
+    border-radius: var(--ui-radius-md);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all var(--fluent-transition-fast);
+    transition: all var(--ui-transition-fast);
     display: inline-flex;
     align-items: center;
-    gap: var(--fluent-space-xs);
+    gap: var(--ui-space-xs);
 }
 
 .btn-primary {
-    background-color: var(--fluent-accent);
-    color: var(--fluent-text-on-accent);
+    background-color: var(--ui-accent);
+    color: var(--ui-text-on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background-color: var(--fluent-accent-hover);
+    background-color: var(--ui-accent-hover);
 }
 
 .btn:disabled {

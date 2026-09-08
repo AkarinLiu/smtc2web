@@ -1,70 +1,86 @@
 <template>
-  <Teleport to="body">
-    <TransitionGroup
-      name="toast"
-      tag="div"
-      class="toast-container"
-      :class="position"
-    >
-      <div
+  <ToastProvider
+    :swipe-direction="'right'"
+    :duration="defaultDuration"
+    :label="'Notifications'"
+  >
+    <ToastViewport class="toast-container" :class="position">
+      <ToastRoot
         v-for="toast in toasts"
         :key="toast.id"
-        class="toast"
-        :class="[toast.type, { 
-          'has-progress': toast.duration > 0 && toast.type !== 'confirm',
-          'is-confirm': toast.type === 'confirm'
-        }]"
+        :duration="toast.duration"
+        @update:open="(v) => { if (!v) removeToast(toast.id) }"
       >
-        <div class="toast-content">
-          <div class="toast-icon">
-            <font-awesome-icon :icon="getIcon(toast.type)" />
-          </div>
-          <div class="toast-message">
-            <div v-if="toast.title" class="toast-title">{{ toast.title }}</div>
-            <div class="toast-text">{{ toast.message }}</div>
-            
-            <!-- 确认按钮组 -->
-            <div v-if="toast.type === 'confirm' && toast.actions" class="toast-actions">
-              <button 
-                class="toast-btn toast-btn-confirm" 
-                @click="confirmToast(toast.id, true)"
+        <div
+          class="toast"
+          :class="[toast.type, { 'is-confirm': toast.type === 'confirm' }]"
+        >
+          <div class="toast-content">
+            <div class="toast-icon">
+              <font-awesome-icon :icon="getIcon(toast.type)" />
+            </div>
+            <div class="toast-message">
+              <ToastTitle v-if="toast.title" class="toast-title">{{
+                toast.title
+              }}</ToastTitle>
+              <ToastDescription class="toast-text">{{
+                toast.message
+              }}</ToastDescription>
+
+              <!-- 确认按钮组 -->
+              <div
+                v-if="toast.type === 'confirm' && toast.actions"
+                class="toast-actions"
               >
-                {{ toast.actions.confirmText }}
-              </button>
-              <button 
-                class="toast-btn toast-btn-cancel" 
-                @click="confirmToast(toast.id, false)"
-              >
-                {{ toast.actions.cancelText }}
-              </button>
+                <button
+                  class="toast-btn toast-btn-confirm"
+                  @click="confirmToast(toast.id, true)"
+                >
+                  {{ toast.actions.confirmText }}
+                </button>
+                <button
+                  class="toast-btn toast-btn-cancel"
+                  @click="confirmToast(toast.id, false)"
+                >
+                  {{ toast.actions.cancelText }}
+                </button>
+              </div>
             </div>
           </div>
+
+          <ToastClose
+            v-if="toast.type !== 'confirm'"
+            class="toast-close"
+            :aria-label="'Close'"
+          >
+            <font-awesome-icon icon="times" />
+          </ToastClose>
+
+          <div
+            v-if="toast.duration > 0 && toast.type !== 'confirm'"
+            class="toast-progress"
+            :style="{ animationDuration: `${toast.duration}ms` }"
+          />
         </div>
-        
-        <button 
-          v-if="toast.type !== 'confirm'" 
-          class="toast-close" 
-          @click="removeToast(toast.id)"
-        >
-          <font-awesome-icon icon="times" />
-        </button>
-        
-        <div
-          v-if="toast.duration > 0 && toast.type !== 'confirm'"
-          class="toast-progress"
-          :style="{ animationDuration: `${toast.duration}ms` }"
-        />
-      </div>
-    </TransitionGroup>
-  </Teleport>
+      </ToastRoot>
+    </ToastViewport>
+  </ToastProvider>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import {
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastRoot,
+  ToastTitle,
+  ToastViewport,
+} from 'reka-ui'
 import { useToastStore } from '@/stores/toast'
 
 const toastStore = useToastStore()
-const { toasts, position } = storeToRefs(toastStore)
+const { toasts, position, defaultDuration } = storeToRefs(toastStore)
 const { removeToast, confirmToast } = toastStore
 
 function getIcon(type: string): string {
@@ -92,6 +108,7 @@ function getIcon(type: string): string {
   gap: 12px;
   padding: 20px;
   pointer-events: none;
+  list-style: none;
 }
 
 .toast-container.top-right {
@@ -137,29 +154,29 @@ function getIcon(type: string): string {
   min-width: 300px;
   max-width: 400px;
   padding: 16px;
-  background: var(--fluent-bg-card);
-  border-radius: var(--fluent-radius-lg);
-  box-shadow: var(--fluent-shadow-lg);
+  background: var(--ui-bg-card);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-lg);
   pointer-events: auto;
   overflow: hidden;
   border-left: 4px solid transparent;
 }
 
 .toast.success {
-  border-left-color: var(--fluent-success);
+  border-left-color: var(--ui-success);
 }
 
 .toast.error {
-  border-left-color: var(--fluent-error);
+  border-left-color: var(--ui-error);
 }
 
 .toast.warning,
 .toast.confirm {
-  border-left-color: var(--fluent-warning);
+  border-left-color: var(--ui-warning);
 }
 
 .toast.info {
-  border-left-color: var(--fluent-accent);
+  border-left-color: var(--ui-accent);
 }
 
 .toast-content {
@@ -180,20 +197,20 @@ function getIcon(type: string): string {
 }
 
 .toast.success .toast-icon {
-  color: var(--fluent-success);
+  color: var(--ui-success);
 }
 
 .toast.error .toast-icon {
-  color: var(--fluent-error);
+  color: var(--ui-error);
 }
 
 .toast.warning .toast-icon,
 .toast.confirm .toast-icon {
-  color: var(--fluent-warning);
+  color: var(--ui-warning);
 }
 
 .toast.info .toast-icon {
-  color: var(--fluent-accent);
+  color: var(--ui-accent);
 }
 
 .toast-message {
@@ -204,13 +221,13 @@ function getIcon(type: string): string {
 .toast-title {
   font-weight: 600;
   font-size: 14px;
-  color: var(--fluent-text-primary);
+  color: var(--ui-text-primary);
   margin-bottom: 4px;
 }
 
 .toast-text {
   font-size: 13px;
-  color: var(--fluent-text-secondary);
+  color: var(--ui-text-secondary);
   line-height: 1.5;
   word-wrap: break-word;
 }
@@ -224,7 +241,7 @@ function getIcon(type: string): string {
 .toast-btn {
   padding: 6px 12px;
   border: none;
-  border-radius: var(--fluent-radius-md);
+  border-radius: var(--ui-radius-md);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -232,21 +249,21 @@ function getIcon(type: string): string {
 }
 
 .toast-btn-confirm {
-  background-color: var(--fluent-error);
+  background-color: var(--ui-error);
   color: white;
 }
 
 .toast-btn-confirm:hover {
-  background-color: var(--fluent-error-hover, #d32f2f);
+  background-color: var(--ui-error-hover);
 }
 
 .toast-btn-cancel {
-  background-color: var(--fluent-bg-secondary);
-  color: var(--fluent-text-primary);
+  background-color: var(--ui-bg-secondary);
+  color: var(--ui-text-primary);
 }
 
 .toast-btn-cancel:hover {
-  background-color: var(--fluent-bg-tertiary);
+  background-color: var(--ui-bg-tertiary);
 }
 
 .toast-close {
@@ -258,16 +275,16 @@ function getIcon(type: string): string {
   padding: 0;
   background: transparent;
   border: none;
-  color: var(--fluent-text-secondary);
+  color: var(--ui-text-secondary);
   cursor: pointer;
-  border-radius: var(--fluent-radius-sm);
+  border-radius: var(--ui-radius-sm);
   transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
 .toast-close:hover {
-  background: var(--fluent-bg-secondary);
-  color: var(--fluent-text-primary);
+  background: var(--ui-bg-secondary);
+  color: var(--ui-text-primary);
 }
 
 .toast-progress {
@@ -281,19 +298,19 @@ function getIcon(type: string): string {
 }
 
 .toast.success .toast-progress {
-  background: var(--fluent-success);
+  background: var(--ui-success);
 }
 
 .toast.error .toast-progress {
-  background: var(--fluent-error);
+  background: var(--ui-error);
 }
 
 .toast.warning .toast-progress {
-  background: var(--fluent-warning);
+  background: var(--ui-warning);
 }
 
 .toast.info .toast-progress {
-  background: var(--fluent-accent);
+  background: var(--ui-accent);
 }
 
 @keyframes progress {
@@ -303,42 +320,6 @@ function getIcon(type: string): string {
   to {
     width: 0%;
   }
-}
-
-/* 过渡动画 */
-.toast-enter-active,
-.toast-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.toast-enter-from {
-  opacity: 0;
-  transform: translateX(100%);
-}
-
-.toast-leave-to {
-  opacity: 0;
-  transform: translateX(100%);
-}
-
-.toast-container.top-left .toast-enter-from,
-.toast-container.bottom-left .toast-enter-from {
-  transform: translateX(-100%);
-}
-
-.toast-container.top-left .toast-leave-to,
-.toast-container.bottom-left .toast-leave-to {
-  transform: translateX(-100%);
-}
-
-.toast-container.top-center .toast-enter-from,
-.toast-container.bottom-center .toast-enter-from {
-  transform: translateY(-20px) scale(0.9);
-}
-
-.toast-container.top-center .toast-leave-to,
-.toast-container.bottom-center .toast-leave-to {
-  transform: translateY(-20px) scale(0.9);
 }
 
 /* 响应式 */

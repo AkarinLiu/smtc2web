@@ -1,71 +1,94 @@
 :root {
-  /* FluentUI 颜色系统 */
-  --fluent-accent: #0078D4;
-  --fluent-accent-hover: #106EBE;
-  --fluent-accent-active: #005A9E;
-  --fluent-accent-foreground: #FFFFFF;
-  
+  /* 强调色 */
+  --ui-accent: #2563EB;
+  --ui-accent-hover: #1D4ED8;
+  --ui-accent-active: #1E40AF;
+  --ui-accent-foreground: #FFFFFF;
+
   /* 背景色 */
-  --fluent-bg-primary: #FFFFFF;
-  --fluent-bg-secondary: #F3F2F1;
-  --fluent-bg-tertiary: #FAF9F8;
-  --fluent-bg-card: #FFFFFF;
-  
+  --ui-bg-base: #F7F8FA;
+  --ui-bg-primary: #FFFFFF;
+  --ui-bg-secondary: #F1F3F6;
+  --ui-bg-tertiary: #E9EDF3;
+  --ui-bg-card: #FFFFFF;
+
   /* 文字色 */
-  --fluent-text-primary: #323130;
-  --fluent-text-secondary: #605E5C;
-  --fluent-text-disabled: #A19F9D;
-  --fluent-text-on-accent: #FFFFFF;
-  
+  --ui-text-primary: #17191D;
+  --ui-text-secondary: #57606A;
+  --ui-text-tertiary: #8B94A1;
+  --ui-text-disabled: #B3BAC4;
+  --ui-text-on-accent: #FFFFFF;
+
   /* 边框和分割线 */
-  --fluent-border: #E1DFDD;
-  --fluent-border-hover: #C8C6C4;
-  --fluent-border-active: #0078D4;
-  
+  --ui-border: #E3E6EB;
+  --ui-border-hover: #CCD2DB;
+  --ui-border-active: #2563EB;
+
   /* 阴影 */
-  --fluent-shadow-sm: 0 1px 2px rgba(0,0,0,0.1);
-  --fluent-shadow-md: 0 2px 4px rgba(0,0,0,0.1);
-  --fluent-shadow-lg: 0 4px 8px rgba(0,0,0,0.14);
-  
+  --ui-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --ui-shadow-md: 0 4px 12px rgba(16, 24, 40, 0.06);
+  --ui-shadow-lg: 0 16px 32px rgba(16, 24, 40, 0.12);
+
   /* 圆角 */
-  --fluent-radius-sm: 4px;
-  --fluent-radius-md: 8px;
-  --fluent-radius-lg: 12px;
-  
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 10px;
+  --ui-radius-lg: 14px;
+
   /* 间距 */
-  --fluent-space-xs: 4px;
-  --fluent-space-sm: 8px;
-  --fluent-space-md: 16px;
-  --fluent-space-lg: 24px;
-  --fluent-space-xl: 32px;
-  
+  --ui-space-xs: 4px;
+  --ui-space-sm: 8px;
+  --ui-space-md: 16px;
+  --ui-space-lg: 24px;
+  --ui-space-xl: 32px;
+
   /* 过渡动画 */
-  --fluent-transition-fast: 0.1s ease;
-  --fluent-transition-normal: 0.2s ease;
-  --fluent-transition-slow: 0.3s ease;
-  
+  --ui-transition-fast: 0.12s ease;
+  --ui-transition-normal: 0.18s ease;
+  --ui-transition-slow: 0.28s ease;
+
   /* 状态色 */
-  --fluent-success: #107C10;
-  --fluent-warning: #FFB900;
-  --fluent-error: #D13438;
+  --ui-success: #16A34A;
+  --ui-success-hover: #15803D;
+  --ui-warning: #F59E0B;
+  --ui-error: #DC2626;
+  --ui-error-hover: #B91C1C;
+
+  /* 下拉选择箭头 */
+  --ui-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%2357606A' stroke-width='2' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fluent-bg-primary: #201F1E;
-    --fluent-bg-secondary: #252423;
-    --fluent-bg-tertiary: #292827;
-    --fluent-bg-card: #323130;
-    
-    --fluent-text-primary: #FFFFFF;
-    --fluent-text-secondary: #C8C6C4;
-    --fluent-text-disabled: #797775;
-    
-    --fluent-border: #605E5C;
-    --fluent-border-hover: #797775;
-    
-    --fluent-shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-    --fluent-shadow-md: 0 2px 4px rgba(0,0,0,0.4);
-    --fluent-shadow-lg: 0 4px 8px rgba(0,0,0,0.5);
+    --ui-accent: #6C93F0;
+    --ui-accent-hover: #85A8F5;
+    --ui-accent-active: #5A83E2;
+    --ui-accent-foreground: #FFFFFF;
+
+    --ui-bg-base: #0E1013;
+    --ui-bg-primary: #1A1D22;
+    --ui-bg-secondary: #21252B;
+    --ui-bg-tertiary: #2A2F37;
+    --ui-bg-card: #1E2228;
+
+    --ui-text-primary: #F2F4F7;
+    --ui-text-secondary: #A2ACB8;
+    --ui-text-tertiary: #79828F;
+    --ui-text-disabled: #5A626E;
+
+    --ui-border: #2E343D;
+    --ui-border-hover: #424A56;
+    --ui-border-active: #6C93F0;
+
+    --ui-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
+    --ui-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.40);
+    --ui-shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.55);
+
+    --ui-success: #2FCC6E;
+    --ui-success-hover: #28B25E;
+    --ui-warning: #F7B500;
+    --ui-error: #F2635F;
+    --ui-error-hover: #E14F4B;
+
+    --ui-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%23A2ACB8' stroke-width='2' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
   }
 }

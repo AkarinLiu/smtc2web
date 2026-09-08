@@ -32,8 +32,8 @@ const { t } = useI18n();
     gap: 4px;
     padding: 0 16px;
     height: 44px;
-    background-color: var(--fluent-bg-primary);
-    border-bottom: 1px solid var(--fluent-border);
+    background-color: var(--ui-bg-primary);
+    border-bottom: 1px solid var(--ui-border);
     flex-shrink: 0;
     user-select: none;
     -webkit-user-select: none;
@@ -47,23 +47,29 @@ const { t } = useI18n();
     height: 32px;
     border: none;
     background: transparent;
-    color: var(--fluent-text-secondary);
+    color: var(--ui-text-secondary);
     font-size: 13px;
     font-weight: 500;
     text-decoration: none;
-    border-radius: var(--fluent-radius-md);
-    transition: all var(--fluent-transition-fast);
+    border-radius: var(--ui-radius-md);
+    transition: all var(--ui-transition-fast);
     cursor: pointer;
 }
 
 .navbar-tab:hover {
-    background-color: var(--fluent-bg-secondary);
-    color: var(--fluent-text-primary);
+    background-color: var(--ui-bg-secondary);
+    color: var(--ui-text-primary);
 }
 
 .navbar-tab.active {
-    color: var(--fluent-accent);
-    background-color: rgba(0, 120, 212, 0.08);
+    color: var(--ui-accent);
+    background-color: rgba(37, 99, 235, 0.10);
+}
+
+@media (prefers-color-scheme: dark) {
+    .navbar-tab.active {
+        background-color: rgba(108, 147, 240, 0.16);
+    }
 }
 
 .tab-icon {

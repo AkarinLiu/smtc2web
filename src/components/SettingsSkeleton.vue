@@ -23,18 +23,18 @@ withDefaults(defineProps<Props>(), {
 .settings-skeleton {
   display: flex;
   flex-direction: column;
-  gap: var(--fluent-space-lg);
+  gap: var(--ui-space-lg);
   max-width: 600px;
 }
 
 .skeleton-section {
-  background-color: var(--fluent-bg-card);
-  border-radius: var(--fluent-radius-lg);
-  padding: var(--fluent-space-lg);
-  box-shadow: var(--fluent-shadow-md);
+  background-color: var(--ui-bg-card);
+  border-radius: var(--ui-radius-lg);
+  padding: var(--ui-space-lg);
+  box-shadow: var(--ui-shadow-md);
   display: flex;
   flex-direction: column;
-  gap: var(--fluent-space-md);
+  gap: var(--ui-space-md);
 }
 
 .skeleton-header {
@@ -42,13 +42,13 @@ withDefaults(defineProps<Props>(), {
   width: 40%;
   background: linear-gradient(
     90deg,
-    var(--fluent-bg-secondary) 25%,
-    var(--fluent-bg-tertiary) 50%,
-    var(--fluent-bg-secondary) 75%
+    var(--ui-bg-secondary) 25%,
+    var(--ui-bg-tertiary) 50%,
+    var(--ui-bg-secondary) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: var(--fluent-radius-sm);
+  border-radius: var(--ui-radius-sm);
 }
 
 .skeleton-input {
@@ -56,13 +56,13 @@ withDefaults(defineProps<Props>(), {
   width: 100%;
   background: linear-gradient(
     90deg,
-    var(--fluent-bg-secondary) 25%,
-    var(--fluent-bg-tertiary) 50%,
-    var(--fluent-bg-secondary) 75%
+    var(--ui-bg-secondary) 25%,
+    var(--ui-bg-tertiary) 50%,
+    var(--ui-bg-secondary) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: var(--fluent-radius-md);
+  border-radius: var(--ui-radius-md);
 }
 
 @keyframes shimmer {

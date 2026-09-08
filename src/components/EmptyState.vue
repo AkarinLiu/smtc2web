@@ -20,12 +20,12 @@ defineProps<Props>()
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: var(--fluent-text-secondary);
+  color: var(--ui-text-secondary);
 }
 
 .empty-icon {
   font-size: 48px;
-  margin-bottom: var(--fluent-space-md);
+  margin-bottom: var(--ui-space-md);
   opacity: 0.6;
   display: flex;
   justify-content: center;
@@ -34,12 +34,12 @@ defineProps<Props>()
 .empty-title {
   font-size: 18px;
   font-weight: 600;
-  margin-bottom: var(--fluent-space-sm);
-  color: var(--fluent-text-primary);
+  margin-bottom: var(--ui-space-sm);
+  color: var(--ui-text-primary);
 }
 
 .empty-description {
   font-size: 14px;
-  color: var(--fluent-text-secondary);
+  color: var(--ui-text-secondary);
 }
 </style>

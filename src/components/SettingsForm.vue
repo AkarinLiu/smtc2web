@@ -53,7 +53,10 @@
 
             <div class="form-group">
                 <label>{{ t("settings.update.source.label") }}</label>
-                <select v-model="localConfig.update_source" class="form-input">
+                <select
+                    v-model="localConfig.update_source"
+                    class="form-input select-trigger"
+                >
                     <option value="github">GitHub</option>
                     <option value="official">
                         {{ t("settings.update.source.official") }}
@@ -64,11 +67,15 @@
 
             <div class="form-group">
                 <label class="checkbox-label">
-                    <input
-                        type="checkbox"
+                    <CheckboxRoot
                         v-model="localConfig.auto_check_update"
-                    />
-                    {{ t("settings.update.autoCheck") }}
+                        class="checkbox-box"
+                    >
+                        <CheckboxIndicator class="checkbox-indicator">
+                            <font-awesome-icon icon="check" />
+                        </CheckboxIndicator>
+                    </CheckboxRoot>
+                    <span>{{ t("settings.update.autoCheck") }}</span>
                 </label>
                 <p class="hint">{{ t("settings.update.autoCheckHint") }}</p>
             </div>
@@ -102,8 +109,15 @@
 
             <div class="form-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" v-model="localConfig.minimize_to_tray" />
-                    {{ t("settings.system.minimizeToTray") }}
+                    <CheckboxRoot
+                        v-model="localConfig.minimize_to_tray"
+                        class="checkbox-box"
+                    >
+                        <CheckboxIndicator class="checkbox-indicator">
+                            <font-awesome-icon icon="check" />
+                        </CheckboxIndicator>
+                    </CheckboxRoot>
+                    <span>{{ t("settings.system.minimizeToTray") }}</span>
                 </label>
                 <p class="hint">{{ t("settings.system.minimizeToTrayHint") }}</p>
             </div>
@@ -160,6 +174,10 @@
 <script setup lang="ts">
 import { reactive, ref, watch, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
+import {
+  CheckboxIndicator,
+  CheckboxRoot,
+} from "reka-ui";
 import LanguageSelector from "./LanguageSelector.vue";
 import type { AppConfig } from "@/types/config";
 import { useUpdateStore, type UpdateCheckResult } from "@/stores/update";
@@ -249,39 +267,39 @@ onMounted(() => {
 
 <style scoped>
 .settings-form {
-    background-color: var(--fluent-bg-card);
-    padding: var(--fluent-space-lg);
-    border-radius: var(--fluent-radius-lg);
-    box-shadow: var(--fluent-shadow-md);
+    background-color: var(--ui-bg-card);
+    padding: var(--ui-space-lg);
+    border-radius: var(--ui-radius-lg);
+    box-shadow: var(--ui-shadow-md);
     max-width: 720px;
 }
 
 .form-group {
-    margin-bottom: var(--fluent-space-lg);
+    margin-bottom: var(--ui-space-lg);
 }
 
 .form-group label {
     display: block;
     font-size: 14px;
     font-weight: 600;
-    margin-bottom: var(--fluent-space-sm);
-    color: var(--fluent-text-primary);
+    margin-bottom: var(--ui-space-sm);
+    color: var(--ui-text-primary);
 }
 
 .form-input {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid var(--fluent-border);
-    border-radius: var(--fluent-radius-md);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-md);
     font-size: 14px;
-    background-color: var(--fluent-bg-primary);
-    color: var(--fluent-text-primary);
-    transition: border-color var(--fluent-transition-fast);
+    background-color: var(--ui-bg-primary);
+    color: var(--ui-text-primary);
+    transition: border-color var(--ui-transition-fast);
 }
 
 .form-input:focus {
     outline: none;
-    border-color: var(--fluent-accent);
+    border-color: var(--ui-accent);
 }
 
 .form-textarea {
@@ -291,76 +309,112 @@ onMounted(() => {
 }
 
 .checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: var(--fluent-space-sm);
-    cursor: pointer;
-    font-weight: 500 !important;
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-sm);
+  cursor: pointer;
+  font-weight: 500 !important;
 }
 
-.checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: var(--fluent-accent);
+.checkbox-box {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  background-color: var(--ui-bg-primary);
+  color: var(--ui-text-on-accent);
+  cursor: pointer;
+  transition: background-color var(--ui-transition-fast),
+    border-color var(--ui-transition-fast);
+}
+
+.checkbox-box[data-state='checked'] {
+  background-color: var(--ui-accent);
+  border-color: var(--ui-accent);
+}
+
+.checkbox-box:focus {
+  outline: none;
+  border-color: var(--ui-accent);
+}
+
+.checkbox-indicator {
+  display: flex;
+  font-size: 12px;
+}
+
+.select-trigger {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding-right: 32px;
+  cursor: pointer;
+  text-align: left;
+  background-image: var(--ui-select-chevron);
+  background-repeat: no-repeat;
+  background-position: right 12px center;
 }
 
 .hint {
     font-size: 12px;
-    color: var(--fluent-text-secondary);
-    margin-top: var(--fluent-space-xs);
+    color: var(--ui-text-secondary);
+    margin-top: var(--ui-space-xs);
 }
 
 .current-app {
-    margin-top: var(--fluent-space-sm);
-    padding: var(--fluent-space-sm) var(--fluent-space-md);
-    background-color: var(--fluent-bg-secondary);
-    border-radius: var(--fluent-radius-md);
+    margin-top: var(--ui-space-sm);
+    padding: var(--ui-space-sm) var(--ui-space-md);
+    background-color: var(--ui-bg-secondary);
+    border-radius: var(--ui-radius-md);
     display: flex;
     align-items: center;
-    gap: var(--fluent-space-sm);
+    gap: var(--ui-space-sm);
 }
 
 .current-app-label {
     font-size: 12px;
-    color: var(--fluent-text-secondary);
+    color: var(--ui-text-secondary);
 }
 
 .current-app-value {
     font-size: 13px;
     font-family: monospace;
-    color: var(--fluent-text-primary);
-    background-color: var(--fluent-bg-primary);
+    color: var(--ui-text-primary);
+    background-color: var(--ui-bg-primary);
     padding: 2px 8px;
-    border-radius: var(--fluent-radius-sm);
+    border-radius: var(--ui-radius-sm);
 }
 
 .form-actions {
-    margin-top: var(--fluent-space-lg);
-    padding-top: var(--fluent-space-lg);
-    border-top: 1px solid var(--fluent-border);
+    margin-top: var(--ui-space-lg);
+    padding-top: var(--ui-space-lg);
+    border-top: 1px solid var(--ui-border);
 }
 
 .btn {
     padding: 10px 24px;
     border: none;
-    border-radius: var(--fluent-radius-md);
+    border-radius: var(--ui-radius-md);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all var(--fluent-transition-fast);
+    transition: all var(--ui-transition-fast);
     display: inline-flex;
     align-items: center;
-    gap: var(--fluent-space-xs);
+    gap: var(--ui-space-xs);
 }
 
 .btn-primary {
-    background-color: var(--fluent-accent);
-    color: var(--fluent-text-on-accent);
+    background-color: var(--ui-accent);
+    color: var(--ui-text-on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background-color: var(--fluent-accent-hover);
+    background-color: var(--ui-accent-hover);
 }
 
 .btn:disabled {
@@ -369,38 +423,38 @@ onMounted(() => {
 }
 
 .btn-secondary {
-    background-color: var(--fluent-bg-secondary);
-    color: var(--fluent-text-primary);
-    border: 1px solid var(--fluent-border);
+    background-color: var(--ui-bg-secondary);
+    color: var(--ui-text-primary);
+    border: 1px solid var(--ui-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background-color: var(--fluent-bg-primary);
-    border-color: var(--fluent-accent);
+    background-color: var(--ui-bg-primary);
+    border-color: var(--ui-accent);
 }
 
 .form-section {
-    margin-top: var(--fluent-space-lg);
-    padding-top: var(--fluent-space-lg);
-    border-top: 1px solid var(--fluent-border);
+    margin-top: var(--ui-space-lg);
+    padding-top: var(--ui-space-lg);
+    border-top: 1px solid var(--ui-border);
 }
 
 .section-title {
     font-size: 16px;
     font-weight: 700;
-    margin-bottom: var(--fluent-space-lg);
-    color: var(--fluent-text-primary);
+    margin-bottom: var(--ui-space-lg);
+    color: var(--ui-text-primary);
 }
 
 .update-status {
     display: inline-block;
-    margin-left: var(--fluent-space-md);
+    margin-left: var(--ui-space-md);
     font-size: 13px;
-    color: var(--fluent-text-secondary);
+    color: var(--ui-text-secondary);
 }
 
 .update-status.has-update {
-    color: var(--fluent-accent);
+    color: var(--ui-accent);
     font-weight: 600;
 }
 
@@ -414,7 +468,7 @@ onMounted(() => {
 
 .font-scan-hint {
     font-size: 11px;
-    color: var(--fluent-text-secondary);
+    color: var(--ui-text-secondary);
     margin-top: 4px;
 }
 </style>

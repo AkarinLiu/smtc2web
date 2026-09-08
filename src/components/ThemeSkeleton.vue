@@ -24,14 +24,14 @@ withDefaults(defineProps<Props>(), {
 .skeleton-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--fluent-space-lg);
+  gap: var(--ui-space-lg);
 }
 
 .skeleton-card {
-  background-color: var(--fluent-bg-card);
-  border-radius: var(--fluent-radius-lg);
+  background-color: var(--ui-bg-card);
+  border-radius: var(--ui-radius-lg);
   overflow: hidden;
-  box-shadow: var(--fluent-shadow-md);
+  box-shadow: var(--ui-shadow-md);
 }
 
 .skeleton-preview {
@@ -39,19 +39,19 @@ withDefaults(defineProps<Props>(), {
   aspect-ratio: 16 / 9;
   background: linear-gradient(
     90deg,
-    var(--fluent-bg-secondary) 25%,
-    var(--fluent-bg-tertiary) 50%,
-    var(--fluent-bg-secondary) 75%
+    var(--ui-bg-secondary) 25%,
+    var(--ui-bg-tertiary) 50%,
+    var(--ui-bg-secondary) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
 .skeleton-info {
-  padding: var(--fluent-space-md);
+  padding: var(--ui-space-md);
   display: flex;
   flex-direction: column;
-  gap: var(--fluent-space-sm);
+  gap: var(--ui-space-sm);
 }
 
 .skeleton-title {
@@ -59,13 +59,13 @@ withDefaults(defineProps<Props>(), {
   width: 70%;
   background: linear-gradient(
     90deg,
-    var(--fluent-bg-secondary) 25%,
-    var(--fluent-bg-tertiary) 50%,
-    var(--fluent-bg-secondary) 75%
+    var(--ui-bg-secondary) 25%,
+    var(--ui-bg-tertiary) 50%,
+    var(--ui-bg-secondary) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: var(--fluent-radius-sm);
+  border-radius: var(--ui-radius-sm);
 }
 
 .skeleton-meta {
@@ -73,13 +73,13 @@ withDefaults(defineProps<Props>(), {
   width: 50%;
   background: linear-gradient(
     90deg,
-    var(--fluent-bg-secondary) 25%,
-    var(--fluent-bg-tertiary) 50%,
-    var(--fluent-bg-secondary) 75%
+    var(--ui-bg-secondary) 25%,
+    var(--ui-bg-tertiary) 50%,
+    var(--ui-bg-secondary) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: var(--fluent-radius-sm);
+  border-radius: var(--ui-radius-sm);
 }
 
 @keyframes shimmer {
@@ -94,7 +94,7 @@ withDefaults(defineProps<Props>(), {
 @media (max-width: 768px) {
   .skeleton-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: var(--fluent-space-md);
+    gap: var(--ui-space-md);
   }
 }
 

@@ -35,13 +35,13 @@ const themeStore = useThemeStore()
 .themes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--fluent-space-lg);
+  gap: var(--ui-space-lg);
 }
 
 @media (max-width: 768px) {
   .themes-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: var(--fluent-space-md);
+    gap: var(--ui-space-md);
   }
 }
 
